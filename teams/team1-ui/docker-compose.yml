@@ -1,0 +1,58 @@
+version: '3.8'
+
+services:
+  # UI Service
+  ui:
+    build: .
+    ports:
+      - "3000:80"
+    environment:
+      - REACT_APP_API_BASE_URL=http://localhost:3000
+      - REACT_APP_MOCK_MODE=true
+    volumes:
+      - ./src:/app/src:ro
+    depends_on:
+      - mock-api
+    networks:
+      - ui-network
+
+  # Mock API Service (for development)
+  mock-api:
+    image: mockserver/mockserver:latest
+    ports:
+      - "8080:1080"
+    environment:
+      MOCKSERVER_INITIALIZATION_JSON_PATH: /config/mock-api.json
+    volumes:
+      - ./mock-api.json:/config/mock-api.json:ro
+    networks:
+      - ui-network
+
+  # Mock Database (for development)
+  mock-db:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_DB: nvidia_cloud
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: password
+    ports:
+      - "5432:5432"
+    volumes:
+      - mock-db-data:/var/lib/postgresql/data
+    networks:
+      - ui-network
+
+  # Mock Redis (for development)
+  mock-redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    networks:
+      - ui-network
+
+networks:
+  ui-network:
+    driver: bridge
+
+volumes:
+  mock-db-data: 

@@ -1,6 +1,9 @@
-from fastapi import FastAPI, HTTPException
-from pydantic import BaseModel
+from fastapi import APIRouter
 
-app = FastAPI(title="Orchestrator API")
+router = APIRouter(prefix="/images", tags=["images"])
 
-class ImageCreate(BaseModel):
+@router.get("/")
+def get_images():
+    return {"message": "Hello, World!"}
+
+

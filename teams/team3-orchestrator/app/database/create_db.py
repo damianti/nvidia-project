@@ -16,13 +16,13 @@ DB_NAME = os.getenv("DB_NAME", "orchestrator")
 def create_database():
     """Create the database if it doesn't exist"""
     try:
-        # Connect to PostgreSQL (without specifying database)
+        
         conn = psycopg2.connect(
             user=DB_USER,
             password=DB_PASSWORD,
             host=DB_HOST,
             port=DB_PORT,
-            database="postgres"  # Default database
+            database="postgres"  
         )
         conn.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
         cursor = conn.cursor()

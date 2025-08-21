@@ -16,14 +16,20 @@ router = APIRouter(prefix="/images", tags=["images"])
 async def create_image(image: ImageCreate, db: Session = Depends(get_db)):
     """Register a new Docker image"""
     try:
-        # Verify image exists in Docker
+        # Verify image exists in Docker, download if not found
         try:
             docker_image = docker_client.images.get(f"{image.name}:{image.tag}")
         except DockerException:
-            raise HTTPException(
-                status_code=404,
-                detail=f"Image {image.name}:{image.tag} not found in Docker"
-            )
+            # Try to pull the image from Docker Hub
+            try:
+                print(f"Downloading image {image.name}:{image.tag} from Docker Hub...")
+                docker_image = docker_client.images.pull(f"{image.name}:{image.tag}")
+                print(f"Successfully downloaded {image.name}:{image.tag}")
+            except DockerException as pull_error:
+                raise HTTPException(
+                    status_code=404,
+                    detail=f"Image {image.name}:{image.tag} not found in Docker Hub: {str(pull_error)}"
+                )
         
         # Create image record
         db_image = Image(

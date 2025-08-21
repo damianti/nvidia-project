@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 
-const ORCHESTRATOR_URL = process.env.ORCHESTRATOR_URL || 'http://localhost:8000'
+const ORCHESTRATOR_URL = process.env.ORCHESTRATOR_URL || 'http://localhost:3003'
 
 // Helper function to get auth token from cookies
 function getAuthToken(request: NextRequest): string | null {

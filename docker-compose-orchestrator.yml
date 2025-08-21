@@ -1,0 +1,94 @@
+version: '3.8'
+
+services:
+  # Database para el Orchestrator (configuración específica)
+  postgres-orchestrator:
+    image: postgres:15-alpine
+    container_name: nvidia-postgres-orchestrator
+    environment:
+      POSTGRES_DB: orchestrator
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_orchestrator_data:/var/lib/postgresql/data
+    networks:
+      - nvidia-orchestrator-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d orchestrator"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Redis para el Orchestrator
+  redis-orchestrator:
+    image: redis:7-alpine
+    container_name: nvidia-redis-orchestrator
+    ports:
+      - "6380:6379"
+    volumes:
+      - redis_orchestrator_data:/data
+    networks:
+      - nvidia-orchestrator-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Team 3 - Orchestrator Service
+  team3-orchestrator:
+    build:
+      context: ./teams/team3-orchestrator
+      dockerfile: Dockerfile
+    container_name: nvidia-team3-orchestrator
+    ports:
+      - "3003:8000"
+    environment:
+      PYTHONPATH: /app
+      DB_USER: postgres
+      DB_PASSWORD: postgres
+      DB_HOST: postgres-orchestrator
+      DB_PORT: 5432
+      DB_NAME: orchestrator
+      REDIS_URL: redis://redis-orchestrator:6379
+      DOCKER_HOST: unix:///var/run/docker.sock
+      LOG_LEVEL: info
+    volumes:
+      - ./teams/team3-orchestrator:/app
+      - /var/run/docker.sock:/var/run/docker.sock
+    networks:
+      - nvidia-orchestrator-network
+    depends_on:
+      postgres-orchestrator:
+        condition: service_healthy
+      redis-orchestrator:
+        condition: service_healthy
+    user: root
+
+  # Herramienta de administración de base de datos
+  adminer-orchestrator:
+    image: adminer:latest
+    container_name: nvidia-adminer-orchestrator
+    ports:
+      - "8083:8080"
+    environment:
+      ADMINER_DEFAULT_SERVER: postgres-orchestrator
+    networks:
+      - nvidia-orchestrator-network
+    depends_on:
+      - postgres-orchestrator
+
+volumes:
+  postgres_orchestrator_data:
+    driver: local
+  redis_orchestrator_data:
+    driver: local
+
+networks:
+  nvidia-orchestrator-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.24.0.0/16

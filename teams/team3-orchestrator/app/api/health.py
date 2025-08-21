@@ -14,7 +14,8 @@ async def health_check():
     try:
         # Check database connection
         db = next(get_db())
-        db.execute("SELECT 1")
+        from sqlalchemy import text
+        db.execute(text("SELECT 1"))
         
         # Check Docker connection
         docker_client.ping()

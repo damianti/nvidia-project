@@ -3,8 +3,10 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { imageService, Image, CreateImageRequest } from '../services/imageService'
+import { useAuth } from '../contexts/AuthContext'
 
 export default function ImagesPage() {
+  const { user } = useAuth()
   const [images, setImages] = useState<Image[]>([])
   const [loading, setLoading] = useState(true)
   const [showUploadForm, setShowUploadForm] = useState(false)
@@ -16,7 +18,8 @@ export default function ImagesPage() {
     min_instances: 1,
     max_instances: 3,
     cpu_limit: '0.5',
-    memory_limit: '512m'
+    memory_limit: '512m',
+    user_id: 0
   })
 
   // Fetch images on component mount
@@ -40,12 +43,22 @@ export default function ImagesPage() {
 
   const handleUpload = async (e: React.FormEvent) => {
     e.preventDefault()
+    
+    if (!user) {
+      setError('You must be logged in to upload images')
+      return
+    }
+    
     setUploadLoading(true)
     setError('')
     
     try {
-      // Create the image using the service
-      const newImage = await imageService.createImage(uploadForm)
+      // Create the image using the service with user_id
+      const imageData = {
+        ...uploadForm,
+        user_id: user.id
+      }
+      const newImage = await imageService.createImage(imageData)
       
       // Add the new image to the list
       setImages(prevImages => [newImage, ...prevImages])
@@ -57,7 +70,8 @@ export default function ImagesPage() {
         min_instances: 1,
         max_instances: 3,
         cpu_limit: '0.5',
-        memory_limit: '512m'
+        memory_limit: '512m',
+        user_id: 0
       })
       setShowUploadForm(false)
       

@@ -7,6 +7,7 @@ from app.api.health import router as health_router
 from app.api.users import router as users_router
 from app.api.images import router as images_router
 from app.api.containers import router as containers_router
+from app.api.auth import router as auth_router
 
 app = FastAPI(
     title="Orchestrator API",
@@ -17,6 +18,7 @@ app.include_router(health_router)
 app.include_router(users_router)
 app.include_router(images_router)
 app.include_router(containers_router)
+app.include_router(auth_router)
 
 
 @app.get("/")

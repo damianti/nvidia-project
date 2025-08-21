@@ -18,6 +18,7 @@ export interface CreateImageRequest {
   max_instances: number
   cpu_limit: string
   memory_limit: string
+  user_id: number
 }
 
 export interface UpdateImageRequest extends Partial<CreateImageRequest> {}

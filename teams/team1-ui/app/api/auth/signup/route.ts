@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 
-const ORCHESTRATOR_URL = process.env.ORCHESTRATOR_URL || 'http://localhost:8000'
+const ORCHESTRATOR_URL = process.env.ORCHESTRATOR_URL || 'http://localhost:3003'
 
 export async function POST(request: NextRequest) {
   try {

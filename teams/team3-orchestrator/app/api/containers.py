@@ -39,14 +39,14 @@ async def create_containers(
         
         for i in range(container_request.count):
             try:
-                # Assign dynamic port
-                port = 3000 + current_containers + i
+                # Assign dynamic port (starting from 4000 to avoid conflicts with UI)
+                port = 4000 + current_containers + i
                 
                 # Create container
                 container = docker_client.containers.run(
                     image=f"{image.name}:{image.tag}",
                     name=f"{image.name}-{image.tag}-{current_containers + i}",
-                    ports={'3000/tcp': port},
+                    ports={'80/tcp': port},  # Most web servers listen on port 80
                     detach=True,
                     environment={
                         'SERVICE_NAME': f"{image.name}-{image.tag}",

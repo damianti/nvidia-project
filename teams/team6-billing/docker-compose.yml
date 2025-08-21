@@ -1,0 +1,63 @@
+version: '3.8'
+
+services:
+  postgres-billing:
+    image: postgres:15
+    container_name: postgres-billing
+    environment:
+      POSTGRES_DB: billing_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+    ports:
+      - "5434:5432"
+    volumes:
+      - postgres_billing_data:/var/lib/postgresql/data
+    networks:
+      - nvidia-billing-network
+
+  redis-billing:
+    image: redis:7-alpine
+    container_name: redis-billing
+    ports:
+      - "6381:6379"
+    networks:
+      - nvidia-billing-network
+
+  adminer-billing:
+    image: adminer:latest
+    container_name: adminer-billing
+    ports:
+      - "8084:8080"
+    depends_on:
+      - postgres-billing
+    networks:
+      - nvidia-billing-network
+
+  team6-billing:
+    build: .
+    container_name: team6-billing
+    ports:
+      - "3004:8000"
+    environment:
+      - DATABASE_URL=postgresql://postgres:password@postgres-billing:5432/billing_db
+      - JWT_SECRET_KEY=your-secret-key-change-in-production
+      - REDIS_URL=redis://redis-billing:6379
+    depends_on:
+      - postgres-billing
+      - redis-billing
+    networks:
+      - nvidia-billing-network
+
+volumes:
+  postgres_billing_data:
+
+networks:
+  nvidia-billing-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.25.0.0/16
+
+
+
+

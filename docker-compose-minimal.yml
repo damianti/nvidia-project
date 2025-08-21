@@ -1,0 +1,111 @@
+version: '3.8'
+
+services:
+  # Database (requerido por el orchestrator)
+  postgres:
+    image: postgres:15-alpine
+    container_name: nvidia-postgres-minimal
+    environment:
+      POSTGRES_DB: nvidia_cloud
+      POSTGRES_USER: nvidia_user
+      POSTGRES_PASSWORD: nvidia_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./infrastructure/databases/init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - nvidia-minimal-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U nvidia_user -d nvidia_cloud"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Redis (para comunicación entre servicios)
+  redis:
+    image: redis:7-alpine
+    container_name: nvidia-redis-minimal
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - nvidia-minimal-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Team 3 - Orchestrator Service
+  team3-orchestrator:
+    build:
+      context: ./teams/team3-orchestrator
+      dockerfile: Dockerfile
+    container_name: nvidia-team3-orchestrator
+    ports:
+      - "3003:8000"
+    environment:
+      PYTHONPATH: /app
+      DATABASE_URL: postgresql://nvidia_user:nvidia_password@postgres:5432/nvidia_cloud
+      REDIS_URL: redis://redis:6379
+      DOCKER_HOST: unix:///var/run/docker.sock
+      LOG_LEVEL: info
+    volumes:
+      - ./teams/team3-orchestrator:/app
+      - /var/run/docker.sock:/var/run/docker.sock
+    networks:
+      - nvidia-minimal-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  # Team 1 - UI Service
+  team1-ui:
+    build:
+      context: ./teams/team1-ui
+      dockerfile: Dockerfile
+    container_name: nvidia-team1-ui
+    ports:
+      - "3001:3000"
+    environment:
+      NODE_ENV: development
+      REACT_APP_API_URL: http://localhost:3003
+      REACT_APP_ORCHESTRATOR_URL: http://team3-orchestrator:3000
+      REACT_APP_MOCK_MODE: false
+    volumes:
+      - ./teams/team1-ui:/app
+      - /app/node_modules
+    networks:
+      - nvidia-minimal-network
+    depends_on:
+      - team3-orchestrator
+
+  # Herramienta de administración de base de datos (opcional)
+  adminer:
+    image: adminer:latest
+    container_name: nvidia-adminer-minimal
+    ports:
+      - "8082:8080"
+    environment:
+      ADMINER_DEFAULT_SERVER: postgres
+    networks:
+      - nvidia-minimal-network
+    depends_on:
+      - postgres
+
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+
+networks:
+  nvidia-minimal-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16

@@ -1,0 +1,48 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+rule_files:
+  # - "first_rules.yml"
+  # - "second_rules.yml"
+
+scrape_configs:
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+
+  - job_name: 'orchestrator'
+    static_configs:
+      - targets: ['orchestrator:8000']
+    metrics_path: '/metrics'
+    scrape_interval: 10s
+
+  - job_name: 'load-balancer'
+    static_configs:
+      - targets: ['load-balancer:8080']
+    metrics_path: '/metrics'
+    scrape_interval: 10s
+
+  - job_name: 'ui'
+    static_configs:
+      - targets: ['ui:3002']
+    metrics_path: '/api/metrics'
+    scrape_interval: 10s
+
+  - job_name: 'billing'
+    static_configs:
+      - targets: ['billing:8001']
+    metrics_path: '/metrics'
+    scrape_interval: 10s
+
+  - job_name: 'workload'
+    static_configs:
+      - targets: ['workload:8002']
+    metrics_path: '/metrics'
+    scrape_interval: 10s
+
+  - job_name: 'service-discovery'
+    static_configs:
+      - targets: ['service-discovery:8003']
+    metrics_path: '/metrics'
+    scrape_interval: 10s 

@@ -1,0 +1,25 @@
+{
+  "name": "team2-load-balancer",
+  "version": "1.0.0",
+  "description": "Build a high-performance load balancer that acts as the API Gateway for the cloud platform, distributing requests across multiple service instances based on health and availability.",
+  "main": "index.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "nodemon src/server.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "axios": "^1.11.0",
+    "cors": "^2.8.5",
+    "express": "^4.18.2",
+    "helmet": "^8.1.0",
+    "morgan": "^1.10.1"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.10"
+  }
+}

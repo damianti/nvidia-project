@@ -1,0 +1,137 @@
+[
+  {
+    "httpRequest": {
+      "method": "GET",
+      "path": "/api/images"
+    },
+    "httpResponse": {
+      "statusCode": 200,
+      "headers": {
+        "Content-Type": ["application/json"]
+      },
+      "body": {
+        "success": true,
+        "data": [
+          {
+            "id": "1",
+            "name": "nginx",
+            "tag": "latest",
+            "size": "133MB",
+            "createdAt": "2024-01-15T10:30:00Z",
+            "status": "active",
+            "instances": [
+              {
+                "id": "1",
+                "imageId": "1",
+                "status": "running",
+                "port": 8080,
+                "cpu": 25,
+                "memory": 512,
+                "createdAt": "2024-01-15T10:30:00Z",
+                "lastHealthCheck": "2024-01-15T12:00:00Z"
+              }
+            ],
+            "metrics": {
+              "requestsPerSecond": 150,
+              "averageResponseTime": 45,
+              "totalRequests": 125000,
+              "errorRate": 0.5,
+              "cpuUsage": 55,
+              "memoryUsage": 70
+            },
+            "cost": 12.50
+          }
+        ]
+      }
+    }
+  },
+  {
+    "httpRequest": {
+      "method": "POST",
+      "path": "/api/images/upload"
+    },
+    "httpResponse": {
+      "statusCode": 200,
+      "headers": {
+        "Content-Type": ["application/json"]
+      },
+      "body": {
+        "success": true,
+        "data": {
+          "id": "new-image-id",
+          "message": "Image uploaded successfully"
+        }
+      }
+    }
+  },
+  {
+    "httpRequest": {
+      "method": "POST",
+      "path": "/api/images/.*/start"
+    },
+    "httpResponse": {
+      "statusCode": 200,
+      "headers": {
+        "Content-Type": ["application/json"]
+      },
+      "body": {
+        "success": true,
+        "message": "Image started successfully"
+      }
+    }
+  },
+  {
+    "httpRequest": {
+      "method": "POST",
+      "path": "/api/images/.*/stop"
+    },
+    "httpResponse": {
+      "statusCode": 200,
+      "headers": {
+        "Content-Type": ["application/json"]
+      },
+      "body": {
+        "success": true,
+        "message": "Image stopped successfully"
+      }
+    }
+  },
+  {
+    "httpRequest": {
+      "method": "POST",
+      "path": "/api/images/.*/scale"
+    },
+    "httpResponse": {
+      "statusCode": 200,
+      "headers": {
+        "Content-Type": ["application/json"]
+      },
+      "body": {
+        "success": true,
+        "message": "Scaling applied successfully"
+      }
+    }
+  },
+  {
+    "httpRequest": {
+      "method": "GET",
+      "path": "/api/metrics"
+    },
+    "httpResponse": {
+      "statusCode": 200,
+      "headers": {
+        "Content-Type": ["application/json"]
+      },
+      "body": {
+        "success": true,
+        "data": {
+          "totalImages": 3,
+          "activeImages": 2,
+          "totalInstances": 3,
+          "totalCost": 21.25,
+          "totalRequests": 170000
+        }
+      }
+    }
+  }
+] 

@@ -1,332 +1,301 @@
 # Team 2 - Load Balancer (API Gateway)
 
 ## 🎯 Mission
+
 Build a high-performance load balancer that acts as the API Gateway for the cloud platform, distributing requests across multiple service instances based on health and availability.
 
-## 📋 Requirements
+## 🚀 Quick Start
 
-### Core Features
-- [ ] **Request Routing**
-  - Route requests to appropriate service instances
-  - Support multiple routing algorithms (Round Robin, Least Connections, Health-based)
-  - Handle dynamic service discovery
-
-- [ ] **Health Monitoring**
-  - Monitor health of all service instances
-  - Remove unhealthy instances from rotation
-  - Automatic recovery when instances become healthy again
-
-- [ ] **Port Management**
-  - Manage port assignments per client system
-  - Dynamic port allocation and deallocation
-  - Port conflict resolution
-
-- [ ] **Load Distribution**
-  - Distribute load across multiple instances
-  - Implement sticky sessions when needed
-  - Handle request queuing during high load
-
-- [ ] **API Gateway Features**
-  - Rate limiting per client/user
-  - Request/response transformation
-  - Authentication and authorization
-  - Request logging and monitoring
-
-### Technical Requirements
-- **Language**: Node.js, Go, or Python
-- **Protocol Support**: HTTP/HTTPS, WebSocket
-- **Load Balancing**: Multiple algorithms
-- **Health Checks**: Configurable intervals and timeouts
-- **Monitoring**: Real-time metrics and logging
-
-## 🏗️ Architecture
-
-```
-┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
-│   Client        │◄──►│   Load Balancer │◄──►│   Service       │
-│   Requests      │    │   (This Team)   │    │   Instances     │
-└─────────────────┘    └─────────────────┘    └─────────────────┘
-                                │                       │
-                                │                       │
-                                ▼                       ▼
-                       ┌─────────────────┐    ┌─────────────────┐
-                       │   Orchestrator  │    │   Service       │
-                       │   (Team 3)      │    │   Discovery     │
-                       └─────────────────┘    └─────────────────┘
-```
-
-## 📁 Project Structure
-
-```
-team2-load-balancer/
-├── README.md
-├── package.json
-├── src/
-│   ├── core/
-│   │   ├── loadBalancer.js
-│   │   ├── healthChecker.js
-│   │   ├── portManager.js
-│   │   └── routingEngine.js
-│   ├── algorithms/
-│   │   ├── roundRobin.js
-│   │   ├── leastConnections.js
-│   │   ├── healthBased.js
-│   │   └── weightedRoundRobin.js
-│   ├── middleware/
-│   │   ├── auth.js
-│   │   ├── rateLimit.js
-│   │   ├── logging.js
-│   │   └── cors.js
-│   ├── api/
-│   │   ├── routes/
-│   │   │   ├── health.js
-│   │   │   ├── metrics.js
-│   │   │   └── admin.js
-│   │   └── server.js
-│   ├── config/
-│   │   ├── default.js
-│   │   └── production.js
-│   └── utils/
-│       ├── logger.js
-│       └── helpers.js
-├── tests/
-│   ├── unit/
-│   ├── integration/
-│   └── load/
-├── docker/
-│   └── Dockerfile
-└── docs/
-    ├── api.md
-    └── deployment.md
-```
-
-## 🚀 Getting Started
-
-### Prerequisites
-- Node.js (v16+) or Go (1.19+) or Python (3.8+)
-- Docker
-- Redis (for session storage)
-
-### ⚠️ Collaboration Requirements
-- **Day 1**: Develop load balancer service independently
-- **Day 2**: Meet with other teams to discuss API contracts and routing
-- **Day 3**: Collaborate on final docker-compose.yml integration and prepare presentation
-- **Integration Points**: Must coordinate with Teams 1, 3, and 6 for API integration
-
-### Installation
+### Development Mode
 ```bash
-cd teams/team2-load-balancer
+# Install dependencies
 npm install
+
+# Start development server
+npm run dev
+```
+
+### Production Mode
+```bash
+# Start production server
 npm start
 ```
 
-### Development
+### Docker Mode
 ```bash
-# Start development server
-npm run dev
+# Build and run with Docker
+docker build -t team2-load-balancer .
+docker run -p 8080:8080 team2-load-balancer
 
-# Run tests
-npm test
-
-# Run load tests
-npm run load-test
+# Or use docker-compose (includes mock services)
+docker-compose up -d
 ```
 
-## 🔌 API Endpoints
+## 📊 Service Status
 
-### Health Check API
-- `GET /health` - Load balancer health status
-- `GET /health/instances` - All instance health status
-- `POST /health/check/:instanceId` - Manual health check
+The load balancer will be available at:
+- **Main API**: http://localhost:8080
+- **Health Check**: http://localhost:8080/health
+- **Services Status**: http://localhost:8080/api/services
 
-### Metrics API
-- `GET /metrics` - Load balancer metrics
-- `GET /metrics/instances` - Instance-specific metrics
-- `GET /metrics/requests` - Request statistics
+## 🔧 Architecture
 
-### Admin API
-- `GET /admin/instances` - List all instances
-- `POST /admin/instances` - Add new instance
-- `DELETE /admin/instances/:id` - Remove instance
-- `PUT /admin/instances/:id/weight` - Update instance weight
+### Core Components
 
-## ⚖️ Load Balancing Algorithms
+1. **Load Balancer Service** (`src/services/loadBalancer.js`)
+   - Round-robin load balancing algorithm
+   - Health checks for all services
+   - Request routing and metrics tracking
 
-### 1. Round Robin
-- Distribute requests sequentially across instances
-- Simple and predictable
-- Good for evenly distributed load
+2. **API Routes** (`src/routes/loadBalancer.js`)
+   - Service routing endpoints
+   - Status monitoring endpoints
+   - Mock data endpoints for development
 
-### 2. Least Connections
-- Route to instance with fewest active connections
-- Better for long-running requests
-- Requires connection tracking
+3. **Health Check Routes** (`src/routes/health.js`)
+   - Basic health checks
+   - Detailed service status
+   - Force health check triggers
 
-### 3. Health-Based
-- Route to healthiest instances first
-- Considers CPU, memory, response time
-- Automatic failover to healthy instances
+### Mock Services
 
-### 4. Weighted Round Robin
-- Assign weights to instances based on capacity
-- Higher capacity instances get more requests
-- Useful for heterogeneous infrastructure
+For development, the load balancer includes mock services:
+- **UI Service**: http://localhost:3000
+- **Orchestrator**: http://localhost:8081
+- **Billing**: http://localhost:8083
+- **Workload**: http://localhost:8084
 
-## 🔍 Health Checking
+## 📡 API Endpoints
 
-### Health Check Types
-- **HTTP Health Check**: GET request to `/health` endpoint
-- **TCP Health Check**: Simple port connectivity test
-- **Custom Health Check**: Custom script or command
+### Service Status
+```bash
+# Get all services status
+GET /api/services
 
-### Configuration
-```javascript
+# Get specific service status
+GET /api/services/{serviceType}
+
+# Add new service
+POST /api/services
 {
-  "healthCheck": {
-    "interval": 30000,        // 30 seconds
-    "timeout": 5000,          // 5 seconds
-    "unhealthyThreshold": 3,  // Mark unhealthy after 3 failures
-    "healthyThreshold": 2     // Mark healthy after 2 successes
-  }
+  "serviceType": "new-service",
+  "instances": [
+    {
+      "id": "instance-1",
+      "url": "http://localhost:8085",
+      "port": 8085,
+      "healthy": true,
+      "load": 0
+    }
+  ]
 }
 ```
 
-## 📊 Monitoring & Metrics
+### Health Checks
+```bash
+# Basic health check
+GET /health
 
-### Key Metrics
-- **Request Rate**: Requests per second
-- **Response Time**: Average, 95th percentile, 99th percentile
-- **Error Rate**: Percentage of failed requests
-- **Instance Health**: Number of healthy/unhealthy instances
-- **Connection Count**: Active connections per instance
+# Detailed health check
+GET /health/detailed
 
-### Metrics Collection
-- Real-time metrics via Prometheus
-- Historical data storage
-- Alerting on thresholds
-- Dashboard integration
+# Service-specific health check
+GET /health/service/{serviceType}
 
-## 🔒 Security Features
+# Force health check
+POST /health/check
+```
 
-### Authentication & Authorization
-- API key authentication
-- JWT token validation
-- Role-based access control
-- Rate limiting per user/client
+### Request Routing
+```bash
+# Route to UI service
+GET/POST/PUT/DELETE /api/ui/*
 
-### Request Security
-- Input validation and sanitization
-- CORS configuration
-- Request size limits
-- Malicious request filtering
+# Route to Orchestrator service
+GET/POST/PUT/DELETE /api/orchestrator/*
 
-## 🧪 Testing Strategy
+# Route to Billing service
+GET/POST/PUT/DELETE /api/billing/*
 
-### Unit Tests
-- Load balancing algorithm tests
-- Health check functionality
-- Port management tests
-- Middleware tests
+# Route to Workload service
+GET/POST/PUT/DELETE /api/workload/*
+```
 
-### Integration Tests
-- End-to-end request routing
-- Health check integration
-- Instance management
-- Metrics collection
+### Mock Data (Development)
+```bash
+# Mock images data
+GET /api/mock/images
 
-### Load Tests
-- High traffic simulation
-- Concurrent request handling
-- Memory and CPU usage under load
-- Failure recovery testing
+# Mock metrics data
+GET /api/mock/metrics
+```
 
-## 📈 Performance Optimization
+## 🔄 Load Balancing Algorithm
 
-### Caching
-- Response caching for static content
-- Connection pooling
-- DNS caching
-- Health check result caching
+### Round-Robin
+- Distributes requests evenly across healthy instances
+- Automatically skips unhealthy instances
+- Tracks load per instance for monitoring
 
-### Connection Management
-- Keep-alive connections
-- Connection pooling
-- Timeout configuration
-- Retry mechanisms
+### Health Checks
+- Performed every 30 seconds
+- Checks `/health` endpoint of each service
+- Marks instances as unhealthy on connection failures
+- Automatic recovery when health checks pass
 
-## 🔄 Integration Points
+## 📈 Metrics & Monitoring
+
+### Service Metrics
+- Total requests per service
+- Active requests per service
+- Instance health status
+- Load distribution
+
+### Instance Metrics
+- Individual instance load
+- Health status
+- Response times
+- Error rates
+
+## 🐳 Docker Configuration
+
+### Development
+```yaml
+# docker-compose.yml includes:
+- Load Balancer (port 8080)
+- Mock UI Service (port 3000)
+- Mock Orchestrator (port 8081)
+- Mock Billing (port 8083)
+- Mock Workload (port 8084)
+```
+
+### Production
+```dockerfile
+# Multi-stage build with:
+- Node.js 18 Alpine base
+- Health checks
+- Security headers
+- Optimized for production
+```
+
+## 🔗 Integration Points
 
 ### With Team 1 (UI)
-- Provide health status for dashboard
-- Expose metrics for monitoring
-- Handle UI API requests
+- Receives requests from UI components
+- Routes image management requests
+- Provides service status for dashboard
 
 ### With Team 3 (Orchestrator)
-- Receive instance health updates
-- Request new instances when needed
-- Report load metrics for scaling decisions
+- Routes container management requests
+- Receives health status updates
+- Manages instance scaling requests
 
 ### With Team 6 (Billing)
-- Track request counts for billing
-- Monitor resource usage
-- Provide usage analytics
+- Routes billing and cost requests
+- Provides usage metrics
+- Handles payment processing
+
+### With Team 7 (Workload)
+- Routes workload generation requests
+- Manages test traffic distribution
+- Provides performance metrics
+
+## 🧪 Testing
+
+### Manual Testing
+```bash
+# Test health check
+curl http://localhost:8080/health
+
+# Test service status
+curl http://localhost:8080/api/services
+
+# Test routing to mock services
+curl http://localhost:8080/api/ui/
+curl http://localhost:8080/api/orchestrator/
+```
+
+### Load Testing
+```bash
+# Simple load test with curl
+for i in {1..100}; do
+  curl http://localhost:8080/api/mock/images &
+done
+wait
+```
 
 ## 🚨 Error Handling
 
-### Failure Scenarios
-- Instance becomes unavailable
-- Network connectivity issues
-- High load situations
-- Configuration errors
+### Service Unavailable
+- Returns 503 status when no healthy instances
+- Logs error details for debugging
+- Continues monitoring for recovery
 
-### Recovery Mechanisms
-- Automatic failover to healthy instances
-- Circuit breaker pattern
-- Graceful degradation
-- Health check retry logic
+### Connection Timeouts
+- 5-second timeout for service requests
+- Automatic instance marking as unhealthy
+- Retry logic for transient failures
 
-## 📝 Configuration
+### Invalid Routes
+- 404 for unknown service types
+- Detailed error messages
+- Request logging for debugging
 
-### Environment Variables
-```bash
-PORT=3000
-REDIS_URL=redis://localhost:6379
-HEALTH_CHECK_INTERVAL=30000
-LOG_LEVEL=info
-```
+## 📝 Development Notes
 
-### Configuration File
-```javascript
-{
-  "port": 3000,
-  "algorithms": {
-    "default": "roundRobin",
-    "healthBased": {
-      "enabled": true,
-      "weight": 0.7
-    }
-  },
-  "healthCheck": {
-    "interval": 30000,
-    "timeout": 5000
-  },
-  "rateLimit": {
-    "enabled": true,
-    "requestsPerMinute": 1000
-  }
-}
-```
+### Adding New Services
+1. Update `initializeMockServices()` in `loadBalancer.js`
+2. Add routing endpoint in `loadBalancer.js`
+3. Create health check configuration
+4. Update documentation
+
+### Configuration
+- Health check interval: 30 seconds
+- Request timeout: 5 seconds
+- Port: 8080 (configurable via PORT env var)
+
+### Logging
+- Request logging with Morgan
+- Error logging for debugging
+- Health check status logging
 
 ## 🎯 Success Criteria
 
-- [ ] Successfully routes requests to healthy instances
-- [ ] Handles high traffic without performance degradation
-- [ ] Automatically removes unhealthy instances
-- [ ] Provides accurate metrics and monitoring
-- [ ] Integrates seamlessly with other teams
-- [ ] Maintains 99.9% uptime under normal conditions
-- [ ] Recovers automatically from failures
+- [x] Basic load balancing functionality
+- [x] Health checks for all services
+- [x] Round-robin algorithm implementation
+- [x] Service status monitoring
+- [x] Docker containerization
+- [x] Mock services for development
+- [x] API documentation
+- [x] Error handling and logging
 
-## 📞 Support
+## 🔄 Next Steps
 
-For technical questions or integration issues, contact the team lead or refer to the main project documentation. 
+1. **Integration Testing**: Test with real services from other teams
+2. **Advanced Load Balancing**: Implement weighted round-robin or least connections
+3. **Rate Limiting**: Add request rate limiting per service
+4. **Circuit Breaker**: Implement circuit breaker pattern
+5. **Metrics Dashboard**: Add Prometheus metrics and Grafana dashboard
+6. **SSL/TLS**: Add HTTPS support for production
+7. **Authentication**: Add API key or JWT authentication
+
+## 👥 Team Communication Checklist
+
+### Day 1 - Independent Development
+- [x] Basic load balancer implementation
+- [x] Mock services setup
+- [x] Health check system
+- [x] API documentation
+
+### Day 2 - Integration Planning
+- [ ] Coordinate with Team 1 (UI) for API contracts
+- [ ] Coordinate with Team 3 (Orchestrator) for service discovery
+- [ ] Define shared environment variables
+- [ ] Plan integration testing
+
+### Day 3 - Final Integration
+- [ ] Integrate with all teams
+- [ ] End-to-end testing
+- [ ] Performance optimization
+- [ ] Presentation preparation 

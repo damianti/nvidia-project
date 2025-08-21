@@ -1,0 +1,65 @@
+version: '3.8'
+
+services:
+  # Database (requerido por el orchestrator)
+  postgres:
+    image: postgres:15-alpine
+    container_name: nvidia-postgres-test
+    environment:
+      POSTGRES_DB: nvidia_cloud
+      POSTGRES_USER: nvidia_user
+      POSTGRES_PASSWORD: nvidia_password
+    ports:
+      - "5433:5432"  # Puerto diferente para evitar conflictos
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./infrastructure/databases/init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - nvidia-test-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U nvidia_user -d nvidia_cloud"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Redis (para comunicación entre servicios)
+  redis:
+    image: redis:7-alpine
+    container_name: nvidia-redis-test
+    ports:
+      - "6380:6379"  # Puerto diferente para evitar conflictos
+    volumes:
+      - redis_data:/data
+    networks:
+      - nvidia-test-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Herramienta de administración de base de datos (opcional)
+  adminer:
+    image: adminer:latest
+    container_name: nvidia-adminer-test
+    ports:
+      - "8083:8080"  # Puerto diferente para evitar conflictos
+    environment:
+      ADMINER_DEFAULT_SERVER: postgres
+    networks:
+      - nvidia-test-network
+    depends_on:
+      - postgres
+
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+
+networks:
+  nvidia-test-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.22.0.0/16

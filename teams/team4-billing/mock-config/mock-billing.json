@@ -1,0 +1,47 @@
+[
+  {
+    "httpRequest": {
+      "method": "GET",
+      "path": "/health"
+    },
+    "httpResponse": {
+      "statusCode": 200,
+      "body": {
+        "status": "healthy",
+        "service": "billing",
+        "timestamp": "2024-01-15T10:00:00Z"
+      }
+    }
+  },
+  {
+    "httpRequest": {
+      "method": "GET",
+      "path": "/billing/usage"
+    },
+    "httpResponse": {
+      "statusCode": 200,
+      "body": {
+        "total_usage": 150.50,
+        "currency": "USD",
+        "period": "monthly",
+        "services": [
+          {
+            "service": "containers",
+            "usage": 75.25,
+            "units": "container-hours"
+          },
+          {
+            "service": "storage",
+            "usage": 45.30,
+            "units": "GB"
+          },
+          {
+            "service": "network",
+            "usage": 29.95,
+            "units": "GB"
+          }
+        ]
+      }
+    }
+  }
+] 

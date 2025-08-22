@@ -1,22 +1,24 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-import uvicorn
-from typing import Dict, Any
-
-# Import routes
+import logging
+import os
 from app.routes.load_balancer import router as load_balancer_router
 
-# Create FastAPI app instance
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+# Create FastAPI app
 app = FastAPI(
-    title="Load Balancer API",
-    description="High-performance load balancer for the cloud platform",
+    title="NVIDIA Load Balancer",
+    description="Load Balancer with Service Discovery and Message Queue",
     version="1.0.0"
 )
 
 # Add CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # In production, specify exact origins
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -25,29 +27,31 @@ app.add_middleware(
 # Include routers
 app.include_router(load_balancer_router)
 
-# Health check endpoint
-@app.get("/health")
-async def health_check() -> Dict[str, Any]:
-    """Health check endpoint to verify the load balancer is running"""
+@app.get("/")
+async def root():
+    """Root endpoint"""
     return {
-        "status": "healthy",
-        "service": "load-balancer",
-        "version": "1.0.0"
+        "message": "NVIDIA Load Balancer with Service Discovery",
+        "version": "1.0.0",
+        "endpoints": {
+            "health": "/api/load-balancer/health",
+            "create_container": "/api/load-balancer/containers/create",
+            "services": "/api/load-balancer/services",
+            "stats": "/api/load-balancer/stats"
+        }
     }
 
-# Root endpoint
-@app.get("/")
-async def root() -> Dict[str, str]:
-    """Root endpoint with basic information"""
-    return {
-        "message": "Load Balancer API is running",
-        "docs": "/docs"
-    }
+@app.get("/health")
+async def health():
+    """Simple health check"""
+    return {"status": "healthy", "service": "load-balancer"}
 
 if __name__ == "__main__":
-    uvicorn.run(
-        "main:app",
-        host="0.0.0.0",
-        port=3001,
-        reload=True
-    )
+    import uvicorn
+    
+    # Get configuration from environment variables
+    host = os.getenv("HOST", "0.0.0.0")
+    port = int(os.getenv("PORT", "3002"))
+    
+    logger.info(f"Starting Load Balancer on {host}:{port}")
+    uvicorn.run(app, host=host, port=port)

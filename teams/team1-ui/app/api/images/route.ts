@@ -19,7 +19,7 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    const response = await fetch(`${ORCHESTRATOR_URL}/images`, {
+    const response = await fetch(`${ORCHESTRATOR_URL}/api/images`, {
       headers: {
         'Authorization': `Bearer ${token}`,
         'Content-Type': 'application/json',
@@ -60,7 +60,7 @@ export async function POST(request: NextRequest) {
 
     const body = await request.json()
 
-    const response = await fetch(`${ORCHESTRATOR_URL}/images`, {
+    const response = await fetch(`${ORCHESTRATOR_URL}/api/images`, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${token}`,

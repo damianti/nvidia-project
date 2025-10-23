@@ -20,7 +20,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Forward request to Orchestrator to validate token and get user info
-    const response = await fetch(`${ORCHESTRATOR_URL}/auth/me`, {
+    const response = await fetch(`${ORCHESTRATOR_URL}/api/auth/me`, {
       headers: {
         'Authorization': `Bearer ${token}`,
         'Content-Type': 'application/json',

@@ -10,11 +10,11 @@ function getAuthToken(request: NextRequest): string | null {
 // POST /api/containers/[id]/stop - Stop container
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise <{ id: string } >}
 ) {
   try {
     const token = getAuthToken(request)
-    
+    const {id} = await params;
     if (!token) {
       return NextResponse.json(
         { error: 'Authentication required' },
@@ -22,7 +22,7 @@ export async function POST(
       )
     }
 
-    const response = await fetch(`${ORCHESTRATOR_URL}/containers/${params.id}/stop`, {
+    const response = await fetch(`${ORCHESTRATOR_URL}/api/containers/${id}/stop`, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${token}`,

@@ -16,7 +16,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Forward request to Orchestrator
-    const response = await fetch(`${ORCHESTRATOR_URL}/auth/signup`, {
+    const response = await fetch(`${ORCHESTRATOR_URL}/api/auth/signup`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

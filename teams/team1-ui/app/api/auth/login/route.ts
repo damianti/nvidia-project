@@ -16,7 +16,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Forward request to Orchestrator
-    const response = await fetch(`${ORCHESTRATOR_URL}/auth/login`, {
+    const response = await fetch(`${ORCHESTRATOR_URL}/api/auth/login`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -42,7 +42,8 @@ export async function POST(request: NextRequest) {
     responseWithCookie.cookies.set('auth-token', data.access_token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
+      sameSite: 'lax',
+      path: '/',
       maxAge: 60 * 60 * 24 * 7, // 7 days
     })
 

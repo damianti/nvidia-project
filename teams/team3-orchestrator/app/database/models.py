@@ -17,6 +17,7 @@ class Image(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     name: Mapped[str] = mapped_column(String(255), nullable=False)
     tag: Mapped[str] = mapped_column(String(100), nullable=False)
+    website_url: Mapped[str] = mapped_column(String(255), nullable=False)
     min_instances: Mapped[int] = mapped_column(Integer, default=1)
     max_instances: Mapped[int] = mapped_column(Integer, default=3)
     cpu_limit: Mapped[str] = mapped_column(String(50), default="0.5")

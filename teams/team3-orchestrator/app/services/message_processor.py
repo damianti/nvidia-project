@@ -164,9 +164,9 @@ class MessageProcessor:
             
             # Start container using Docker
             import docker
-            docker_client = docker.from_env()
             
             try:
+                docker_client = docker.from_env()
                 docker_container = docker_client.containers.get(container.container_id)
                 docker_container.start()
                 container.status = "running"
@@ -211,9 +211,9 @@ class MessageProcessor:
             
             # Stop container using Docker
             import docker
-            docker_client = docker.from_env()
             
             try:
+                docker_client = docker.from_env()
                 docker_container = docker_client.containers.get(container.container_id)
                 docker_container.stop()
                 container.status = "stopped"
@@ -258,9 +258,9 @@ class MessageProcessor:
             
             # Delete container using Docker
             import docker
-            docker_client = docker.from_env()
             
             try:
+                docker_client = docker.from_env()
                 docker_container = docker_client.containers.get(container.container_id)
                 docker_container.remove(force=True)
                 
@@ -309,9 +309,9 @@ class MessageProcessor:
             
             # Pull image using Docker
             import docker
-            docker_client = docker.from_env()
             
             try:
+                docker_client = docker.from_env()
                 docker_client.images.pull(f"{image_name}:{tag}")
                 
                 response_data = {

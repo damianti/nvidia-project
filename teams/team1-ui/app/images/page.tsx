@@ -15,6 +15,7 @@ export default function ImagesPage() {
   const [uploadForm, setUploadForm] = useState<CreateImageRequest>({
     name: '',
     tag: 'latest',
+    website_url: '',
     min_instances: 1,
     max_instances: 3,
     cpu_limit: '0.5',
@@ -22,7 +23,7 @@ export default function ImagesPage() {
     user_id: 0
   })
 
-  // Fetch images on component mount
+  
   useEffect(() => {
     fetchImages()
   }, [])
@@ -67,6 +68,7 @@ export default function ImagesPage() {
       setUploadForm({
         name: '',
         tag: 'latest',
+        website_url: '',
         min_instances: 1,
         max_instances: 3,
         cpu_limit: '0.5',
@@ -189,6 +191,17 @@ export default function ImagesPage() {
                     placeholder="e.g., latest, 3.9, alpine"
                     value={uploadForm.tag}
                     onChange={(e) => setUploadForm({...uploadForm, tag: e.target.value})}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">Website URL</label>
+                  <input
+                    type="url"
+                    required
+                    className="modern-input w-full"
+                    placeholder="https://example.com"
+                    value={uploadForm.website_url}
+                    onChange={(e) => setUploadForm({...uploadForm, website_url: e.target.value})}
                   />
                 </div>
                 <div className="grid grid-cols-2 gap-4">

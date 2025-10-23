@@ -3,6 +3,7 @@ export interface Image {
   id: number
   name: string
   tag: string
+  website_url: string
   status: string
   created_at: string
   min_instances: number
@@ -14,6 +15,7 @@ export interface Image {
 export interface CreateImageRequest {
   name: string
   tag: string
+  website_url: string
   min_instances: number
   max_instances: number
   cpu_limit: string
@@ -25,21 +27,31 @@ export interface UpdateImageRequest extends Partial<CreateImageRequest> {}
 
 // Image service class
 class ImageService {
-  private baseUrl = '/api/images'
+  private baseUrl = 'http://localhost:3003/api/images'
+
+  // Helper para obtener headers con token
+  private getAuthHeaders(): HeadersInit {
+    const token = localStorage.getItem('auth-token')
+    return {
+      'Content-Type': 'application/json',
+      ...(token && { 'Authorization': `Bearer ${token}` }),
+    }
+  }
 
   // Get all images
   async getImages(): Promise<Image[]> {
     try {
       const response = await fetch(this.baseUrl, {
         method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: this.getAuthHeaders(),
       })
 
       if (!response.ok) {
+        if (response.status === 401) {
+          throw new Error('Authentication required')
+        }
         const error = await response.json()
-        throw new Error(error.error || 'Failed to fetch images')
+        throw new Error(error.detail || error.error || 'Failed to fetch images')
       }
 
       return await response.json()
@@ -54,14 +66,15 @@ class ImageService {
     try {
       const response = await fetch(`${this.baseUrl}/${id}`, {
         method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: this.getAuthHeaders(),
       })
 
       if (!response.ok) {
+        if (response.status === 401) {
+          throw new Error('Authentication required')
+        }
         const error = await response.json()
-        throw new Error(error.error || 'Failed to fetch image')
+        throw new Error(error.detail || error.error || 'Failed to fetch image')
       }
 
       return await response.json()
@@ -76,15 +89,16 @@ class ImageService {
     try {
       const response = await fetch(this.baseUrl, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: this.getAuthHeaders(),
         body: JSON.stringify(imageData),
       })
 
       if (!response.ok) {
+        if (response.status === 401) {
+          throw new Error('Authentication required')
+        }
         const error = await response.json()
-        throw new Error(error.error || 'Failed to create image')
+        throw new Error(error.detail || error.error || 'Failed to create image')
       }
 
       return await response.json()
@@ -99,15 +113,16 @@ class ImageService {
     try {
       const response = await fetch(`${this.baseUrl}/${id}`, {
         method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: this.getAuthHeaders(),
         body: JSON.stringify(imageData),
       })
 
       if (!response.ok) {
+        if (response.status === 401) {
+          throw new Error('Authentication required')
+        }
         const error = await response.json()
-        throw new Error(error.error || 'Failed to update image')
+        throw new Error(error.detail || error.error || 'Failed to update image')
       }
 
       return await response.json()
@@ -122,14 +137,15 @@ class ImageService {
     try {
       const response = await fetch(`${this.baseUrl}/${id}`, {
         method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: this.getAuthHeaders(),
       })
 
       if (!response.ok) {
+        if (response.status === 401) {
+          throw new Error('Authentication required')
+        }
         const error = await response.json()
-        throw new Error(error.error || 'Failed to delete image')
+        throw new Error(error.detail || error.error || 'Failed to delete image')
       }
     } catch (error) {
       console.error('Error deleting image:', error)

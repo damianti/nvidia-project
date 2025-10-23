@@ -21,13 +21,13 @@ export async function GET(request: NextRequest) {
 
     // Fetch images and containers in parallel
     const [imagesResponse, containersResponse] = await Promise.all([
-      fetch(`${ORCHESTRATOR_URL}/images`, {
+      fetch(`${ORCHESTRATOR_URL}/api/images`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
       }),
-      fetch(`${ORCHESTRATOR_URL}/containers`, {
+      fetch(`${ORCHESTRATOR_URL}/api/containers`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',

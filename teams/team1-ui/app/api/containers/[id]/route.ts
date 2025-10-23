@@ -10,9 +10,10 @@ function getAuthToken(request: NextRequest): string | null {
 // GET /api/containers/[id] - Get specific container
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise <{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const token = getAuthToken(request)
     
     if (!token) {
@@ -22,7 +23,7 @@ export async function GET(
       )
     }
 
-    const response = await fetch(`${ORCHESTRATOR_URL}/containers/${params.id}`, {
+    const response = await fetch(`${ORCHESTRATOR_URL}/api/containers/${id}`, {
       headers: {
         'Authorization': `Bearer ${token}`,
         'Content-Type': 'application/json',
@@ -52,11 +53,11 @@ export async function GET(
 // PUT /api/containers/[id] - Update container
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise <{ id: string } >}
 ) {
   try {
     const token = getAuthToken(request)
-    
+    const { id } = await params;
     if (!token) {
       return NextResponse.json(
         { error: 'Authentication required' },
@@ -66,7 +67,7 @@ export async function PUT(
 
     const body = await request.json()
 
-    const response = await fetch(`${ORCHESTRATOR_URL}/containers/${params.id}`, {
+    const response = await fetch(`${ORCHESTRATOR_URL}/api/containers/${id}`, {
       method: 'PUT',
       headers: {
         'Authorization': `Bearer ${token}`,
@@ -98,11 +99,11 @@ export async function PUT(
 // DELETE /api/containers/[id] - Delete container
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise <{ id: string }> }
 ) {
   try {
     const token = getAuthToken(request)
-    
+    const { id } = await params;
     if (!token) {
       return NextResponse.json(
         { error: 'Authentication required' },
@@ -110,7 +111,7 @@ export async function DELETE(
       )
     }
 
-    const response = await fetch(`${ORCHESTRATOR_URL}/containers/${params.id}`, {
+    const response = await fetch(`${ORCHESTRATOR_URL}/api/containers/${id}`, {
       method: 'DELETE',
       headers: {
         'Authorization': `Bearer ${token}`,

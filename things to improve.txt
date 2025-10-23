@@ -1,0 +1,7 @@
+1 - Move jwt from localstorage to cookies
+
+
+
+2 - when assigning dynamic port in orchestrator/app/api/containers.py we are doing it in a very simple and not correct way
+
+3 - get better routes for api: now its too confusing

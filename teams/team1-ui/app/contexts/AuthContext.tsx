@@ -31,15 +31,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const checkAuth = async () => {
     try {
-      // For now, we'll just check if there's a token in cookies
-      // Later we can add a /api/auth/me endpoint to validate the token
-      const response = await fetch('/api/auth/me')
+      const token = localStorage.getItem('auth-token')
+      if (!token) {
+        setLoading(false)
+        return
+      }
+
+    
+      const response = await fetch('http://localhost:3003/api/auth/me', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      })
+      
       if (response.ok) {
         const userData = await response.json()
         setUser(userData)
+      } else {
+        // Token inválido, limpiar
+        localStorage.removeItem('auth-token')
       }
     } catch (error) {
       console.error('Auth check failed:', error)
+      localStorage.removeItem('auth-token')
     } finally {
       setLoading(false)
     }
@@ -47,7 +61,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = async (email: string, password: string): Promise<boolean> => {
     try {
-      const response = await fetch('/api/auth/login', {
+      const response = await fetch('http://localhost:3003/api/auth/login', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -58,11 +72,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const data = await response.json()
 
       if (response.ok) {
+        // Guardar token en localStorage
+        localStorage.setItem('auth-token', data.access_token)
         setUser(data.user)
         router.push('/dashboard')
         return true
       } else {
-        console.error('Login failed:', data.error)
+        console.error('Login failed:', data.detail || data.error)
         return false
       }
     } catch (error) {
@@ -73,7 +89,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signup = async (username: string, email: string, password: string): Promise<boolean> => {
     try {
-      const response = await fetch('/api/auth/signup', {
+      const response = await fetch('http://localhost:3003/api/auth/signup', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -88,7 +104,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         router.push('/login')
         return true
       } else {
-        console.error('Signup failed:', data.error)
+        console.error('Signup failed:', data.detail || data.error)
         return false
       }
     } catch (error) {
@@ -99,13 +115,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logout = async () => {
     try {
-      await fetch('/api/auth/logout', {
-        method: 'POST',
-      })
+      const token = localStorage.getItem('auth-token')
+      if (token) {
+        await fetch('http://localhost:3003/api/auth/logout', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+          },
+        })
+      }
+      localStorage.removeItem('auth-token')
       setUser(null)
       router.push('/login')
     } catch (error) {
       console.error('Logout error:', error)
+      localStorage.removeItem('auth-token')
     }
   }
 

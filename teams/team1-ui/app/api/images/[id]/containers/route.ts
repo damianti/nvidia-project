@@ -10,11 +10,11 @@ function getAuthToken(request: NextRequest): string | null {
 // POST /api/images/[id]/containers - Create containers for a specific image
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise <{ id: string } >}
 ) {
   try {
     const token = getAuthToken(request)
-    
+    const {id} = await params
     if (!token) {
       return NextResponse.json(
         { error: 'Authentication required' },
@@ -23,10 +23,10 @@ export async function POST(
     }
 
     const body = await request.json()
-    const imageId = params.id
+    const imageId = id
 
     // Forward request to Orchestrator
-    const response = await fetch(`${ORCHESTRATOR_URL}/images/${imageId}/containers`, {
+    const response = await fetch(`${ORCHESTRATOR_URL}/api/images/${imageId}/containers`, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${token}`,

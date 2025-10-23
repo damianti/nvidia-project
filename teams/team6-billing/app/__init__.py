@@ -1,5 +1,0 @@
-# Billing Service Application Package
-
-
-
-

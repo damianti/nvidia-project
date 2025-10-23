@@ -10,86 +10,35 @@ from contextlib import asynccontextmanager
 from .api import health, users, images, containers, auth
 
 # Import services
-from .services.service_discovery import ServiceDiscovery, ServiceInfo
-from .services.message_processor import MessageProcessor
+# from .services.service_discovery import ServiceDiscovery, ServiceInfo
+# from .services.message_processor import MessageProcessor
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # Global variables for services
-service_discovery = None
-message_processor = None
+# service_discovery = None
+# message_processor = None
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Application lifespan manager"""
     # Startup
-    global service_discovery, message_processor
+    
     
     logger.info("Starting NVIDIA Orchestrator...")
-    
-    # Initialize service discovery
-    redis_host = os.getenv("REDIS_HOST", "localhost")
-    redis_port = int(os.getenv("REDIS_PORT", "6379"))
-    
-    service_discovery = ServiceDiscovery(redis_host, redis_port, redis_db=0)
-    message_processor = MessageProcessor(redis_host, redis_port, redis_db=1)
-    
-    # Register orchestrator service
-    orchestrator_service = ServiceInfo(
-        service_id=f"orchestrator-{int(time.time())}",
-        service_type="orchestrator",
-        host=os.getenv("HOST", "localhost"),
-        port=int(os.getenv("PORT", "3003")),
-        health_endpoint="/health",
-        metadata={
-            "version": "1.0.0",
-            "capabilities": ["container_management", "image_management", "docker_integration"]
-        }
-    )
-    
-    if service_discovery.register_service(orchestrator_service):
-        logger.info(f"Orchestrator registered: {orchestrator_service.service_id}")
-    else:
-        logger.error("Failed to register orchestrator service")
-    
-    # Start message processor
-    message_processor.start()
-    logger.info("Message processor started")
-    
-    # Start heartbeat thread
-    def heartbeat_worker():
-        while True:
-            try:
-                if service_discovery:
-                    service_discovery.update_heartbeat(orchestrator_service.service_id)
-                time.sleep(10)  # Update heartbeat every 10 seconds
-            except Exception as e:
-                logger.error(f"Heartbeat error: {e}")
-                time.sleep(30)  # Wait longer on error
-    
-    heartbeat_thread = threading.Thread(target=heartbeat_worker, daemon=True)
-    heartbeat_thread.start()
-    logger.info("Heartbeat thread started")
     
     yield
     
     # Shutdown
     logger.info("Shutting down NVIDIA Orchestrator...")
     
-    if message_processor:
-        message_processor.stop()
-        logger.info("Message processor stopped")
-    
-    if service_discovery and orchestrator_service:
-        service_discovery.deregister_service("orchestrator", orchestrator_service.service_id)
-        logger.info("Orchestrator deregistered")
-
+  
 # Create FastAPI app with lifespan
 app = FastAPI(
     title="NVIDIA Orchestrator",
-    description="Container and Image Orchestration Service with Service Discovery",
+    description="Container and Image Orchestration Service",
     version="1.0.0",
     lifespan=lifespan
 )
@@ -125,38 +74,6 @@ async def root():
         }
     }
 
-@app.get("/api/orchestrator/status")
-async def get_status():
-    """Get orchestrator status including service discovery and message queue"""
-    try:
-        status = {
-            "service": "orchestrator",
-            "status": "healthy",
-            "timestamp": time.time()
-        }
-        
-        if service_discovery:
-            status["service_discovery"] = "connected"
-        else:
-            status["service_discovery"] = "disconnected"
-        
-        if message_processor:
-            status["message_processor"] = "running"
-            status["queue_length"] = message_processor.message_queue.get_queue_length(
-                message_processor.service_id
-            )
-        else:
-            status["message_processor"] = "stopped"
-        
-        return status
-        
-    except Exception as e:
-        logger.error(f"Error getting status: {e}")
-        return {
-            "service": "orchestrator",
-            "status": "error",
-            "error": str(e)
-        }
 
 if __name__ == "__main__":
     import uvicorn

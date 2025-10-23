@@ -1,16 +1,16 @@
 from fastapi import APIRouter
 from app.database.config import get_db
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from fastapi import Depends, HTTPException
-from app.database.models import Image, Container
+from app.database.models import Image, Container, User
 from typing import List
-from app.schemas.image import ImageCreate, ImageResponse, ContainerCreate, ContainerResponse
+from app.schemas.container import ContainerCreate, ContainerResponse
 import docker
 from docker.errors import DockerException
-
+from app.api.auth import get_current_user
 router = APIRouter( tags=["containers"])
 
-docker_client = docker.from_env()
+
 
 # Container endpoints
 @router.post("/images/{image_id}/containers", response_model=List[ContainerResponse])
@@ -22,6 +22,7 @@ async def create_containers(
     """Create containers for a specific image"""
     try:
         # Get image
+        docker_client = docker.from_env()
         image = db.query(Image).filter(Image.id == image_id).first()
         if not image:
             raise HTTPException(status_code=404, detail="Image not found")
@@ -74,15 +75,21 @@ async def create_containers(
             db.refresh(container)
         
         return created_containers
-        
+    
     except Exception as e:
         db.rollback()
         raise HTTPException(status_code=500, detail=str(e))
 
-@router.get("/containers/", response_model=List[ContainerResponse])
-async def list_containers(db: Session = Depends(get_db)):
-    """List all containers"""
-    containers = db.query(Container).all()
+@router.get("/", response_model=List[ContainerResponse])
+async def list_containers(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)):
+    """List all containers from the current user"""
+    containers = db.query(Container)\
+        .options(joinedload(Container.image))\
+        .join(Image)\
+        .filter(Image.user_id == current_user.id)\
+        .all()
     return containers
 
 @router.get("/images/{image_id}/containers", response_model=List[ContainerResponse])

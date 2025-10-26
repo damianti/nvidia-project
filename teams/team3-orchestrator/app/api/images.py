@@ -5,7 +5,6 @@ from fastapi import Depends, HTTPException
 from app.database.models import Image, Container
 from typing import List
 from app.schemas.image import ImageCreate, ImageResponse, ImageWithContainers
-from docker.errors import DockerException
 from app.services.docker_service import build_image
 from app.api.auth import get_current_user
 from app.database.models import User

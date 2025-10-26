@@ -45,7 +45,8 @@ class Container(Base):
     # Relationship with image
     image_id: Mapped[int] = mapped_column(Integer, ForeignKey("images.id"))
     image: Mapped["Image"] = relationship(back_populates="containers")
-
+    user_id: Mapped[int] = mapped_column(Integer, ForeignKey("users.id"))
+    user: Mapped["User"] = relationship(back_populates="containers")
 
 class User(Base):
     __tablename__ = "users"
@@ -57,6 +58,7 @@ class User(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
     
     images: Mapped[List["Image"]] = relationship(back_populates="user")
+    containers: Mapped[List["Container"]] = relationship(back_populates="user")
     billings: Mapped[List["Billing"]] = relationship(back_populates="user")
 
 

@@ -69,6 +69,92 @@ class ContainerService {
             throw error
         }
     }
+
+    async createContainer(imageId: number, containerName?: string, count: number = 1): Promise<Container[]> {
+        try {
+            const response = await fetch (`${this.baseUrl}/${imageId}/create`, {
+                method: 'POST',
+                headers: this.getAuthHeaders(),
+                body: JSON.stringify({
+                    name: containerName || `container-${Date.now()}`,
+                    port: 4000, // Will be overridden by backend
+                    image_id: imageId,
+                    count: count
+                })
+            })
+            if (!response.ok){
+                if (response.status == 401){
+                    throw new Error ('Authentication required');
+                }
+                const error = await response.json();
+                throw new Error (error.detail || error.error || 'Failed to create container')
+            }
+            return response.json()
+        }
+        catch (error){
+            throw error;
+        }
+    }
+
+    async startContainer(containerId: number): Promise<Container>{
+        try {
+            const response = await fetch (`${this.baseUrl}/${containerId}/start`, {
+                method: 'POST',
+                headers: this.getAuthHeaders(),
+            })
+            if (!response.ok){
+                
+                if (response.status == 401){
+                    throw new Error ('Authentication required');
+                }
+                const error = await response.json();
+                throw new Error (error.detail || error.error || 'Failed to start container');
+            } 
+            return response.json()
+        }
+        catch (error){
+            throw error;
+        }
+    }
+    async stopContainer (containerId: number): Promise<Container> {
+        try {
+            const response = await fetch (`${this.baseUrl}/${containerId}/stop`,{
+                method: 'POST',
+                headers: this.getAuthHeaders(),
+            })
+            if (!response.ok){
+                if (response.status == 401){
+                    throw new Error ('Authentication required');
+                }
+                const error = await response.json();
+                throw new Error (error.detail || error.error || 'Failed to stop container')
+            }
+            return response.json()
+        }
+        catch (error){
+            throw error
+        }
+    }
+    async deleteContainer (containerId: number): Promise< {message:string} > {
+        try {
+            const response = await fetch (`${this.baseUrl}/${containerId}`,{
+                method: 'DELETE',
+                headers: this.getAuthHeaders(),
+            })
+            if (!response.ok){
+                if (response.status == 401){
+                    throw new Error ('Authentication required');
+                }
+                const error = await response.json();
+                throw new Error (error.detail || error.error || 'Failed to delete container')
+            }
+            return response.json()
+        }
+        catch (error){
+            throw error
+        }
+    }
+
 }
 
 export const containerService = new ContainerService()

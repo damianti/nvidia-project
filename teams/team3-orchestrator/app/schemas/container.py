@@ -1,7 +1,6 @@
 from pydantic import  BaseModel
 from datetime import datetime
-from typing import List, Optional
-from app.schemas.image import ImageResponse
+
 
 
 # Container schemas
@@ -14,14 +13,14 @@ class ContainerBase(BaseModel):
 
 class ContainerCreate(ContainerBase):
     image_id: int
-    count: int = 1
+    count: int = 1  
 
 class ContainerResponse(ContainerBase):
     id: int
     container_id: str
     created_at: datetime
     image_id: int
-    image: ImageResponse
+    user_id: int
     
     class Config:
         from_attributes = True 

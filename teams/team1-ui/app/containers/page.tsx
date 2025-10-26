@@ -1,18 +1,22 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
+import { useSearchParams } from 'next/navigation'
 import Link from "next/link";
-import {
-  containerService,
-  ImageWithContainers,
-} from "../services/containerService";
+import { containerService, ImageWithContainers, } from "../services/containerService";
 import { useAuth } from "../contexts/AuthContext";
 
-export default function ContainersPage() {
+function ContainersPageContent() {
   const { user } = useAuth();
+  const searchParams = useSearchParams();
+  const imageFilter = searchParams.get('image');
+
   const [images, setImages] = useState<ImageWithContainers[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [showCreateModal, setShowCreateModal] = useState(false)
+  const [selectedImageId, setSelectedImageId] = useState<number | null>(null)
+  const [containerCount, setContainerCount] = useState(1)
 
   useEffect(() => {
     fetchImages();
@@ -23,7 +27,14 @@ export default function ContainersPage() {
       setLoading(true);
       setError("");
       const fetchedImages = await containerService.getImagesWithContainers();
-      setImages(fetchedImages);
+      
+      // Filter images if imageFilter is present
+      if (imageFilter) {
+        const filteredImages = fetchedImages.filter(img => img.id.toString() === imageFilter);
+        setImages(filteredImages);
+      } else {
+        setImages(fetchedImages);
+      }
     } catch (error) {
       console.error("Error fetching images with containers: ", error);
       setError("Failed to load images. Please try again.");
@@ -32,22 +43,77 @@ export default function ContainersPage() {
     }
   };
   const handleStart = async (containerId: number) => {
-    // TODO: Call start API
-    console.log("Start container:", containerId);
+    try {
+      setLoading (true);
+      setError("");
+      await containerService.startContainer(containerId);
+      await fetchImages();
+    }
+    catch (error){
+      console.error ("Error starting container: ", error);
+      setError("Failed to start container. Please try again");
+    }
+    finally {
+      setLoading(false);
+    }
+    
   };
 
   const handleStop = async (containerId: number) => {
-    // TODO: Call stop API
-    console.log("Stop container:", containerId);
+    try {
+      setLoading (true);
+      setError("");
+      await containerService.stopContainer(containerId);
+      await fetchImages();
+    }
+    catch (error){
+      console.error ("Error stopping container: ", error);
+      setError("Failed to stop container. Please try again");
+    }
+    finally {
+      setLoading(false);
+    }
+    
   };
 
   const handleDelete = async (containerId: number) => {
     if (confirm("Are you sure you want to delete this container?")) {
-      // TODO: Call delete API
-      console.log("Delete container:", containerId);
+      try {
+        setLoading (true);
+        setError("");
+        await containerService.deleteContainer(containerId);
+        await fetchImages();
+      }
+      catch (error){
+        console.error("Error deleting container: ", error);
+        setError("Failed to delete container. Please try again");
+      }
+      finally {
+        setLoading(false);
+      }  
     }
   };
-
+  const handleCreateContainer = async () => {
+    try {
+      setLoading(true);
+      setError('');
+      const imageId = imageFilter ? Number(imageFilter) : selectedImageId
+      if (!imageId){
+        setError('Please select an image');
+        return;
+      }
+      await containerService.createContainer(imageId, undefined, containerCount);
+      setShowCreateModal(false);
+      await fetchImages();
+    }
+    catch (error){
+      console.error('Error creating container:', error);
+      setError('Failed to create container. Please try again');
+    }
+    finally {
+      setLoading(false);
+    }
+  }
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -74,6 +140,15 @@ export default function ContainersPage() {
               </p>
             </div>
             <div className="flex space-x-4">
+              {imageFilter && (<Link href="/containers" className="btn-modern">
+                Show All Images
+              </Link>)}
+              <button
+                onClick={() => setShowCreateModal(true)}
+                className="btn-modern"
+              >
+                Create Container
+              </button>
               <Link href="/dashboard" className="btn-modern">
                 Back to Dashboard
               </Link>
@@ -385,6 +460,86 @@ export default function ContainersPage() {
           </div>
         )}
       </div>
+    {/* {Create Container Modal} */}
+    {showCreateModal && (
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div className="modern-card p-8 max-w-md w-full mx-4">
+          <h3 className="text-2xl font-bold text-gray-900 mb-6"> Create Container</h3>
+          {imageFilter ? (
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Image:
+              </label>
+              <div className="p-3 bg-gray-100 rounded-lg">
+                {images.find(img => img.id.toString() === imageFilter)?.name}:{images.find(img => img.id.toString() === imageFilter)?.tag} → {images.find(img => img.id.toString() === imageFilter)?.website_url}
+              </div>
+
+            </div>
+          ) : (
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                SELECT IMAGE:
+              </label>
+              <select
+                value={selectedImageId || ''}
+                onChange={(e)=> setSelectedImageId(Number(e.target.value))}
+                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              >
+                <option value=""> Choose an image... </option>
+                {images.map((image)=> (
+                  <option key={image.id} value={image.id}>
+                    {image.name}:{image.tag} → {image.website_url}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+
+          <div className="mb-6">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Number of Containers
+            </label>
+            <input
+            type="number"
+            min="1"
+            max="10"
+            value={containerCount}
+            onChange={(e)=> setContainerCount(Number(e.target.value))}
+            className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            />
+          </div>
+          <div className="flex space-x-4">
+            <button
+              onClick={() => setShowCreateModal(false)}
+              className="flex-1 px-4 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleCreateContainer}
+              className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+            >
+              Create
+            </button>
+          </div>
+        </div>
+      </div>
+    )}
     </div>
+  );
+}
+
+export default function ContainersPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="modern-card p-8 text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <div className="text-xl text-gray-700">Loading containers...</div>
+        </div>
+      </div>
+    }>
+      <ContainersPageContent />
+    </Suspense>
   );
 }

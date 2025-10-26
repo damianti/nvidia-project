@@ -293,7 +293,7 @@ export default function ImagesPage() {
                       <div>
                         <div className="flex items-center space-x-3">
                           <h4 className="text-lg font-semibold text-gray-900">
-                            {image.name}:{image.tag}
+                          <span>{image.name}:{image.tag} → {image.website_url}</span>
                           </h4>
                           <span className="status-badge status-registered">
                             {image.status}
@@ -312,7 +312,7 @@ export default function ImagesPage() {
                     </div>
                     <div className="flex space-x-3">
                       <Link
-                        href={`/images/${image.id}/containers`}
+                        href={`/containers?image=${image.id}`}
                         className="btn-modern"
                       >
                         View Containers

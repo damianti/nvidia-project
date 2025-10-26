@@ -2,6 +2,8 @@ import docker
 import os
 from fastapi import HTTPException
 from docker.errors import DockerException
+from docker.models.containers import Container
+
 def generate_html(folder: str, website_url: str) -> None:
     html_content = f'''<!DOCTYPE html>
                 <html>
@@ -45,7 +47,7 @@ def build_image(image_name: str, image_tag: str, website_url: str, user_id: int)
         except Exception as e:
             raise HTTPException(
                 status_code=500,
-                detail=f"No se pudo conectar a DinD. Error: {str(e)}"
+                detail=f"Cannot connect to docker DinD. Error: {str(e)}"
             )
         client.images.build(
             path=folder,
@@ -78,3 +80,66 @@ def cleanup_files(folder: str)-> None:
         os.remove(f"{folder}/Dockerfile")
     if os.path.exists(folder):
         os.rmdir(folder)
+
+def run_container(image_name: str, image_tag: str , container_name: str, port: int, env_vars: dict ) -> Container:
+    try:
+        
+        try: 
+            client = docker.from_env()
+            client.ping()
+        except Exception as e:
+            raise HTTPException(
+                status_code=500,
+                detail=f"Cannot connect to docker DinD. Error: {str(e)}"
+            )
+        container = client.containers.run(
+            image= f"{image_name}:{image_tag}",
+            name= container_name, 
+            ports={'80/tcp': port},
+            detach=True,
+            environment = env_vars or {}
+            )
+
+        return container
+
+    except DockerException as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Docker container run failed: {str(e)}") 
+
+def start_container(container_docker_id: str) -> Container:
+    """"Start an existing container """
+    try:
+        client = docker.from_env()
+        container = client.containers.get(container_docker_id)
+        container.start()
+        return container
+    except DockerException as e:
+        raise HTTPException(status_code=500, detail=f"Failed to start: {str(e)}")
+    
+def stop_container(container_docker_id: str)-> Container:
+    """"Stop an existing container """
+    try:
+        client = docker.from_env()
+        container = client.containers.get(container_docker_id)
+        container.stop()
+        return container
+    except DockerException as e:
+        raise HTTPException(status_code=500, detail=f"Failed to stop: {str(e)}")
+def delete_container(container_docker_id: str) -> bool:
+    """"remove an existing container """
+    try:
+        client = docker.from_env()
+        container = client.containers.get(container_docker_id)
+        
+        try:
+            container.stop()
+        except:
+            pass
+        container.remove()
+        return True
+
+    except DockerException as e:
+        raise HTTPException(status_code=500, detail=f"Failed to delete: {str(e)}")
+    
+    

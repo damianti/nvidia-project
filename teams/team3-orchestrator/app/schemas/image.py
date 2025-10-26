@@ -1,9 +1,8 @@
 from pydantic import BaseModel
 from datetime import datetime
-from typing import Optional, List, TYPE_CHECKING, Any
+from typing import List
 
-if TYPE_CHECKING:
-    from app.schemas.container import ContainerResponse
+from app.schemas.container import ContainerResponse
 
 # Image schemas
 class ImageBase(BaseModel):
@@ -32,7 +31,7 @@ class ImageResponse(ImageBase):
 class ImageWithContainers(ImageResponse):
     """ Image with its containers nested"""
     
-    containers: List[Any] = []  # Will be resolved to ContainerResponse at runtime
+    containers: List[ContainerResponse] = []  
     
     class Config:
         from_attributes = True

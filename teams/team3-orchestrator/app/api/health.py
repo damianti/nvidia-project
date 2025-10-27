@@ -1,7 +1,6 @@
 from fastapi import APIRouter
 from app.database.config import get_db
 import docker
-from docker.errors import DockerException
 from fastapi import HTTPException
 
 

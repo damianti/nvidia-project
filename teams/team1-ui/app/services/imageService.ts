@@ -27,7 +27,7 @@ export interface UpdateImageRequest extends Partial<CreateImageRequest> {}
 
 // Image service class
 class ImageService {
-  private baseUrl = 'http://localhost:3003/api/images'
+  private baseUrl = 'http://localhost:8080/api/images'
 
   // Helper para obtener headers con token
   private getAuthHeaders(): HeadersInit {

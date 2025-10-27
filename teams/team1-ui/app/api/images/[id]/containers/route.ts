@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 
-const ORCHESTRATOR_URL = process.env.ORCHESTRATOR_URL || 'http://localhost:3003'
+const  API_GATEWAY_EXTERNAL_URL = process.env.API_GATEWAY_EXTERNAL_URL || 'http://localhost:8080'
 
 // Helper function to get auth token from cookies
 function getAuthToken(request: NextRequest): string | null {
@@ -26,7 +26,7 @@ export async function POST(
     const imageId = id
 
     // Forward request to Orchestrator
-    const response = await fetch(`${ORCHESTRATOR_URL}/api/images/${imageId}/containers`, {
+    const response = await fetch(`${API_GATEWAY_EXTERNAL_URL}/api/images/${imageId}/containers`, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${token}`,

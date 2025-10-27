@@ -81,7 +81,7 @@ def cleanup_files(folder: str)-> None:
     if os.path.exists(folder):
         os.rmdir(folder)
 
-def run_container(image_name: str, image_tag: str , container_name: str, port: int, env_vars: dict ) -> Container:
+def run_container(image_name: str, image_tag: str , container_name: str, env_vars: dict ) -> Container:
     try:
         
         try: 
@@ -95,12 +95,15 @@ def run_container(image_name: str, image_tag: str , container_name: str, port: i
         container = client.containers.run(
             image= f"{image_name}:{image_tag}",
             name= container_name, 
-            ports={'80/tcp': port},
+            ports={'80/tcp': None},
             detach=True,
             environment = env_vars or {}
             )
+        container.reload()
+        port_bindings = container.attrs['NetworkSettings']['Ports']
+        external_port = int(port_bindings['80/tcp'][0]['HostPort']) if port_bindings.get('80/tcp') else None
 
-        return container
+        return container, external_port
 
     except DockerException as e:
         raise HTTPException(

@@ -178,3 +178,6 @@ Thumbs.db
 # Database
 *.db
 *.sqlite3
+
+# Project planning
+PLAN_TRABAJO.txt

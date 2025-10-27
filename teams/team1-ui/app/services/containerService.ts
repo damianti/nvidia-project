@@ -19,7 +19,7 @@ export interface Container {
 
 class ContainerService {
 
-    private baseUrl = 'http://localhost:3003/api/containers'
+    private baseUrl = 'http://localhost:8080/api/containers'
 
     private getAuthHeaders(): HeadersInit {
         const token = localStorage.getItem('auth-token')
@@ -52,7 +52,7 @@ class ContainerService {
     }
     async getImagesWithContainers(): Promise<ImageWithContainers[]> {
         try {
-            const response = await fetch ('http://localhost:3003/api/images/with-containers', {
+            const response = await fetch ('http://localhost:8080/api/images/with-containers', {
                 method: 'GET',
                 headers: this.getAuthHeaders(),
             })
@@ -77,7 +77,6 @@ class ContainerService {
                 headers: this.getAuthHeaders(),
                 body: JSON.stringify({
                     name: containerName || `container-${Date.now()}`,
-                    port: 4000, // Will be overridden by backend
                     image_id: imageId,
                     count: count
                 })

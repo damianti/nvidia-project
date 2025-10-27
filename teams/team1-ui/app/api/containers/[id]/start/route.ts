@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 
-const ORCHESTRATOR_URL = process.env.ORCHESTRATOR_URL || 'http://localhost:3003'
+const  API_GATEWAY_EXTERNAL_URL = process.env.API_GATEWAY_EXTERNAL_URL || 'http://localhost:8080'
+
 
 // Helper function to get auth token from cookies
 function getAuthToken(request: NextRequest): string | null {
@@ -22,7 +23,7 @@ export async function POST(
       )
     }
 
-    const response = await fetch(`${ORCHESTRATOR_URL}/api/containers/${id}/start`, {
+    const response = await fetch(`${API_GATEWAY_EXTERNAL_URL}/api/containers/${id}/start`, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${token}`,

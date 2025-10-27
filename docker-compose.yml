@@ -6,11 +6,9 @@ services:
     image: postgres:15
     container_name: nvidia-postgres
     environment:
-      POSTGRES_DB: nvidia_cloud
-      POSTGRES_USER: nvidia_user
-      POSTGRES_PASSWORD: nvidia_password
-    ports:
-      - "5433:5432"
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     volumes:
       - postgres_data:/var/lib/postgresql/data
     networks:
@@ -34,8 +32,6 @@ services:
     command: ["--storage-driver=overlay2", "--tls=false"]
 
 
-
-
   # Orchestrator Service (Team 3)
   orchestrator:
     build:
@@ -43,14 +39,12 @@ services:
       dockerfile: Dockerfile
     container_name: nvidia-orchestrator
     environment:
-      - DATABASE_URL=postgresql://nvidia_user:nvidia_password@postgres:5432/nvidia_cloud
-      - JWT_SECRET_KEY=your-super-secret-jwt-key-change-in-production
-      - JWT_ALGORITHM=HS256
-      - ACCESS_TOKEN_EXPIRE_MINUTES=30
-      - DOCKER_HOST=tcp://docker-dind:2375  # Puerto 2375 (sin TLS)
-      
-    ports:
-      - "3003:3003"
+      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:${POSTGRES_PORT}/${POSTGRES_DB}
+      - JWT_SECRET_KEY=${JWT_SECRET_KEY}
+      - JWT_ALGORITHM=${JWT_ALGORITHM}
+      - ACCESS_TOKEN_EXPIRE_MINUTES=${ACCESS_TOKEN_EXPIRE_MINUTES}
+      - DOCKER_HOST=tcp://docker-dind:2375
+    
     depends_on:
       postgres:
         condition: service_healthy
@@ -72,10 +66,11 @@ services:
       dockerfile: Dockerfile
     container_name: nvidia-ui
     environment:
-      - ORCHESTRATOR_URL=http://orchestrator:3003
-      - NODE_ENV=production
+      - API_GATEWAY_EXTERNAL_URL=http://api-gateway:8080
+      - ORCHESTRATOR_URL=${ORCHESTRATOR_URL}
+      - NODE_ENV=${NODE_ENV}
     ports:
-      - "3000:3000"
+      - "${UI_EXTERNAL_PORT}:${UI_PORT}"
     depends_on:
       - orchestrator
     networks:
@@ -86,11 +81,32 @@ services:
       timeout: 10s
       retries: 3
 
-  
+  api-gateway:
+    build:
+      context: ./teams/api-gateway
+      dockerfile: Dockerfile
+    container_name: nvidia-api-gateway
+    environment:
+      - ORCHESTRATOR_URL=${ORCHESTRATOR_URL}
+      - PORT=${API_GATEWAY_PORT}
+    ports:
+      - ${API_GATEWAY_PORT}:${API_GATEWAY_PORT}
+    depends_on:
+      - orchestrator
+    networks:
+      - nvidia-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+
 volumes:
   postgres_data:
   orchestrator_builds:
   dind-storage:  
+  
   
 
 networks:

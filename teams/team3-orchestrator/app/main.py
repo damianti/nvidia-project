@@ -5,6 +5,8 @@ import os
 import time
 import threading
 from contextlib import asynccontextmanager
+from .database.config import engine
+from .database.models import Base
 
 # Import routers
 from .api import health, users, images, containers, auth
@@ -25,10 +27,18 @@ logger = logging.getLogger(__name__)
 async def lifespan(app: FastAPI):
     """Application lifespan manager"""
     # Startup
-    
-    
     logger.info("Starting NVIDIA Orchestrator...")
     
+    try:
+        logger.info("Creating/updating database tables...")
+        Base.metadata.create_all(bind=engine)
+        logger.info("Database tables created/updated successfully")
+    
+    except Exception as e:
+        logger.error(f"Error creating database tables: {e}")
+        raise
+
+
     yield
     
     # Shutdown

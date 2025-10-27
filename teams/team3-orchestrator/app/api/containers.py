@@ -1,11 +1,10 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-from fastapi import Depends, HTTPException
 from typing import List
 from datetime import datetime 
 
 from app.database.config import get_db
-from app.database.models import Container, User
+from app.database.models import Container, User, ContainerStatus
 from app.schemas.container import ContainerCreate, ContainerResponse
 from app.api.auth import get_current_user
 from app.services.docker_service import run_container, start_container, stop_container, delete_container
@@ -20,23 +19,24 @@ async def create_containers(
     current_user: User = Depends(get_current_user)):
     """ Create and run containers from a specific image """
     try:
+        
         created_containers = []
-        for count in range(container.count):
-            port_to_run = 4000 + count # TODO get a better port number
-            docker_container = run_container(
+        for _ in range(container.count):
+
+            docker_container, external_port = run_container(
                 image_name = "nginx",
                 image_tag = "latest",
                 container_name =container.name,
-                port = port_to_run,
                 env_vars = {} )
 
             db_container = Container(
                 container_id = docker_container.id,
                 name = docker_container.name,
-                port = port_to_run,
-                status = "running",
+                status = ContainerStatus.RUNNING,
                 cpu_usage = "0.0",
                 memory_usage = "0m",
+                internal_port = 80,
+                external_port = external_port,
                 image_id = image_id,
                 user_id = current_user.id)
 
@@ -69,7 +69,7 @@ async def start_containers_endpoint(
         raise HTTPException(status_code=404, detail=f"container {container_id} not found")
     
     start_container(container.container_id)
-    container.status = "running"
+    container.status = ContainerStatus.RUNNING
     db.commit()
     db.refresh(container)
 
@@ -91,7 +91,7 @@ async def stop_containers_endpoint(
         raise HTTPException(status_code=404, detail=f"container {container_id} not found")
     
     stop_container(container.container_id)
-    container.status = "stopped"
+    container.status = ContainerStatus.STOPPED
     db.commit()
     db.refresh(container)
     

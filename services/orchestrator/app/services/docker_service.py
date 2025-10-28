@@ -1,8 +1,11 @@
 import docker
 import os
 from fastapi import HTTPException
+import logging
 from docker.errors import DockerException
 from docker.models.containers import Container
+
+logger = logging.getLogger(__name__)
 
 def generate_html(folder: str, website_url: str) -> None:
     html_content = f'''<!DOCTYPE html>
@@ -81,7 +84,7 @@ def cleanup_files(folder: str)-> None:
     if os.path.exists(folder):
         os.rmdir(folder)
 
-def run_container(image_name: str, image_tag: str , container_name: str, env_vars: dict ) -> Container:
+def run_container(image_name: str, image_tag: str , container_name: str, env_vars: dict ) -> tuple[Container, int]:
     try:
         
         try: 
@@ -102,6 +105,19 @@ def run_container(image_name: str, image_tag: str , container_name: str, env_var
         container.reload()
         port_bindings = container.attrs['NetworkSettings']['Ports']
         external_port = int(port_bindings['80/tcp'][0]['HostPort']) if port_bindings.get('80/tcp') else None
+        
+        if external_port is None:
+            try:
+                logger.error(f"Container {container_name} failed to get external port. Port bindings: {port_bindings}")
+                container.stop()
+                container.remove()
+            except:
+                pass
+
+            raise HTTPException(
+                status_code=500,
+                detail=f"Failed to assign external port to container '{container_name}'. Container may have failed to start properly. Check container logs for details."
+            )
 
         return container, external_port
 
@@ -129,6 +145,7 @@ def stop_container(container_docker_id: str)-> Container:
         return container
     except DockerException as e:
         raise HTTPException(status_code=500, detail=f"Failed to stop: {str(e)}")
+
 def delete_container(container_docker_id: str) -> bool:
     """"remove an existing container """
     try:

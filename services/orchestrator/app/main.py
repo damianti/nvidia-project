@@ -12,6 +12,7 @@ from .database.models import Base
 from .api import health, users, images, containers, auth
 
 # Import services
+from .services.kafka_producer import KafkaProducerSingleton
 # from .services.service_discovery import ServiceDiscovery, ServiceInfo
 # from .services.message_processor import MessageProcessor
 
@@ -43,7 +44,7 @@ async def lifespan(app: FastAPI):
     
     # Shutdown
     logger.info("Shutting down NVIDIA Orchestrator...")
-    
+    KafkaProducerSingleton.instance().flush(5)
   
 # Create FastAPI app with lifespan
 app = FastAPI(

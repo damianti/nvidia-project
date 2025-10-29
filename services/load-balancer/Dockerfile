@@ -1,21 +1,22 @@
-FROM python:3.11-alpine
+FROM python:3.11-slim
 
 WORKDIR /app
 
-# Install system dependencies
-RUN apk add --no-cache curl
 
-# Copy requirements first for better caching
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    curl \
+    librdkafka-dev \
+    gcc \
+    && rm -rf /var/lib/apt/lists/*
+
 COPY requirements.txt .
 
-# Install Python dependencies
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy application code
 COPY . .
 
-# Create non-root user
-RUN adduser -D -u 1000 appuser && chown -R appuser:appuser /app
+# Create non-root user (comando Debian)
+RUN useradd -m -u 1000 appuser && chown -R appuser:appuser /app
 
 USER appuser
 

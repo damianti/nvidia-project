@@ -1,53 +1,48 @@
 from dotenv import load_dotenv
-from fastapi import APIRouter, Request, Response
+from fastapi import APIRouter, Request, HTTPException
 import os
 import httpx
 from urllib.parse import urlencode
 
+from app.services.container_pool import ContainerPool
 client = httpx.AsyncClient(follow_redirects=True)
 
 load_dotenv()
 
-ORCHESTRATOR_URL = os.getenv("ORCHESTRATOR_URL", "http://orchestrator:3003")
+
+router = APIRouter(tags=["load_balancer"])
 
 
-router = APIRouter(tags=["proxy"])
+def get_pool_from_app(request: Request) -> ContainerPool:
+    pool = getattr(request.app.state, "container_pool", None)
+    if pool is None:
+        raise HTTPException(status_code=500, detail="Container pool not initialized")
+    return pool
 
 
-@router.api_route("/api/{path:path}", methods=["GET", "POST", "DELETE", "PUT", "PATCH"])
-async def proxy_api(path:str, request: Request):
+@router.get("/pool")
+async def get_pool_status(request: Request):
+    pool = get_pool_from_app(request)
+    return pool.get_pool_status()
 
-    base_url = f"{ORCHESTRATOR_URL}/api/{path}"
-    if request.query_params:
-        query_string = urlencode(request.query_params)
-        URL_destiny = f"{base_url}?{query_string}"
-    else:
-        URL_destiny = base_url
 
-    method = request.method
-    headers = dict (request.headers)
+@router.get("/route/{image_id}")
+async def route_image(image_id: int, request: Request):
+    """Return next running container info for an image.
+    For now, we return the target host/port so the API Gateway can proxy.
+    """
+    pool = get_pool_from_app(request)
+    selected = pool.get_next_container(image_id)
+    if not selected:
+        raise HTTPException(status_code=503, detail="No running containers available for this image")
 
-    headers.pop("host", None)
-    headers.pop("content-length", None)
+    # In this setup containers run inside docker-dind; reach them via its hostname
+    target_host = os.getenv("TARGET_HOST", "docker-dind")
+    return {
+        "image_id": image_id,
+        "container_id": selected.container_id,
+        "target_host": target_host,
+        "target_port": selected.external_port,
+    }
 
-    body = await request.body()
-
-    try:
-        response = await client.request(
-            method, 
-            URL_destiny, 
-            headers=headers, 
-            content=body
-            )
-
-        return Response(
-            content = response.content,
-            status_code = response.status_code,
-            headers = dict(response.headers)
-        )
     
-    except Exception as e:
-        return Response (
-            content = f"Proxy error: {str(e)}",
-            status_code=502
-        )

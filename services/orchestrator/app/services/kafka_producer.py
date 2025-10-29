@@ -4,7 +4,6 @@ from typing import Any, Dict, Optional
 from confluent_kafka import Producer
 import logging
 
-logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 class KafkaProducerSingleton:
@@ -19,12 +18,13 @@ class KafkaProducerSingleton:
             "bootstrap.servers": bootstrap_servers,  
             "client.id": client_id,
             "acks": "all",
-            "retry.idempotence": True,
+            "enable.idempotence": True,
             "retries": 5,
             "retry.backoff.ms": 200,
             "linger.ms": 10,
-            "batch.size": 64_000,
+            "batch.size": 64000,
             "compression.type": "lz4",
+            "message.timeout.ms": 10000,
         }
         self._producer = Producer(config)
 
@@ -34,10 +34,10 @@ class KafkaProducerSingleton:
             cls._instance = KafkaProducerSingleton()
         return cls._instance
 
-    def produce_json(self, data= Dict[str,str]):
-
-        json.dumps(dict)
-
+    def produce_json(self, topic: str, key: Optional[str], value: Dict[str, Any]) -> None:
+        payload = json.dumps(value)
+        self._producer.produce(topic=topic, key=key, value=payload, callback=self.delivery_report)
+        self._producer.poll(0)
     def delivery_report(self, err, msg) -> None:
 
         if err is not None:
@@ -47,6 +47,8 @@ class KafkaProducerSingleton:
             logger.info(f"[KAFKA] Delivered to {msg.topic()} [{msg.partition()}] @ offset {msg.offset()}")
 
 
+    def flush(self, timeout: float = 5.0) -> None:
+        self._producer.flush(timeout)
 
     
 

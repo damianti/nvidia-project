@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from typing import List
 from datetime import datetime 
+import logging
 
 from app.database.config import get_db
 from app.database.models import Container, User, ContainerStatus
@@ -11,6 +12,8 @@ from app.services.docker_service import run_container, start_container, stop_con
 from app.services.kafka_producer import KafkaProducerSingleton
 
 router = APIRouter( tags=["containers"])
+logger = logging.getLogger(__name__)
+
 
 @router.post("/{image_id}/create", response_model=List[ContainerResponse])
 async def create_containers(
@@ -29,7 +32,7 @@ async def create_containers(
                 image_tag = "latest",
                 container_name =container_data.name,
                 env_vars = {} )
-
+            
             db_container = Container(
                 container_id = docker_container.id,
                 name = docker_container.name,
@@ -49,16 +52,19 @@ async def create_containers(
             db.refresh(db_container)
         
         for db_container in created_containers:
-            KafkaProducerSingleton.instance().produce_json(
-                topic="container-lifecycle",
-                key= str(db_container.image_id),
-                value ={
-                    "event": "container.created",
-                    "container_id": db_container.container_id,
-                    "image_id": db_container.image_id,
-                    "port": db_container.external_port
-                }
-            )
+            try:
+                KafkaProducerSingleton.instance().produce_json(
+                    topic="container-lifecycle",
+                    key= str(db_container.image_id),
+                    value ={
+                        "event": "container.created",
+                        "container_id": db_container.container_id,
+                        "image_id": db_container.image_id,
+                        "port": db_container.external_port
+                    }
+                )
+            except Exception as e:
+                logger.error(f"Failed to publish to Kafka: {e}")
 
         return created_containers
     
@@ -85,17 +91,19 @@ async def start_container_endpoint(
     db_container.status = ContainerStatus.RUNNING
     db.commit()
     db.refresh(db_container)
-
-    KafkaProducerSingleton.instance().produce_json(
-        topic="container-lifecycle",
-        key=str(db_container.image_id),
-        value={
-            "event": "container.started",
-            "container_id": db_container.container_id,
-            "image_id": db_container.image_id,
-            "port": db_container.external_port
-        }
-    )
+    try:
+        KafkaProducerSingleton.instance().produce_json(
+            topic="container-lifecycle",
+            key=str(db_container.image_id),
+            value={
+                "event": "container.started",
+                "container_id": db_container.container_id,
+                "image_id": db_container.image_id,
+                "port": db_container.external_port
+            }
+        )
+    except Exception as e:
+        logger.error(f"Failed to publish to Kafka: {e}")
 
     return db_container
 
@@ -118,18 +126,19 @@ async def stop_container_endpoint(
     db_container.status = ContainerStatus.STOPPED
     db.commit()
     db.refresh(db_container)
-    
-    KafkaProducerSingleton.instance().produce_json(
-        topic="container-lifecycle",
-        key=str(db_container.image_id),
-        value={
-            "event": "container.stopped",
-            "container_id": db_container.container_id,
-            "image_id": db_container.image_id,
-            "port": db_container.external_port
-        }
-    )
-    
+    try:
+        KafkaProducerSingleton.instance().produce_json(
+            topic="container-lifecycle",
+            key=str(db_container.image_id),
+            value={
+                "event": "container.stopped",
+                "container_id": db_container.container_id,
+                "image_id": db_container.image_id,
+                "port": db_container.external_port
+            }
+        )
+    except Exception as e:
+        logger.error(f"Failed to publish to Kafka: {e}")
 
     return db_container
 
@@ -156,17 +165,19 @@ async def delete_container_endpoint(
     delete_container(db_container.container_id)
     db.delete(db_container)
     db.commit()
-
-    KafkaProducerSingleton.instance().produce_json(
-        topic="container-lifecycle",
-        key= str(container_data["image_id"]),
-        value= {
-            "event": "container.deleted",
-            "container_id": container_data["container_id"],
-            "image_id": container_data["image_id"],
-            "port": container_data["port"]
-        }
-    )
+    try:
+        KafkaProducerSingleton.instance().produce_json(
+            topic="container-lifecycle",
+            key= str(container_data["image_id"]),
+            value= {
+                "event": "container.deleted",
+                "container_id": container_data["container_id"],
+                "image_id": container_data["image_id"],
+                "port": container_data["port"]
+            }
+        )
+    except Exception as e:
+        logger.error(f"Failed to publish to Kafka: {e}")
 
     return {"message": f"Container {container_id} deleted successfully"}
     

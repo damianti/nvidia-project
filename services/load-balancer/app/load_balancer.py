@@ -20,6 +20,11 @@ def get_pool_from_app(request: Request) -> ContainerPool:
     return pool
 
 
+@router.get("/health")
+async def health():
+    return {"status": "ok"}
+
+
 @router.get("/pool")
 async def get_pool_status(request: Request):
     pool = get_pool_from_app(request)

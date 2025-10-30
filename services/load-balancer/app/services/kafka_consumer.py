@@ -25,9 +25,10 @@ class KafkaConsumerService:
         """Starts the Kafka consumer"""
         bootstrap_servers = os.getenv("KAFKA_BOOTSTRAP_SERVERS", "kafka:9092")
 
+        group_id = os.getenv("KAFKA_CONSUMER_GROUP") or 'load-balancers'
         config = {
             'bootstrap.servers': bootstrap_servers,
-            'group.id': 'load-balancers',
+            'group.id': group_id,
             'auto.offset.reset': 'earliest',
             'enable.auto.commit': True
         }
@@ -65,7 +66,7 @@ class KafkaConsumerService:
     def process_message(self, message: Dict):
         """Processes a Kafka message and updates the container pool"""
         try:
-            data = json.loads(message.value)
+            data = json.loads(message.value())
             event = data.get("event")
             if not event:
                 logger.warning("Message without 'event' field received")

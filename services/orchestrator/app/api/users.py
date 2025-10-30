@@ -16,7 +16,7 @@ async def create_user(user: UserCreate, db: Session = Depends(get_db)):
         db_user = User(
             username=user.username,
             email=user.email,
-            password=user.password  # In production, hash the password!
+            password=user.password  # TODO In production, hash the password!
         )
         db.add(db_user)
         db.commit()

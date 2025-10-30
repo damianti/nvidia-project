@@ -6,13 +6,16 @@ import logging
 
 logger = logging.getLogger(__name__)
 from app.services.container_pool import ContainerPool, ContainerData
+from app.services.website_mapping import WebsiteMapping
 
 
+# TODO implement event: image deleted, change url from image.
 class KafkaConsumerService:
-    def __init__(self, pool: ContainerPool) -> None:
+    def __init__(self, pool: ContainerPool, website_map: WebsiteMapping) -> None:
         self.pool = pool
         self.running = False
         self.consumer = None
+        self.website_map = website_map
         # Dispatch map de evento -> handler
         self._event_handlers = {
             "container.created": self._on_container_created,
@@ -91,22 +94,24 @@ class KafkaConsumerService:
     def _extract_core_fields(self, data: Dict[str, Any]):
         image_id = data["image_id"]
         container_id = data["container_id"]
-        external_port = data["port"]
-        return image_id, container_id, external_port
+        external_port = data.get("port")
+        website_url = data.get("website_url")
+        return image_id, container_id, external_port, website_url
 
     def _on_container_created(self, data: Dict[str, Any]) -> None:
-        image_id, container_id, external_port = self._extract_core_fields(data)
+        image_id, container_id, external_port, website_url = self._extract_core_fields(data)
         container_data = ContainerData(
             container_id=container_id,
             image_id=image_id,
             external_port=external_port,
             status="running"
         )
+        self.website_map.add(website_url, image_id)
         self.pool.add_container(container_data)
         logger.info(f"Container {container_id} added to pool for image {image_id}")
 
     def _on_container_started(self, data: Dict[str, Any]) -> None:
-        image_id, container_id, external_port = self._extract_core_fields(data)
+        image_id, container_id, external_port, website_url = self._extract_core_fields(data)
         existing = self.pool.find_container(image_id, container_id)
         if not existing:
             container_data = ContainerData(
@@ -115,6 +120,7 @@ class KafkaConsumerService:
                 external_port=external_port,
                 status="running"
             )
+            self.website_map.add(website_url, image_id)
             self.pool.add_container(container_data)
             logger.info(f"Container {container_id} added to pool for image {image_id}")
         else:
@@ -122,13 +128,16 @@ class KafkaConsumerService:
             logger.info(f"Container {container_id} started in pool for image {image_id}")
 
     def _on_container_stopped(self, data: Dict[str, Any]) -> None:
-        image_id, container_id, _ = self._extract_core_fields(data)
+        image_id, container_id, _, _ = self._extract_core_fields(data)
         self.pool.stop_container(image_id, container_id)
         logger.info(f"Container {container_id} stopped in pool for image {image_id}")
 
     def _on_container_deleted(self, data: Dict[str, Any]) -> None:
-        image_id, container_id, _ = self._extract_core_fields(data)
+        image_id, container_id, _, website_url = self._extract_core_fields(data)
         self.pool.remove_container(image_id, container_id)
+        # Si no quedan contenedores para la imagen, limpiar mapping (si se recibió website_url)
+        if not self.pool.get_containers(image_id) and website_url:
+            self.website_map.remove_image(website_url, image_id)
         logger.info(f"Container {container_id} removed from pool for image {image_id}")
 
 

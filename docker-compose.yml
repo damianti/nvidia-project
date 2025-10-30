@@ -119,6 +119,7 @@ services:
     container_name: nvidia-api-gateway
     environment:
       - ORCHESTRATOR_URL=${ORCHESTRATOR_URL}
+      - LOAD_BALANCER_URL=${LOAD_BALANCER_URL}
       - PORT=${API_GATEWAY_PORT}
     ports:
       - ${API_GATEWAY_PORT}:${API_GATEWAY_PORT}

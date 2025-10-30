@@ -7,7 +7,6 @@ from contextlib import asynccontextmanager
 
 from app import proxy
 
-# Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 

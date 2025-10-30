@@ -3,15 +3,43 @@ from fastapi import APIRouter, Request, Response
 import os
 import httpx
 from urllib.parse import urlencode
+import logging
 
 client = httpx.AsyncClient(follow_redirects=True)
 
+logger = logging.getLogger(__name__)
 load_dotenv()
-
 ORCHESTRATOR_URL = os.getenv("ORCHESTRATOR_URL", "http://orchestrator:3003")
-
+LOAD_BALANCER_URL = os.getenv("LOAD_BALANCER_URL", "http://load-balancer:3004")
 
 router = APIRouter(tags=["proxy"])
+
+
+@router.api_route("/route", methods=["GET", "POST", "DELETE", "PUT", "PATCH"])
+async def post_route(request: Request):
+    base_url = f"{LOAD_BALANCER_URL}/route"
+
+    body = await request.body()
+
+    try: 
+        response = await client.request(
+            method = "POST",
+            url=base_url,
+            content=body
+        )
+
+        return Response(
+            content = response.content,
+            status_code = response.status_code,
+            headers = dict(response.headers)
+        )
+
+    except Exception as e:
+        logger.error(f"proxy error to LB: {str(e)}")
+        return Response (
+            content = f"Proxy error: {str(e)}",
+            status_code=502
+        )
 
 
 @router.api_route("/api/{path:path}", methods=["GET", "POST", "DELETE", "PUT", "PATCH"])

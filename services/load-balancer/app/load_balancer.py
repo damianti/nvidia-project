@@ -51,3 +51,6 @@ async def route_image(image_id: int, request: Request):
     }
 
     
+@router.post("/route")
+async def route_image(request: Request):
+

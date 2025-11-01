@@ -96,31 +96,42 @@ class KafkaConsumerService:
         container_id = data["container_id"]
         external_port = data.get("port")
         website_url = data.get("website_url")
-        return image_id, container_id, external_port, website_url
+        container_name = data.get("container_name")  # Nombre del container (opcional)
+        return image_id, container_id, external_port, website_url, container_name
 
     def _on_container_created(self, data: Dict[str, Any]) -> None:
-        image_id, container_id, external_port, website_url = self._extract_core_fields(data)
+        image_id, container_id, external_port, website_url, container_name = self._extract_core_fields(data)
+        logger.info(f"container.created event - container_id: {container_id}, container_name: '{container_name}', image_id: {image_id}, website_url: '{website_url}'")
         container_data = ContainerData(
             container_id=container_id,
             image_id=image_id,
             external_port=external_port,
-            status="running"
+            status="running",
+            container_name=container_name
         )
-        self.website_map.add(website_url, image_id)
+        if website_url:
+            self.website_map.add(website_url, image_id)
+        else:
+            logger.warning(f"No website_url in container.created event for container {container_id}")
         self.pool.add_container(container_data)
         logger.info(f"Container {container_id} added to pool for image {image_id}")
 
     def _on_container_started(self, data: Dict[str, Any]) -> None:
-        image_id, container_id, external_port, website_url = self._extract_core_fields(data)
+        image_id, container_id, external_port, website_url, container_name = self._extract_core_fields(data)
+        logger.info(f"container.started event - container_id: {container_id}, container_name: '{container_name}', image_id: {image_id}, website_url: '{website_url}'")
         existing = self.pool.find_container(image_id, container_id)
         if not existing:
             container_data = ContainerData(
                 container_id=container_id,
                 image_id=image_id,
                 external_port=external_port,
-                status="running"
+                status="running",
+                container_name=container_name
             )
-            self.website_map.add(website_url, image_id)
+            if website_url:
+                self.website_map.add(website_url, image_id)
+            else:
+                logger.warning(f"No website_url in container.started event for container {container_id}")
             self.pool.add_container(container_data)
             logger.info(f"Container {container_id} added to pool for image {image_id}")
         else:

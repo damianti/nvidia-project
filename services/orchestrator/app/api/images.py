@@ -1,11 +1,10 @@
 from fastapi import APIRouter
 from app.database.config import get_db
-from sqlalchemy.orm import Session, joinedload
-from fastapi import Depends, HTTPException
-from app.database.models import Image, Container
+from sqlalchemy.orm import Session
+from fastapi import Depends
 from typing import List
+
 from app.schemas.image import ImageCreate, ImageResponse, ImageWithContainers
-from app.services.docker_service import build_image
 from app.api.auth import get_current_user
 from app.database.models import User
 
@@ -20,14 +19,8 @@ async def create_image(image: ImageCreate,
     current_user: User = Depends(get_current_user)
 ):
     """Register a new Docker image"""
-    try:
-        created = image_service.create_image(db, image, current_user)
-        return created
+    return image_service.create_image(db, image, current_user)
         
-    except Exception as e:
-        db.rollback()
-        raise HTTPException(status_code=500, detail=str(e))
-
 
 
 @router.get("/", response_model=List[ImageResponse])
@@ -53,10 +46,11 @@ async def list_images_with_containers(
 @router.get("/{image_id}", response_model=ImageResponse)
 async def get_image(
     image_id: int,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
 ):
     """Get a specific image"""
-    return image_service.get_image_by_id(db, image_id)
+    return image_service.get_image_by_id(db, image_id, current_user)
     
     
 

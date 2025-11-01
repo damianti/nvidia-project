@@ -11,14 +11,12 @@ from app.services.docker_service import build_image
 def create_image(db: Session, payload: ImageCreate, current_user: User) -> Image:
     """Creates an Image: validates duplicates, builds in Docker, persists and confirms."""
     try:
-        existing = images_repository.get_by_name_tag_user(
+        existing = images_repository.get_by_website_url(
             db,
-            name=payload.name,
-            tag=payload.tag,
-            user_id=current_user.id,
+            website_url = payload.website_url
         )
         if existing:
-            raise HTTPException(status_code=400, detail="Image with same name and tag already exists for this user")
+            raise HTTPException(status_code=400, detail="Image with same website_url already exists for this user")
 
         build_image(payload.name, payload.tag, payload.website_url, current_user.id)
 

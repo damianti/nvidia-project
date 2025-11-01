@@ -78,6 +78,7 @@ services:
       - DOCKER_HOST=tcp://docker-dind:2375
       - KAFKA_BOOTSTRAP_SERVERS=${KAFKA_BROKER_URL}
       - KAFKA_PRODUCER_TOPIC=container-lifecycle
+      - DOCKER_NETWORK=${DOCKER_NETWORK:-nvidia-project_nvidia-network}
     depends_on:
       postgres:
         condition: service_healthy
@@ -121,6 +122,7 @@ services:
       - ORCHESTRATOR_URL=${ORCHESTRATOR_URL}
       - LOAD_BALANCER_URL=${LOAD_BALANCER_URL}
       - PORT=${API_GATEWAY_PORT}
+      - TARGET_HOST=docker-dind
     ports:
       - ${API_GATEWAY_PORT}:${API_GATEWAY_PORT}
     depends_on:

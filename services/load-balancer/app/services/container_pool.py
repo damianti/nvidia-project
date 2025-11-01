@@ -8,11 +8,12 @@ logger = logging.getLogger(__name__)
 
 class ContainerData:
 
-    def __init__(self,container_id: str, image_id: int, external_port: int, status: str = "running")-> None:
+    def __init__(self, container_id: str, image_id: int, external_port: int, status: str = "running", container_name: str = None)-> None:
         self.container_id = container_id
         self.image_id = image_id
-        self.external_port = external_port
+        self.external_port = external_port  # Por compatibilidad, pero usaremos el puerto interno 80
         self.status = status
+        self.container_name = container_name or container_id  # Nombre del container para usar como hostname
         self._lock = threading.RLock()
 
 # TODO: implement a more complex way to choose the container (for example, free memory in container)

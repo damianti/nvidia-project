@@ -29,11 +29,8 @@ def get_all_images_with_containers(db: Session, current_user: User):
         .all()
 
         
-def get_by_name_tag_user(db: Session, name: str, tag: str, user_id: int) -> Optional[Image]:
+def get_by_website_url(db: Session, website_url: str) -> Optional[Image]:
     return db.query(Image)\
-        .filter(Image.user_id == user_id)\
-        .filter(Image.name == name)\
-        .filter(Image.tag == tag)\
+        .filter(Image.website_url == website_url)\
         .first()
-
 

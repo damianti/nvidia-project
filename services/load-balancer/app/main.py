@@ -8,7 +8,7 @@ from dotenv import load_dotenv
 
 from app.services.container_pool import ContainerPool
 from app.services.kafka_consumer import KafkaConsumerService
-
+from app.services.website_mapping import WebsiteMapping
 from app import load_balancer
 
 logging.basicConfig(level=logging.INFO)
@@ -18,17 +18,17 @@ logger = logging.getLogger(__name__)
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Application lifespan manager"""
-    # Load .env for local development (Docker Compose still injects envs at runtime)
-    load_dotenv()
+    
     logger.info("Starting NVIDIA Load Balancer...")
-    # Create shared ContainerPool and expose it via app.state for routers
+    
     container_pool = ContainerPool()
+    website_map = WebsiteMapping()
     app.state.container_pool = container_pool
+    app.state.website_map = website_map
+    
+    consumer_service = KafkaConsumerService(container_pool, website_map)
 
-    # Init Kafka consumer service with the shared pool
-    consumer_service = KafkaConsumerService(container_pool)
-
-    # Start consumer in background thread
+    
     def run_consumer():
         consumer_service.start()
 

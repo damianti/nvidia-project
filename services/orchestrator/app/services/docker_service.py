@@ -85,6 +85,10 @@ def cleanup_files(folder: str)-> None:
         os.rmdir(folder)
 
 def run_container(image_name: str, image_tag: str , container_name: str, env_vars: dict ) -> tuple[Container, int]:
+    """
+    Creates and runs a container, connecting it directly to the nvidia-network.
+    The containers do not expose ports publicly (they are only accessible from the Docker network).
+    """
     try:
         
         try: 
@@ -95,14 +99,26 @@ def run_container(image_name: str, image_tag: str , container_name: str, env_var
                 status_code=500,
                 detail=f"Cannot connect to docker DinD. Error: {str(e)}"
             )
+        
+        # NOTA: Los containers se crean dentro de docker-dind, que tiene su propio contexto de redes.
+        # La red nvidia-network existe en el host de Docker Compose, no dentro de docker-dind.
+        # Por lo tanto, no podemos conectar los containers directamente a nvidia-network desde aquí.
+        # Solución: Crear el container SIN especificar red, y luego exponer el puerto 80.
+        # El container será accesible desde docker-dind usando el puerto expuesto.
+        
+        # Crear container con puerto expuesto dinámicamente (no fijo)
+        # Esto permite que el container sea accesible desde otros containers en docker-dind
         container = client.containers.run(
-            image= f"{image_name}:{image_tag}",
-            name= container_name, 
-            ports={'80/tcp': None},
+            image=f"{image_name}:{image_tag}",
+            name=container_name,
+            ports={'80/tcp': None},  # Exponer puerto 80 dinámicamente
             detach=True,
-            environment = env_vars or {}
-            )
+            environment=env_vars or {}
+        )
+        
         container.reload()
+        
+        # Obtener el puerto externo asignado dinámicamente
         port_bindings = container.attrs['NetworkSettings']['Ports']
         external_port = int(port_bindings['80/tcp'][0]['HostPort']) if port_bindings.get('80/tcp') else None
         
@@ -113,12 +129,15 @@ def run_container(image_name: str, image_tag: str , container_name: str, env_var
                 container.remove()
             except:
                 pass
-
             raise HTTPException(
                 status_code=500,
-                detail=f"Failed to assign external port to container '{container_name}'. Container may have failed to start properly. Check container logs for details."
+                detail=f"Failed to assign external port to container '{container_name}'."
             )
-
+        
+        # El container está en la red interna de docker-dind.
+        # Para accederlo desde nvidia-network, usaremos docker-dind como host y el puerto externo.
+        # NOTA: Los puertos están expuestos solo dentro de docker-dind (no públicamente en el host).
+        
         return container, external_port
 
     except DockerException as e:

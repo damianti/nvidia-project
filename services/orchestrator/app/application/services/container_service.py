@@ -13,7 +13,7 @@ from app.repositories import containers_repository, images_repository
 
 logger = logging.getLogger(__name__)
 
-def create_containers(db: Session, image_id: int, current_user: User, container_data: ContainerCreate) -> List [Container]:
+def create_containers(db: Session, image_id: int, current_user: User, container_data: ContainerCreate) -> List[Container]:
     """ Create and run containers from a specific image """
     try:
         website_url = images_repository.get_by_id(db, image_id, current_user).website_url
@@ -52,6 +52,7 @@ def create_containers(db: Session, image_id: int, current_user: User, container_
                     value ={
                         "event": "container.created",
                         "container_id": db_container.container_id,
+                        "container_name": db_container.name,  # Nombre del container para usar como hostname
                         "image_id": db_container.image_id,
                         "port": db_container.external_port,
                         "website_url": website_url
@@ -64,7 +65,8 @@ def create_containers(db: Session, image_id: int, current_user: User, container_
 
     except Exception as e:
         db.rollback()
-        raise HTTPException(status_code = 500, detail=str(e))
+        logger.error(f"Error creating containers: {e}", exc_info=True)
+        raise HTTPException(status_code = 500, detail=f"Error creating containers: {str(e)}")
 
 def start_container(db: Session, current_user: User, container_id: int):
     db_container = containers_repository.get_by_id_and_user(db, container_id, current_user.id)
@@ -85,6 +87,7 @@ def start_container(db: Session, current_user: User, container_id: int):
             value={
                 "event": "container.started",
                 "container_id": db_container.container_id,
+                "container_name": db_container.name,  # Nombre del container para usar como hostname
                 "image_id": db_container.image_id,
                 "port": db_container.external_port,
                 **({"website_url": website_url} if website_url else {})
@@ -123,7 +126,7 @@ def stop_container(db: Session, current_user: User, container_id: int):
 
     return db_container
 
-def delete_container(db: Session, current_user: User, container_id: int)-> Dict[str:str]:
+def delete_container(db: Session, current_user: User, container_id: int) -> Dict[str, str]:
     db_container = containers_repository.get_by_id_and_user(db, container_id, current_user.id)
 
     if not db_container:
@@ -155,9 +158,9 @@ def delete_container(db: Session, current_user: User, container_id: int)-> Dict[
     return {"message": f"Container {container_id} deleted successfully"}
 
 
-def get_all_containers(db: Session, current_user: User)-> List[Container]:
+def get_all_containers(db: Session, current_user: User) -> List[Container]:
     return containers_repository.list_by_user(db, current_user.id)
 
 
-def get_containers_of_image(db: Session, current_user: User, image_id: int)-> List[Container]:
+def get_containers_of_image(db: Session, current_user: User, image_id: int) -> List[Container]:
     return containers_repository.list_by_image_and_user(db, image_id, current_user.id)

@@ -1,14 +1,29 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 import logging
 import os
-import time
 from contextlib import asynccontextmanager
+import asyncio
 
+from app.routing_cache import Cache
 from app import proxy
+
+
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+async def clear_cache(cached_memory: Cache):
+    """Background task que limpia entradas expiradas del cache periódicamente"""
+    while True:
+        try:
+            count = cached_memory.clear_expired()
+            if count > 0:
+                logger.info(f"Cleaned {count} expired cache entries")
+        except Exception as e:
+            logger.error(f"Error clearing expired cache: {e}")
+        
+        await asyncio.sleep(60)
 
 
 @asynccontextmanager
@@ -16,11 +31,24 @@ async def lifespan(app: FastAPI):
     """Application lifespan manager"""
     # Startup    
     logger.info("Starting NVIDIA API gateway...")
+    cache = Cache()
+    app.state.cached_memory = cache
+    task = asyncio.create_task(clear_cache(cache))
+    app.state.cleanup_task = task
     yield
     
     # Shutdown
+    if hasattr(app.state, 'cleanup_task'):
+        cleanup_task = app.state.cleanup_task
+        cleanup_task.cancel()
+        try:
+            await cleanup_task
+        except asyncio.CancelledError:
+            pass
     logger.info("Shutting down API gateway...")
     
+
+
 # Create FastAPI app with lifespan
 app = FastAPI(
     title="NVIDIA API gateway",

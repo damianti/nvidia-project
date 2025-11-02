@@ -88,19 +88,69 @@ The system consists of several microservices that work together to create a comp
 
 ## 🛠️ Infrastructure Components
 
-### Open Source Components (Configure, don't implement)
-- **Message Queues**: RabbitMQ, Redis
-- **Databases**: MongoDB, PostgreSQL
-- **Storage**: Local storage or Firebase-like object storage
-- **Monitoring**: Prometheus + Grafana
+### Open Source Components (Configured)
+- **Message Queue**: Kafka (for container lifecycle events)
+- **Database**: PostgreSQL (for images, containers, users)
+- **Container Runtime**: Docker-in-Docker (docker-dind)
+- **Service Discovery**: Consul (planned)
+- **Monitoring**: Prometheus + Grafana (planned)
 
-### Components to Implement
-- Orchestrator
-- Load Balancer
-- Service Discovery
-- Billing Service
-- Job Management Service
-- User Interface
+### Components Implemented ✅
+- ✅ **Orchestrator**: Container lifecycle management, image building, Kafka event publishing
+- ✅ **Load Balancer**: Round-robin routing, website URL mapping, Kafka event consumption
+- ✅ **API Gateway**: Request routing, caching with sticky sessions, proxy to containers
+- ✅ **UI**: Next.js frontend with authentication, image/container management
+- 🔄 **Service Discovery**: Consul setup (in progress)
+
+## 📊 Current Status (Updated: November 1, 2025)
+
+### ✅ Completed Features
+
+**Core Functionality:**
+- ✅ Complete API Gateway with proxy functionality
+- ✅ Load Balancer with Round-Robin algorithm
+- ✅ Container lifecycle management (create, start, stop, delete)
+- ✅ Image building and management
+- ✅ JWT-based authentication
+- ✅ Database persistence (PostgreSQL)
+
+**Event-Driven Architecture:**
+- ✅ Kafka producer in Orchestrator (publishes container lifecycle events)
+- ✅ Kafka consumer in Load Balancer (maintains in-memory container pool)
+- ✅ Website URL mapping (website_url → image_id)
+- ✅ Event types: `container.created`, `container.started`, `container.stopped`, `container.deleted`
+
+**Load Balancing & Routing:**
+- ✅ Round-robin container selection
+- ✅ Routing by `website_url` (via Host header)
+- ✅ Website URL normalization (removes protocol, handles www)
+- ✅ Container pool management (in-memory, thread-safe)
+
+**API Gateway Features:**
+- ✅ Routing cache with sticky sessions (by client IP)
+- ✅ Cache TTL: 30 minutes
+- ✅ Automatic cache cleanup (every 60 seconds)
+- ✅ Cache invalidation on container failures
+- ✅ Error handling (404, 503, timeouts)
+
+**Architecture:**
+- ✅ Clean architecture pattern (repositories, application services, API layer)
+- ✅ Thread-safe data structures (RLock for concurrent access)
+- ✅ Container networking via docker-dind (ports exposed internally)
+
+### 🔄 In Progress
+- Service Discovery with Consul
+- Professional logging (structured logs, correlation IDs)
+- Comprehensive testing (unit, integration, E2E)
+
+### 📋 Planned Features
+- Health checks for individual containers
+- Memory-based load balancing (instead of round-robin)
+- Authentication moved to API Gateway
+- Metrics and monitoring (Prometheus + Grafana)
+- Billing service
+- Client workload implementation
+- UI improvements (health status, metrics dashboard)
 
 ## 📁 Project Structure
 
@@ -279,6 +329,73 @@ Each team must provide:
 
 ---
 
+## 🚦 Getting Started - Quick Demo
+
+### Prerequisites
+```bash
+# Ensure Docker and Docker Compose are installed
+docker --version
+docker compose version
+```
+
+### Running the Project
+```bash
+# Clone the repository
+git clone <repository-url>
+cd nvidia-project
+
+# Copy environment variables (if needed)
+cp .env.example .env
+
+# Start all services
+docker compose up -d
+
+# Check services health
+docker compose ps
+
+# View logs
+docker compose logs -f orchestrator
+docker compose logs -f load-balancer
+docker compose logs -f api-gateway
+```
+
+### Services Endpoints
+- **UI**: http://localhost:3000
+- **API Gateway**: http://localhost:8080
+- **Orchestrator API**: http://localhost:3003
+- **Load Balancer**: http://localhost:3004
+- **Kafka UI**: http://localhost:8081
+
+### Testing the Flow
+1. Register a user via UI (http://localhost:3000/signup)
+2. Create an image with a `website_url` (e.g., `https://youtube.com`)
+3. Create containers for that image
+4. Test routing: `curl -H "Host: youtube.com" http://localhost:8080/route`
+
+## 🔧 Architecture Details
+
+### Networking Architecture
+Containers are created inside `docker-dind` (Docker-in-Docker) and are accessed from `nvidia-network` through `docker-dind` using dynamically assigned external ports. Ports are only exposed within Docker network (not publicly on host).
+
+### Event Flow
+```
+Container Created/Started → Orchestrator → Kafka → Load Balancer → Update Pool
+                                                                    ↓
+Client Request → API Gateway → Load Balancer → Select Container → Proxy
+```
+
+### Data Flow
+```
+UI → API Gateway → Orchestrator → Docker (docker-dind)
+                           ↓
+                      PostgreSQL
+                           ↓
+                      Kafka Events
+                           ↓
+                   Load Balancer (in-memory pool)
+```
+
+---
 **Project Lead**: Michael, Wael, Bar  
 **Hackathon**: ScaleUp-NVIDIA Tel-Hai Summer 2025  
-**Last Updated**: July 2025
+**Last Updated**: November 1, 2025

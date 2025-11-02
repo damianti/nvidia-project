@@ -7,11 +7,10 @@ import asyncio
 
 from app.routing_cache import Cache
 from app import proxy
+from app.middleware import LoggingMiddleware
+from app.utils.logger import setup_logger
 
-
-
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
+logger = setup_logger("api-gateway")
 
 async def clear_cache(cached_memory: Cache):
     """Background task que limpia entradas expiradas del cache periódicamente"""
@@ -57,6 +56,7 @@ app = FastAPI(
     lifespan=lifespan
 )
 
+app.add_middleware(LoggingMiddleware)
 # Add CORS middleware
 app.add_middleware(
     CORSMiddleware,
@@ -65,6 +65,8 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
 
 app.include_router(proxy.router, tags=["proxy"])
 

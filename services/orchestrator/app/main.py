@@ -1,9 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-import logging
 import os
-import time
-import threading
 from contextlib import asynccontextmanager
 from .database.config import engine
 from .database.models import Base
@@ -12,17 +9,15 @@ from .database.models import Base
 from .api import health, users, images, containers, auth
 
 # Import services
+from .middleware.logging import LoggingMiddleware
 from .services.kafka_producer import KafkaProducerSingleton
 # from .services.service_discovery import ServiceDiscovery, ServiceInfo
 # from .services.message_processor import MessageProcessor
 
-# Configure logging
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
+from app.utils.logger import setup_logger
 
-# Global variables for services
-# service_discovery = None
-# message_processor = None
+logger = setup_logger("orchestrator")
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -54,6 +49,7 @@ app = FastAPI(
     lifespan=lifespan
 )
 
+app.add_middleware(LoggingMiddleware)
 # Add CORS middleware
 app.add_middleware(
     CORSMiddleware,

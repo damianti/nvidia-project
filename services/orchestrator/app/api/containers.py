@@ -4,7 +4,7 @@ from typing import List
 import logging
 
 from app.database.config import get_db
-from app.database.models import Container, User, ContainerStatus
+from app.database.models import User
 from app.schemas.container import ContainerCreate, ContainerResponse
 from app.api.auth import get_current_user
 from app.application.services import container_service
@@ -12,7 +12,7 @@ from app.application.services import container_service
 
 
 router = APIRouter( tags=["containers"])
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("orchestrator")
 
 
 @router.post("/{image_id}/create", response_model=List[ContainerResponse])

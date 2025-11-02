@@ -5,7 +5,7 @@ import logging
 from docker.errors import DockerException
 from docker.models.containers import Container
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("orchestrator")
 
 def generate_html(folder: str, website_url: str) -> None:
     html_content = f'''<!DOCTYPE html>

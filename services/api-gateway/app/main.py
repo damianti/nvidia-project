@@ -1,13 +1,12 @@
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
-import logging
 import os
 from contextlib import asynccontextmanager
 import asyncio
 
 from app.routing_cache import Cache
 from app import proxy
-from app.middleware import LoggingMiddleware
+from app.middleware.logging import LoggingMiddleware
 from app.utils.logger import setup_logger
 
 logger = setup_logger("api-gateway")

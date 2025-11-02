@@ -1,20 +1,17 @@
-from dotenv import load_dotenv
 from fastapi import APIRouter, Request, Response, Depends, HTTPException
 import os
 import httpx
 from urllib.parse import urlencode
 import logging
-import json
 from typing import Optional
 from datetime import datetime, timedelta
 
 
 from app.routing_cache import Cache, CacheEntry
-
 client = httpx.AsyncClient(follow_redirects=True)
 
-logger = logging.getLogger(__name__)
-load_dotenv()
+logger = logging.getLogger("api-gateway")
+
 ORCHESTRATOR_URL = os.getenv("ORCHESTRATOR_URL", "http://orchestrator:3003")
 LOAD_BALANCER_URL = os.getenv("LOAD_BALANCER_URL", "http://load-balancer:3004")
 TARGET_HOST = os.getenv("TARGET_HOST", "docker-dind")

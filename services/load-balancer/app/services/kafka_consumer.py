@@ -1,10 +1,10 @@
 import os
 import json
-from typing import Any, Dict, Optional
+from typing import Any, Dict
 from confluent_kafka import Consumer
 import logging
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("load-balancer")
 from app.services.container_pool import ContainerPool, ContainerData
 from app.services.website_mapping import WebsiteMapping
 

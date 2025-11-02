@@ -10,9 +10,10 @@ from app.services.container_pool import ContainerPool
 from app.services.kafka_consumer import KafkaConsumerService
 from app.services.website_mapping import WebsiteMapping
 from app import load_balancer
+from app.middleware.logging import LoggingMiddleware
+from app.utils.logger import setup_logger
 
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
+logger = setup_logger("load-balancer")
 
 
 @asynccontextmanager
@@ -50,6 +51,7 @@ app = FastAPI(
     lifespan=lifespan
 )
 
+app.add_middleware(LoggingMiddleware)
 # CORS middleware
 app.add_middleware(
     CORSMiddleware,
@@ -80,7 +82,7 @@ if __name__ == "__main__":
     host = os.getenv("HOST", "0.0.0.0")
     port = int(os.getenv("PORT", "8080"))
     
-    logger.info(f"Starting API gateway on {host}:{port}")
+    logger.info(f"Starting Load Balancer on {host}:{port}")
     uvicorn.run(app, host=host, port=port)
 
 

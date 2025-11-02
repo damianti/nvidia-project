@@ -3,7 +3,6 @@ from logging.handlers import TimedRotatingFileHandler
 import json
 import contextvars
 import os
-import pathlib
 from datetime import datetime
 
 correlation_id_var = contextvars.ContextVar("correlation_id", default=None)
@@ -12,28 +11,50 @@ correlation_id_var = contextvars.ContextVar("correlation_id", default=None)
 class JSONFormatter(logging.Formatter):
     
     def format(self, record):
-        json_string = json.dumps({
-        "timestamp": datetime.fromtimestamp(record.created).isoformat(),
-        "level": record.levelname,
-        "logger": record.name,
-        "message": record.getMessage(),
-        "correlation_id": correlation_id_var.get(),
-        "filename": record.filename,
-        "lineno": record.lineno
-        })
+        
+        exclude_fields = {
+            'name', 'msg', 'args', 'created', 'filename', 'funcName',
+            'levelname', 'levelno', 'lineno', 'module', 'msecs',
+            'message', 'pathname', 'process', 'processName',
+            'relativeCreated', 'thread', 'threadName', 'exc_info',
+            'exc_text', 'stack_info', 'asctime'
+        }
+        
+        dictionary = {
+            "timestamp": datetime.fromtimestamp(record.created).isoformat(),
+            "level": record.levelname,
+            "logger": record.name,
+            "message": record.getMessage(),
+            "filename": record.filename,
+            "lineno": record.lineno
+        }
+        
+        
+        correlation_id = correlation_id_var.get()
+        if correlation_id is not None:
+            dictionary["correlation_id"] = correlation_id
+        
+        for key, value in record.__dict__.items():
+            if key not in exclude_fields:
+                dictionary[key] = value
+        
+        json_string = json.dumps(dictionary)
         
         return json_string
 
 class ConsoleFormatter(logging.Formatter):
     def format(self, record):
-        timestamp = datetime.fromtimestamp(record.created).isoformat(),
-        return f"{timestamp} [{record.levelname}] {record.name}: {record.getMessage()} (correlation_id={ correlation_id_var.get()})"
+        timestamp = datetime.fromtimestamp(record.created).isoformat()
+        correlation_id = correlation_id_var.get() or "no-correlation-id"
+        return f"{timestamp} [{record.levelname}] {record.name}: {record.getMessage()} (correlation_id={correlation_id})"
         
 
 
 def setup_logger(service_name: str):
     logger = logging.getLogger(service_name)
-    logger.setLevel(logging.INFO)
+    log_level = os.getenv("LOG_LEVEL", "INFO").upper()
+    logger.setLevel(getattr(logging, log_level, logging.INFO))
+
     if not logger.handlers:
         console_handler = logging.StreamHandler()
         console_handler.setFormatter(ConsoleFormatter())
@@ -45,7 +66,7 @@ def setup_logger(service_name: str):
             "logs/app.log",
             when='midnight',
             interval=1,
-            backupCount=7  # Mantener 7 días
+            backupCount=7 
         )
         file_handler.setFormatter(JSONFormatter())
         logger.addHandler(file_handler)

@@ -2,12 +2,12 @@ import redis
 import json
 import uuid
 import logging
-from typing import Dict, Any, Optional, Callable
+from typing import Dict, Any, Optional
 from dataclasses import dataclass, asdict
 from datetime import datetime
 from enum import Enum
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("orchestrator")
 
 class MessageType(Enum):
     """Types of messages for different operations"""

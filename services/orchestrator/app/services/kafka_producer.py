@@ -4,7 +4,7 @@ from typing import Any, Dict, Optional
 from confluent_kafka import Producer
 import logging
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("orchestrator")
 
 class KafkaProducerSingleton:
     _instance: Optional["KafkaProducerSingleton"] = None

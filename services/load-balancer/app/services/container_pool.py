@@ -3,7 +3,7 @@ import threading
 from typing import Optional, List
 
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("load-balancer")
 
 
 class ContainerData:

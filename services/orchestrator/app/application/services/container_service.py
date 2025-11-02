@@ -1,17 +1,17 @@
 from sqlalchemy.orm import Session
 from fastapi import HTTPException
-from typing import Optional, List, Dict
+from typing import List, Dict
 import logging
 
 
 from app.database.models import Container, User, ContainerStatus
-from app.schemas.container import ContainerCreate, ContainerResponse
+from app.schemas.container import ContainerCreate
 from app.services import docker_service
 from app.services.kafka_producer import KafkaProducerSingleton
 from app.repositories import containers_repository, images_repository
 
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("orchestrator")
 
 def create_containers(db: Session, image_id: int, current_user: User, container_data: ContainerCreate) -> List[Container]:
     """ Create and run containers from a specific image """

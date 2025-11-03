@@ -8,7 +8,7 @@ from app.services.website_mapping import WebsiteMapping
 
 
 client = httpx.AsyncClient(follow_redirects=True)
-logger = logging.getLogger("api-gateway")
+logger = logging.getLogger("load-balancer")
 
 
 

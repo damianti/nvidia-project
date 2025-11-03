@@ -1,13 +1,23 @@
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
-import os
 from contextlib import asynccontextmanager
 import asyncio
+import httpx
 
-from app.routing_cache import Cache
-from app import proxy
+from app.services.routing_cache import Cache
+from app.routes.proxy_routes import router as proxy_router
 from app.middleware.logging import LoggingMiddleware
 from app.utils.logger import setup_logger
+from app.utils.config import (
+    CACHE_CLEANUP_INTERVAL,
+    LOAD_BALANCER_URL,
+    ORCHESTRATOR_URL,
+    HOST,
+    PORT
+)
+from app.clients.lb_client import LoadBalancerClient
+from app.clients.orchestrator_client import OrchestratorClient
+
 
 logger = setup_logger("api-gateway")
 
@@ -17,18 +27,37 @@ async def clear_cache(cached_memory: Cache):
         try:
             count = cached_memory.clear_expired()
             if count > 0:
-                logger.info(f"Cleaned {count} expired cache entries")
+                logger.info(
+                    "cache.cleanup.completed",
+                    extra={
+                        "entries_removed": count
+                    }
+                )
         except Exception as e:
-            logger.error(f"Error clearing expired cache: {e}")
+            logger.error(
+                "cache.cleanup.error",
+                extra={
+                    "error": str(e),
+                    "error_type": type(e).__name__
+                },
+                exc_info=True
+            )
         
-        await asyncio.sleep(60)
+        await asyncio.sleep(CACHE_CLEANUP_INTERVAL)
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Application lifespan manager"""
     # Startup    
-    logger.info("Starting NVIDIA API gateway...")
+    
+
+    logger.info("gateway.starting")
+
+    http_client = httpx.AsyncClient(follow_redirects=True)
+    app.state.http_client = http_client
+    app.state.lb_client = LoadBalancerClient(LOAD_BALANCER_URL, http_client)
+    app.state.orchestrator_client = OrchestratorClient(ORCHESTRATOR_URL, http_client)
     cache = Cache()
     app.state.cached_memory = cache
     task = asyncio.create_task(clear_cache(cache))
@@ -43,7 +72,12 @@ async def lifespan(app: FastAPI):
             await cleanup_task
         except asyncio.CancelledError:
             pass
-    logger.info("Shutting down API gateway...")
+    
+    # Close HTTP client
+    if hasattr(app.state, 'http_client'):
+        await app.state.http_client.aclose()
+    
+    logger.info("gateway.shutting_down") 
     
 
 
@@ -67,7 +101,7 @@ app.add_middleware(
 
 
 
-app.include_router(proxy.router, tags=["proxy"])
+app.include_router(proxy_router, tags=["proxy"])
 
 @app.get("/")
 async def root():
@@ -84,11 +118,13 @@ async def root():
 if __name__ == "__main__":
     import uvicorn
     
-    # Get configuration from environment variables
-    host = os.getenv("HOST", "0.0.0.0")
-    port = int(os.getenv("PORT", "8080"))
-    
-    logger.info(f"Starting API gateway on {host}:{port}")
-    uvicorn.run(app, host=host, port=port)
+    logger.info(
+        "gateway.startup",
+        extra={
+            "host": HOST,
+            "port": PORT
+        }
+    )
+    uvicorn.run(app, host=HOST, port=PORT)
 
 

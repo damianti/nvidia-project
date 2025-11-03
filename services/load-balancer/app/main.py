@@ -4,7 +4,6 @@ import logging
 import os
 from contextlib import asynccontextmanager
 import threading
-from dotenv import load_dotenv
 
 from app.services.container_pool import ContainerPool
 from app.services.kafka_consumer import KafkaConsumerService

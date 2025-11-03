@@ -5,16 +5,14 @@ from datetime import datetime
 
 
 class CacheEntry:
-    def __init__(self, target_host: str, target_port: str, container_id: str, image_id: int, expires_at: datetime) -> None:
+    def __init__(self, target_host: str, target_port: int, 
+    container_id: str, image_id: int, expires_at: datetime) -> None:
         self.target_host = target_host
         self.target_port = target_port
         self.container_id = container_id
         self.image_id = image_id
         self.expires_at = expires_at
         
-    
-    def expiration(self):
-        return self.expires_at
 
 class Cache:
     def __init__(self) -> None:
@@ -28,7 +26,7 @@ class Cache:
                 return None
 
             
-            if self.store[(website_url, client_ip)].expiration() <= datetime.now():
+            if self.store[(website_url, client_ip)].expires_at <= datetime.now():
                 self.store.pop((website_url, client_ip))
                 return None
 

@@ -1,4 +1,3 @@
-import os
 import logging
 import httpx
 from typing import Optional, Dict, Callable

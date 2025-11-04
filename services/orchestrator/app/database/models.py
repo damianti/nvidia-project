@@ -1,13 +1,11 @@
 import os
 import psycopg2
 import enum
-from dotenv import load_dotenv
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 from sqlalchemy import String, Integer, DateTime, ForeignKey, Float, Enum
 from datetime import datetime
 from typing import List, Optional
 
-load_dotenv()
 
 class PortStatus(enum.Enum):
     FREE = "free"

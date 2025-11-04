@@ -2,8 +2,9 @@ import logging
 import threading
 from typing import Optional, List
 
+from app.utils.config import SERVICE_NAME
 
-logger = logging.getLogger("load-balancer")
+logger = logging.getLogger(SERVICE_NAME)
 
 
 class ContainerData:
@@ -11,9 +12,9 @@ class ContainerData:
     def __init__(self, container_id: str, image_id: int, external_port: int, status: str = "running", container_name: str = None)-> None:
         self.container_id = container_id
         self.image_id = image_id
-        self.external_port = external_port  # Por compatibilidad, pero usaremos el puerto interno 80
+        self.external_port = external_port 
         self.status = status
-        self.container_name = container_name or container_id  # Nombre del container para usar como hostname
+        self.container_name = container_name or container_id  
         self._lock = threading.RLock()
 
 # TODO: implement a more complex way to choose the container (for example, free memory in container)
@@ -45,12 +46,21 @@ class ContainerPool:
                     }
 
             self.pool[container.image_id]["containers"].append(container)
-        logger.info(f"Added container {container.container_id} to pool for image {container.image_id}")
+        logger.info(
+            "pool.container_added",
+            extra={
+                "container_id": container.container_id,
+                "image_id": container.image_id,
+            }
+        )
 
     def remove_container(self, image_id: int, container_id: str) -> bool:
         with self._lock:
             if not self.pool.get(image_id):
-                logger.warning(f"Image {image_id} not found in pool")
+                logger.warning(
+                    "pool.image_not_found",
+                    extra={"image_id": image_id}
+                )
                 return False
             
             containers = self.pool[image_id]["containers"]
@@ -62,23 +72,41 @@ class ContainerPool:
                         del self.pool[image_id]
                     else:
                         self.pool[image_id]["round_robin_index"] %= max(1, len(containers))
-                    logger.info(f"Removed container {container_id} from pool for image {image_id}")
+                    logger.info(
+                        "pool.container_removed",
+                        extra={
+                            "container_id": container_id,
+                            "image_id": image_id,
+                        }
+                    )
                     
                     return True
             
-        logger.warning(f"Container {container_id} not found for image {image_id}")
+        logger.warning(
+            "pool.container_not_found",
+            extra={
+                "container_id": container_id,
+                "image_id": image_id,
+            }
+        )
         return False
         
     
     def get_next_container(self, image_id: int) -> Optional[ContainerData]: 
         with self._lock:
             if not self.pool.get(image_id):
-                logger.warning(f"No containers found for image {image_id}")
+                logger.warning(
+                    "pool.no_containers_for_image",
+                    extra={"image_id": image_id}
+                )
                 return None
             
             containers = self.pool[image_id]["containers"]
             if not containers:
-                logger.warning(f"No containers available for image {image_id}")
+                logger.warning(
+                    "pool.no_containers_available",
+                    extra={"image_id": image_id}
+                )
                 return None
 
             index = self.pool[image_id]["round_robin_index"]
@@ -90,13 +118,22 @@ class ContainerPool:
                 
                 if selected.status == "running":
                     self.pool[image_id]["round_robin_index"] = (index+1) % total_containers
-                    logger.info(f"Selected container {selected.container_id} for image {image_id}")    
+                    logger.info(
+                        "pool.container_selected",
+                        extra={
+                            "container_id": selected.container_id,
+                            "image_id": image_id,
+                        }
+                    )
                     return selected
                 
                 index = (index+1) % total_containers
                 containers_checked +=1
 
-        logger.warning(f"No running containers for image {image_id}")
+        logger.warning(
+            "pool.no_running_containers",
+            extra={"image_id": image_id}
+        )
         return None
 
         
@@ -110,10 +147,22 @@ class ContainerPool:
             for container in containers:
                 if container.container_id == container_id:
                     container.status = "running"
-                    logger.info(f"Started container {container_id} for image {image_id}")
+                    logger.info(
+                        "pool.container_started",
+                        extra={
+                            "container_id": container_id,
+                            "image_id": image_id,
+                        }
+                    )
                     return True
             
-        logger.warning(f"Container {container_id} not found for image {image_id}")
+        logger.warning(
+            "pool.container_not_found",
+            extra={
+                "container_id": container_id,
+                "image_id": image_id,
+            }
+        )
         return False
 
     def stop_container(self, image_id: int, container_id: str) -> bool:
@@ -127,10 +176,22 @@ class ContainerPool:
             for container in containers:
                 if container.container_id == container_id:
                     container.status = "stopped"
-                    logger.info(f"Stopped container {container_id} for image {image_id}")
+                    logger.info(
+                        "pool.container_stopped",
+                        extra={
+                            "container_id": container_id,
+                            "image_id": image_id,
+                        }
+                    )
                     return True
             
-        logger.warning(f"Container {container_id} not found for image {image_id}")
+        logger.warning(
+            "pool.container_not_found",
+            extra={
+                "container_id": container_id,
+                "image_id": image_id,
+            }
+        )
         return False
         
 

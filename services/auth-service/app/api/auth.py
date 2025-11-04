@@ -9,7 +9,7 @@ from pydantic import BaseModel
 
 from app.database.config import get_db
 from app.database.models import User 
-from app.schemas.user import UserCreate, UserResponse
+from app.schemas.user import UserCreate, UserResponse, LoginResponse, LoginRequest, TokenData
 from app.utils.config import SECRET_KEY, ALGORITHM, ACCESS_TOKEN_EXPIRE_MINUTES
 
 
@@ -22,17 +22,6 @@ security = HTTPBearer()
 router = APIRouter(tags=["authentication"])
 
 # Pydantic models for auth
-class LoginRequest(BaseModel):
-    email: str
-    password: str
-
-class LoginResponse(BaseModel):
-    access_token: str
-    token_type: str
-    user: UserResponse
-
-class TokenData(BaseModel):
-    username: Optional[str] = None
 
 # Helper functions
 def verify_password(plain_password: str, hashed_password: str) -> bool:

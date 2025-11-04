@@ -7,6 +7,7 @@ from .database.models import Base
 
 # Import routers
 from .api import health, users, images, containers, auth
+from app.utils.config import SERVICE_NAME, HOST, PORT
 
 # Import services
 from .middleware.logging import LoggingMiddleware
@@ -16,14 +17,14 @@ from .services.kafka_producer import KafkaProducerSingleton
 
 from app.utils.logger import setup_logger
 
-logger = setup_logger("orchestrator")
+logger = setup_logger(SERVICE_NAME)
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Application lifespan manager"""
     # Startup
-    logger.info("Starting NVIDIA Orchestrator...")
+    logger.info("orchestrator.startup")
     
     try:
         logger.info("Creating/updating database tables...")
@@ -38,7 +39,7 @@ async def lifespan(app: FastAPI):
     yield
     
     # Shutdown
-    logger.info("Shutting down NVIDIA Orchestrator...")
+    logger.info("orchestrator.shutdown")
     KafkaProducerSingleton.instance().flush(5)
   
 # Create FastAPI app with lifespan
@@ -85,11 +86,7 @@ async def root():
 if __name__ == "__main__":
     import uvicorn
     
-    # Get configuration from environment variables
-    host = os.getenv("HOST", "0.0.0.0")
-    port = int(os.getenv("PORT", "3003"))
-    
-    logger.info(f"Starting Orchestrator on {host}:{port}")
-    uvicorn.run(app, host=host, port=port)
+    logger.info(f"Starting Orchestrator on {HOST}:{PORT}")
+    uvicorn.run(app, host=HOST, port=PORT)
 
 

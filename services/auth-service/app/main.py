@@ -1,12 +1,9 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
-import threading
 
-from app.services.container_pool import ContainerPool
-from app.services.kafka_consumer import KafkaConsumerService
-from app.services.website_mapping import WebsiteMapping
-from app.routes import lb_routes
+
+from app.api import auth
 from app.middleware.logging import LoggingMiddleware
 from app.utils.logger import setup_logger
 from app.utils.config import (
@@ -22,42 +19,29 @@ async def lifespan(app: FastAPI):
     """Application lifespan manager"""
     
     logger.info(
-        "lb.startup",
+        "auth.startup",
         extra={
             "service_name": SERVICE_NAME,
         }
     )
     
-    container_pool = ContainerPool()
-    website_map = WebsiteMapping()
-    app.state.container_pool = container_pool
-    app.state.website_map = website_map
-    
-    consumer_service = KafkaConsumerService(container_pool, website_map)
-
-    
-    def run_consumer():
-        consumer_service.start()
-
-    thread = threading.Thread(target=run_consumer, daemon=True)
-    thread.start()
     yield
     
     # Shutdown
     logger.info(
-        "lb.shutdown",
+        "auth.shutdown",
         extra={
             "service_name": SERVICE_NAME,
         }
     )
-    consumer_service.stop()
+    
 
 
     
 # Create FastAPI app with lifespan
 app = FastAPI(
-    title="NVIDIA Load Balancer",
-    description="Load Balancer for cloud services",
+    title="NVIDIA auth-service",
+    description="authentication service for cloud services",
     version="1.0.0",
     lifespan=lifespan
 )
@@ -72,17 +56,17 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.include_router(lb_routes.router, tags=["load_balancer"])
+app.include_router(auth.router, tags=[SERVICE_NAME])
+app.include_router(auth.router, prefix="/auth", tags=["authentication"])
 
 @app.get("/")
 async def root():
     """Root endpoint"""
     return {
-        "message": "NVIDIA Load Balancer",
+        "message": "NVIDIA auth-service",
         "version": "1.0.0",
         "endpoints": {
-            "GET /pool": "Inspect in-memory pool state",
-            "POST /route": "Route request to container by website_url"
+            
         }
     }
 
@@ -91,7 +75,7 @@ if __name__ == "__main__":
     import uvicorn
     
     logger.info(
-        "lb.run",
+        "auth.run",
         extra={
             "host": HOST,
             "port": PORT,

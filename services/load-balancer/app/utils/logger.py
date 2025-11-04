@@ -5,6 +5,7 @@ import contextvars
 import os
 from datetime import datetime
 
+from app.utils.config import LOG_LEVEL
 correlation_id_var = contextvars.ContextVar("correlation_id", default=None)
 
 
@@ -52,8 +53,7 @@ class ConsoleFormatter(logging.Formatter):
 
 def setup_logger(service_name: str):
     logger = logging.getLogger(service_name)
-    log_level = os.getenv("LOG_LEVEL", "INFO").upper()
-    logger.setLevel(getattr(logging, log_level, logging.INFO))
+    logger.setLevel(getattr(logging, LOG_LEVEL, logging.INFO))
     
     if not logger.handlers:
         console_handler = logging.StreamHandler()

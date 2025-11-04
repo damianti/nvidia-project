@@ -4,8 +4,9 @@ import time
 import uuid
 
 from app.utils.logger import correlation_id_var, setup_logger
+from app.utils.config import SERVICE_NAME
 
-logger = setup_logger("load-balancer")
+logger = setup_logger(SERVICE_NAME)
 
 
 class LoggingMiddleware(BaseHTTPMiddleware):
@@ -25,6 +26,7 @@ class LoggingMiddleware(BaseHTTPMiddleware):
                 "path": str(request.url.path),
                 "query_params": str(request.url.query) if request.url.query else None,
                 "client_ip": request.client.host if request.client else None,
+                "service_name": SERVICE_NAME,
             }
         )
 
@@ -43,6 +45,7 @@ class LoggingMiddleware(BaseHTTPMiddleware):
                     "path": str(request.url.path),
                     "status_code": response.status_code,
                     "process_time_ms": round(process_time, 2),
+                    "service_name": SERVICE_NAME,
                 }
             )
             
@@ -57,6 +60,7 @@ class LoggingMiddleware(BaseHTTPMiddleware):
                     "error": str(e),
                     "error_type": type(e).__name__,
                     "process_time_ms": round(process_time, 2),
+                    "service_name": SERVICE_NAME,
                 },
                 exc_info=True
             )

@@ -21,6 +21,7 @@ from app.clients.orchestrator_client import OrchestratorClient
 
 logger = setup_logger("api-gateway")
 
+# TODO put this function in corresponding file
 async def clear_cache(cached_memory: Cache):
     """Background task que limpia entradas expiradas del cache periódicamente"""
     while True:

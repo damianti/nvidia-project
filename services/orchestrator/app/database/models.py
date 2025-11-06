@@ -33,11 +33,11 @@ class Image(Base):
     memory_limit: Mapped[str] = mapped_column(String(50), default="512m")
     status: Mapped[str] = mapped_column(String(50), default="registered")
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
+    user_id: Mapped[int] = mapped_column(Integer, nullable=False)
     
     # Relationship with containers
     containers: Mapped[List["Container"]] = relationship(back_populates="image")
-    user_id: Mapped[int] = mapped_column(Integer, ForeignKey("users.id"))
-    user: Mapped["User"] = relationship(back_populates="images")
+    
 
 class Container(Base):
     __tablename__ = "containers"
@@ -51,27 +51,12 @@ class Container(Base):
     cpu_usage: Mapped[str] = mapped_column(String(50), default="0.0")
     memory_usage: Mapped[str] = mapped_column(String(50), default="0m")
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
+    user_id: Mapped[int] = mapped_column(Integer, nullable=False)
     
-    
+    # Relationship with images
     image_id: Mapped[int] = mapped_column(Integer, ForeignKey("images.id"))
     image: Mapped["Image"] = relationship(back_populates="containers")
-    user_id: Mapped[int] = mapped_column(Integer, ForeignKey("users.id"))
-    user: Mapped["User"] = relationship(back_populates="containers")
 
-
-
-
-class User(Base):
-    __tablename__ = "users"
-
-    id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    username: Mapped[str] = mapped_column(String(255), nullable=False, unique=True)
-    email: Mapped[str] = mapped_column(String(255), nullable=False, unique=True)
-    password: Mapped[str] = mapped_column(String(255), nullable=False)
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
-    images: Mapped[List["Image"]] = relationship(back_populates="user")
-    containers: Mapped[List["Container"]] = relationship(back_populates="user")
-    billings: Mapped[List["Billing"]] = relationship(back_populates="user")
 
 
 class Billing(Base):

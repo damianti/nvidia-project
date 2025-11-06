@@ -28,7 +28,7 @@ def create_database():
         cursor = conn.cursor()
         
         # Check if database already exists
-        cursor.execute(f"SELECT 1 FROM pg_database WHERE datname = '{DB_NAME}'")
+        cursor.execute(f"SELECT 1 FROM pg_database WHERE datname = '{DB_NAME}'") 
         exists = cursor.fetchone()
         
         if not exists:
@@ -36,7 +36,7 @@ def create_database():
             cursor.execute(f"CREATE DATABASE {DB_NAME}")
             print(f"✅ Database '{DB_NAME}' created successfully")
         else:
-            print(f"ℹ️  Database '{DB_NAME}' already exists")
+            print(f"🔑 Database '{DB_NAME}' already exists")
             
         cursor.close()
         conn.close()

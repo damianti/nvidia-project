@@ -7,6 +7,7 @@ PORT = int(os.getenv("PORT", "8080"))
 SERVICE_NAME = os.getenv("HOST", "api-gateway")
 
 # Service URLs
+AUTH_SERVICE_URL = os.getenv("AUTH_SERVICE_URL", "http://auth-service:3005")
 LOAD_BALANCER_URL = os.getenv("LOAD_BALANCER_URL", "http://load-balancer:3004")
 ORCHESTRATOR_URL = os.getenv("ORCHESTRATOR_URL", "http://orchestrator:3003")
 

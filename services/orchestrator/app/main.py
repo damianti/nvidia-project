@@ -1,6 +1,5 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-import os
 from contextlib import asynccontextmanager
 from .database.config import engine
 from .database.models import Base
@@ -62,10 +61,8 @@ app.add_middleware(
 
 # Include routers
 app.include_router(health.router, prefix="/health", tags=["health"])
-app.include_router(users.router, prefix="/api/users", tags=["users"])
 app.include_router(images.router, prefix="/api/images", tags=["images"])
 app.include_router(containers.router, prefix="/api/containers", tags=["containers"])
-app.include_router(auth.router, prefix="/api/auth", tags=["authentication"])
 
 @app.get("/")
 async def root():
@@ -75,10 +72,8 @@ async def root():
         "version": "1.0.0",
         "endpoints": {
             "health": "/health",
-            "users": "/api/users",
             "images": "/api/images",
             "containers": "/api/containers",
-            "auth": "/api/auth"
         }
     }
 

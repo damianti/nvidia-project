@@ -1,7 +1,8 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
-
+from .database.models import Base
+from .database.config import engine
 
 from app.api import auth
 from app.middleware.logging import LoggingMiddleware
@@ -24,7 +25,18 @@ async def lifespan(app: FastAPI):
             "service_name": SERVICE_NAME,
         }
     )
-    
+    try:
+        Base.metadata.create_all(bind=engine)
+        
+    except Exception as e:
+        logger.error(
+            "auth.startup.database_error",
+            extra={
+                "error": str(e),
+                "service_name": SERVICE_NAME
+            }
+        )
+        raise
     yield
     
     # Shutdown
@@ -56,8 +68,8 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.include_router(auth.router, tags=[SERVICE_NAME])
-app.include_router(auth.router, prefix="/auth", tags=["authentication"])
+app.include_router(auth.router, prefix="/auth")
+
 
 @app.get("/")
 async def root():
@@ -66,9 +78,19 @@ async def root():
         "message": "NVIDIA auth-service",
         "version": "1.0.0",
         "endpoints": {
-            
+            "POST /auth/login": "Authenticate user",
+            "POST /auth/signup": "Register new user",
+            "GET /auth/me": "Get current user info",
+            "POST /auth/logout": "Logout user",
+            "GET /health": "Health check"
         }
     }
+
+
+@app.get("/health")
+async def health():
+    """Health check endpoint"""
+    return {"status": "healthy", "service": SERVICE_NAME}
 
 
 if __name__ == "__main__":

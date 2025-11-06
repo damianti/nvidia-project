@@ -48,8 +48,6 @@ async def lifespan(app: FastAPI):
     )
     
 
-
-    
 # Create FastAPI app with lifespan
 app = FastAPI(
     title="NVIDIA auth-service",

@@ -6,10 +6,12 @@ import httpx
 
 from app.services.routing_cache import Cache
 from app.routes.proxy_routes import router as proxy_router
+from app.routes.auth_routes import router as auth_router
 from app.middleware.logging import LoggingMiddleware
 from app.utils.logger import setup_logger
 from app.utils.config import (
     CACHE_CLEANUP_INTERVAL,
+    AUTH_SERVICE_URL,
     LOAD_BALANCER_URL,
     ORCHESTRATOR_URL,
     HOST,
@@ -17,7 +19,7 @@ from app.utils.config import (
 )
 from app.clients.lb_client import LoadBalancerClient
 from app.clients.orchestrator_client import OrchestratorClient
-
+from app.clients.auth_client import AuthClient
 
 logger = setup_logger("api-gateway")
 
@@ -59,6 +61,7 @@ async def lifespan(app: FastAPI):
     app.state.http_client = http_client
     app.state.lb_client = LoadBalancerClient(LOAD_BALANCER_URL, http_client)
     app.state.orchestrator_client = OrchestratorClient(ORCHESTRATOR_URL, http_client)
+    app.state.auth_client = AuthClient(AUTH_SERVICE_URL, http_client)
     cache = Cache()
     app.state.cached_memory = cache
     task = asyncio.create_task(clear_cache(cache))
@@ -103,6 +106,7 @@ app.add_middleware(
 
 
 app.include_router(proxy_router, tags=["proxy"])
+app.include_router(auth_router, tags=["auth"])
 
 @app.get("/")
 async def root():

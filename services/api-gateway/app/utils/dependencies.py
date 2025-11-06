@@ -5,7 +5,7 @@ import httpx
 from app.services.routing_cache import Cache
 from app.clients.lb_client import LoadBalancerClient
 from app.clients.orchestrator_client import OrchestratorClient
-
+from app.clients.auth_client import AuthClient
 
 def get_from_app_state(
     request: Request,
@@ -77,4 +77,13 @@ def get_orchestrator_client(request: Request) -> OrchestratorClient:
         attr_name="orchestrator_client",
         error_message="Orchestrator Client not initialized",
         expected_type=OrchestratorClient
+    )
+
+def get_auth_client(request: Request) -> AuthClient:
+    """Dependency to get Authenticator client from app state"""
+    return get_from_app_state(
+        request=request,
+        attr_name="auth_client",
+        error_message="Auth Client not initialized",
+        expected_type=AuthClient
     )

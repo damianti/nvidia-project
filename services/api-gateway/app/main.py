@@ -8,6 +8,7 @@ from app.services.routing_cache import Cache
 from app.routes.proxy_routes import router as proxy_router
 from app.routes.auth_routes import router as auth_router
 from app.middleware.logging import LoggingMiddleware
+
 from app.utils.logger import setup_logger
 from app.utils.config import (
     CACHE_CLEANUP_INTERVAL,

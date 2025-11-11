@@ -4,7 +4,7 @@ from typing import List, Dict
 import logging
 
 
-from app.database.models import Container, User, ContainerStatus
+from app.database.models import Container, ContainerStatus
 from app.schemas.container import ContainerCreate
 from app.services import docker_service
 from app.services.kafka_producer import KafkaProducerSingleton
@@ -13,10 +13,10 @@ from app.repositories import containers_repository, images_repository
 
 logger = logging.getLogger("orchestrator")
 
-def create_containers(db: Session, image_id: int, current_user: User, container_data: ContainerCreate) -> List[Container]:
+def create_containers(db: Session, image_id: int, user_id: int, container_data: ContainerCreate) -> List[Container]:
     """ Create and run containers from a specific image """
     try:
-        website_url = images_repository.get_by_id(db, image_id, current_user).website_url
+        website_url = images_repository.get_by_id(db, image_id, user_id).website_url
         created_containers = []
         for _ in range(container_data.count):
 
@@ -35,7 +35,7 @@ def create_containers(db: Session, image_id: int, current_user: User, container_
                 internal_port = 80,
                 external_port = external_port,
                 image_id = image_id,
-                user_id = current_user.id)
+                user_id = user_id)
 
             containers_repository.create(db, db_container)
             created_containers.append(db_container)
@@ -52,7 +52,7 @@ def create_containers(db: Session, image_id: int, current_user: User, container_
                     value ={
                         "event": "container.created",
                         "container_id": db_container.container_id,
-                        "container_name": db_container.name,  # Nombre del container para usar como hostname
+                        "container_name": db_container.name,
                         "image_id": db_container.image_id,
                         "port": db_container.external_port,
                         "website_url": website_url
@@ -68,8 +68,8 @@ def create_containers(db: Session, image_id: int, current_user: User, container_
         logger.error(f"Error creating containers: {e}", exc_info=True)
         raise HTTPException(status_code = 500, detail=f"Error creating containers: {str(e)}")
 
-def start_container(db: Session, current_user: User, container_id: int):
-    db_container = containers_repository.get_by_id_and_user(db, container_id, current_user.id)
+def start_container(db: Session, user_id: int, container_id: int):
+    db_container = containers_repository.get_by_id_and_user(db, container_id, user_id)
     
     if not db_container:
         raise HTTPException(status_code=404, detail=f"container {container_id} not found")
@@ -79,7 +79,7 @@ def start_container(db: Session, current_user: User, container_id: int):
     db.commit()
     db.refresh(db_container)
     try:
-        image = images_repository.get_by_id(db, db_container.image_id, current_user)
+        image = images_repository.get_by_id(db, db_container.image_id, user_id)
         website_url = image.website_url if image else None
         KafkaProducerSingleton.instance().produce_json(
             topic="container-lifecycle",
@@ -87,7 +87,7 @@ def start_container(db: Session, current_user: User, container_id: int):
             value={
                 "event": "container.started",
                 "container_id": db_container.container_id,
-                "container_name": db_container.name,  # Nombre del container para usar como hostname
+                "container_name": db_container.name,
                 "image_id": db_container.image_id,
                 "port": db_container.external_port,
                 **({"website_url": website_url} if website_url else {})
@@ -99,8 +99,8 @@ def start_container(db: Session, current_user: User, container_id: int):
     return db_container
 
 
-def stop_container(db: Session, current_user: User, container_id: int):
-    db_container = containers_repository.get_by_id_and_user(db, container_id, current_user.id)
+def stop_container(db: Session, user_id: int, container_id: int):
+    db_container = containers_repository.get_by_id_and_user(db, container_id, user_id)
     
     if not db_container:
         raise HTTPException(status_code=404, detail=f"container {container_id} not found")
@@ -126,8 +126,8 @@ def stop_container(db: Session, current_user: User, container_id: int):
 
     return db_container
 
-def delete_container(db: Session, current_user: User, container_id: int) -> Dict[str, str]:
-    db_container = containers_repository.get_by_id_and_user(db, container_id, current_user.id)
+def delete_container(db: Session, user_id: int, container_id: int) -> Dict[str, str]:
+    db_container = containers_repository.get_by_id_and_user(db, container_id, user_id)
 
     if not db_container:
         raise HTTPException(status_code=404, detail=f"container {container_id} not found")
@@ -158,9 +158,9 @@ def delete_container(db: Session, current_user: User, container_id: int) -> Dict
     return {"message": f"Container {container_id} deleted successfully"}
 
 
-def get_all_containers(db: Session, current_user: User) -> List[Container]:
-    return containers_repository.list_by_user(db, current_user.id)
+def get_all_containers(db: Session, user_id: int) -> List[Container]:
+    return containers_repository.list_by_user(db, user_id)
 
 
-def get_containers_of_image(db: Session, current_user: User, image_id: int) -> List[Container]:
-    return containers_repository.list_by_image_and_user(db, image_id, current_user.id)
+def get_containers_of_image(db: Session, user_id: int, image_id: int) -> List[Container]:
+    return containers_repository.list_by_image_and_user(db, image_id, user_id)

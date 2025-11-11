@@ -35,6 +35,17 @@ async def handle_get_current_user(token: str, auth_client: AuthClient):
     error_data = response.json()
     raise HTTPException(
         status_code=response.status_code,
-        detail=error_data.get("detail", "Signup failed")
+        detail=error_data.get("detail", "Failed to get current user")
+    )
+async def handle_logout(token: str, auth_client: AuthClient):
+    response = await auth_client.logout(token)
+    
+    if response.status_code == 200:
+        return response.json()
+    
+    error_data = response.json()
+    raise HTTPException(
+        status_code=response.status_code,
+        detail=error_data.get("detail", "Failed to logout")
     )
     

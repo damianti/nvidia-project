@@ -97,8 +97,85 @@ class AuthClient:
             raise
         
     
-    async def get_current_user(self):
-        pass
+    async def get_current_user(self, authorization_header: str) -> httpx.Response:
+        try:
+            headers = {"Authorization": authorization_header}
+            headers.update(self._build_headers())
+            response = await self.http_client.request(
+                method="GET",
+                url=f"{self.base_url}/auth/me",
+                headers=headers,
+                timeout=self.timeout_s
+            )
+            logger.info(
+                "auth.client.request",
+                extra={
+                    "status_code": response.status_code,
+                    "method": "GET",
+                    "path": "/auth/me"
+                }
+            )
+            
+            return response
+
+        except httpx.TimeoutException:
+            logger.error(
+                "auth.proxy.timeout",
+                extra={
+                    "timeout_s": self.timeout_s
+                }
+            )
+            raise
+        except Exception as e:
+            logger.error(
+                "auth.proxy.error",
+                extra={
+                    "error": str(e),
+                    "error_type": type(e).__name__
+                },
+                exc_info=True
+            )
+            raise
 
     async def verify_token(self):
         pass
+    
+    async def logout(self, token: str) -> httpx.Response:
+        try:
+            headers = {"Authorization": f"Bearer {token}"}
+            headers.update(self._build_headers())
+            response = await self.http_client.request(
+                method="POST",
+                url=f"{self.base_url}/auth/logout",
+                headers=headers,
+                timeout=self.timeout_s
+            )
+            logger.info(
+                "auth.client.request",
+                extra={
+                    "status_code": response.status_code,
+                    "method": "POST",
+                    "path": "/auth/logout"
+                }
+            )
+            
+            return response
+
+        except httpx.TimeoutException:
+            logger.error(
+                "auth.proxy.timeout",
+                extra={
+                    "timeout_s": self.timeout_s
+                }
+            )
+            raise
+        except Exception as e:
+            logger.error(
+                "auth.proxy.error",
+                extra={
+                    "error": str(e),
+                    "error_type": type(e).__name__
+                },
+                exc_info=True
+            )
+            raise

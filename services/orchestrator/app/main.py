@@ -5,7 +5,7 @@ from .database.config import engine
 from .database.models import Base
 
 # Import routers
-from .api import health, users, images, containers, auth
+from .api import health, images, containers
 from app.utils.config import SERVICE_NAME, HOST, PORT
 
 # Import services

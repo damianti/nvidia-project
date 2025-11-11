@@ -9,7 +9,7 @@ from app.utils.dependencies import (
 from app.services.routing_cache import Cache
 from app.services.gateway_service import handle_route_request, RouteValidationError
 from app.services.orchestrator_service import handle_orchestrator_proxy
-
+from app.utils.dependencies import verify_token_and_get_user_id
 router = APIRouter(tags=["proxy"])
 
 
@@ -36,11 +36,13 @@ async def post_route(
 async def proxy_api(
     path: str,
     request: Request,
-    orchestrator_client = Depends(get_orchestrator_client),
+    user_id: int = Depends(verify_token_and_get_user_id),
+    orchestrator_client = Depends(get_orchestrator_client)
 ):
     """Proxy API requests to Orchestrator"""
     return await handle_orchestrator_proxy(
         request=request,
         path=path,
+        user_id= user_id,
         orchestrator_client=orchestrator_client
     )

@@ -1,12 +1,14 @@
 from fastapi import APIRouter, Depends
+from fastapi.security import OAuth2PasswordBearer
 
 from app.schemas.user import LoginRequest, UserCreate
 from app.clients.auth_client import AuthClient
 from app.utils.dependencies import get_auth_client
-
 from app.services import auth_service 
 
+
 router = APIRouter(tags=["auth"])
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
 
 @router.post("/login")
 async def login_user(
@@ -14,6 +16,13 @@ async def login_user(
     auth_client: AuthClient = Depends(get_auth_client)
 ):
     return await auth_service.handle_login(login_data, auth_client)
+
+@router.post("/logout")
+async def logout_user(
+    token: str = Depends(oauth2_scheme),
+    auth_client: AuthClient = Depends(get_auth_client)
+):
+    return await auth_service.handle_logout(token, auth_client)
 
 @router.post("/signup")
 async def signup_user(
@@ -24,5 +33,8 @@ async def signup_user(
 
 @router.get("/me")
 async def get_current_user(
+    token: str = Depends(oauth2_scheme),
+    auth_client: AuthClient = Depends(get_auth_client)
+):  
+    return await auth_service.handle_get_current_user(token, auth_client)
 
-)

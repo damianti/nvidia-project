@@ -1,5 +1,5 @@
 # FastAPI Dependencies
-from fastapi import Request, HTTPException
+from fastapi import Request, HTTPException, Header, Depends
 import httpx
 
 from app.services.routing_cache import Cache
@@ -86,4 +86,25 @@ def get_auth_client(request: Request) -> AuthClient:
         attr_name="auth_client",
         error_message="Auth Client not initialized",
         expected_type=AuthClient
+    )
+
+async def verify_token_and_get_user_id(
+    authorization: str = Header(..., alias="Authorization"),
+    auth_client: AuthClient = Depends(get_auth_client)
+) -> int:
+
+    if not authorization.startswith("Bearer "):
+        raise HTTPException(
+            status_code=401,
+            detail="Invalid authorization header format"
+        )
+    response = await auth_client.get_current_user(authorization)
+
+    if response.status_code == 200:
+        return response.json()["id"]
+
+    error_data = response.json()
+    raise HTTPException(
+        status_code=response.status_code,
+        detail=error_data.get("detail", "Failed to get current user")
     )

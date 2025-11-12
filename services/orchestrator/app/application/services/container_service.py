@@ -48,8 +48,8 @@ def create_containers(db: Session, image_id: int, user_id: int, container_data: 
             try:
                 KafkaProducerSingleton.instance().produce_json(
                     topic="container-lifecycle",
-                    key= str(db_container.image_id),
-                    value ={
+                    key=str(db_container.image_id),
+                    value={
                         "event": "container.created",
                         "container_id": db_container.container_id,
                         "container_name": db_container.name,
@@ -59,14 +59,31 @@ def create_containers(db: Session, image_id: int, user_id: int, container_data: 
                     }
                 )
             except Exception as e:
-                logger.error(f"Failed to publish to Kafka: {e}")
+                logger.error(
+                    "kafka.publish_failed",
+                    extra={
+                        "event": "container.created",
+                        "container_id": db_container.container_id,
+                        "error": str(e),
+                        "error_type": type(e).__name__
+                    }
+                )
 
         return created_containers
 
     except Exception as e:
         db.rollback()
-        logger.error(f"Error creating containers: {e}", exc_info=True)
-        raise HTTPException(status_code = 500, detail=f"Error creating containers: {str(e)}")
+        logger.error(
+            "container.create_failed",
+            extra={
+                "image_id": image_id,
+                "user_id": user_id,
+                "error": str(e),
+                "error_type": type(e).__name__
+            },
+            exc_info=True
+        )
+        raise HTTPException(status_code=500, detail=f"Error creating containers: {str(e)}")
 
 def start_container(db: Session, user_id: int, container_id: int):
     db_container = containers_repository.get_by_id_and_user(db, container_id, user_id)
@@ -90,11 +107,19 @@ def start_container(db: Session, user_id: int, container_id: int):
                 "container_name": db_container.name,
                 "image_id": db_container.image_id,
                 "port": db_container.external_port,
-                **({"website_url": website_url} if website_url else {})
+                "website_url": website_url
             }
         )
     except Exception as e:
-        logger.error(f"Failed to publish to Kafka: {e}")
+        logger.error(
+            "kafka.publish_failed",
+            extra={
+                "event": "container.started",
+                "container_id": db_container.container_id,
+                "error": str(e),
+                "error_type": type(e).__name__
+            }
+        )
 
     return db_container
 
@@ -110,19 +135,30 @@ def stop_container(db: Session, user_id: int, container_id: int):
     db.commit()
     db.refresh(db_container)
     try:
+        image = images_repository.get_by_id(db, db_container.image_id, user_id)
+        website_url = image.website_url if image else None
         KafkaProducerSingleton.instance().produce_json(
             topic="container-lifecycle",
             key=str(db_container.image_id),
             value={
                 "event": "container.stopped",
                 "container_id": db_container.container_id,
+                "container_name": db_container.name,
                 "image_id": db_container.image_id,
                 "port": db_container.external_port,
-                
+                "website_url": website_url
             }
         )
     except Exception as e:
-        logger.error(f"Failed to publish to Kafka: {e}")
+        logger.error(
+            "kafka.publish_failed",
+            extra={
+                "event": "container.stopped",
+                "container_id": db_container.container_id,
+                "error": str(e),
+                "error_type": type(e).__name__
+            }
+        )
 
     return db_container
 
@@ -132,10 +168,15 @@ def delete_container(db: Session, user_id: int, container_id: int) -> Dict[str, 
     if not db_container:
         raise HTTPException(status_code=404, detail=f"container {container_id} not found")
 
+    # Capturar datos antes de eliminar
+    image = images_repository.get_by_id(db, db_container.image_id, user_id)
+    website_url = image.website_url if image else None
     container_data = {
-            "container_id": db_container.container_id,
-            "image_id": db_container.image_id,
-            "port": db_container.external_port
+        "container_id": db_container.container_id,
+        "container_name": db_container.name,
+        "image_id": db_container.image_id,
+        "port": db_container.external_port,
+        "website_url": website_url
     }
 
     docker_service.delete_container(db_container.container_id)
@@ -144,16 +185,26 @@ def delete_container(db: Session, user_id: int, container_id: int) -> Dict[str, 
     try:
         KafkaProducerSingleton.instance().produce_json(
             topic="container-lifecycle",
-            key= str(container_data["image_id"]),
-            value= {
+            key=str(container_data["image_id"]),
+            value={
                 "event": "container.deleted",
                 "container_id": container_data["container_id"],
+                "container_name": container_data["container_name"],
                 "image_id": container_data["image_id"],
-                "port": container_data["port"]
+                "port": container_data["port"],
+                "website_url": container_data["website_url"]
             }
         )
     except Exception as e:
-        logger.error(f"Failed to publish to Kafka: {e}")
+        logger.error(
+            "kafka.publish_failed",
+            extra={
+                "event": "container.deleted",
+                "container_id": container_data["container_id"],
+                "error": str(e),
+                "error_type": type(e).__name__
+            }
+        )
 
     return {"message": f"Container {container_id} deleted successfully"}
 

@@ -123,7 +123,7 @@ class KafkaConsumerService:
         container_id = data["container_id"]
         external_port = data.get("port")
         website_url = data.get("website_url")
-        container_name = data.get("container_name")  # Nombre del container (opcional)
+        container_name = data.get("container_name")  # Container name (optional)
         return image_id, container_id, external_port, website_url, container_name
 
     def _on_container_created(self, data: Dict[str, Any]) -> None:
@@ -197,22 +197,30 @@ class KafkaConsumerService:
             )
 
     def _on_container_stopped(self, data: Dict[str, Any]) -> None:
-        image_id, container_id, _, _ = self._extract_core_fields(data)
+        image_id, container_id, external_port, website_url, container_name = self._extract_core_fields(data)
         self.pool.stop_container(image_id, container_id)
         logger.info(
             "pool.container_stopped",
-            extra={"container_id": container_id, "image_id": image_id}
+            extra={
+                "container_id": container_id,
+                "container_name": container_name,
+                "image_id": image_id
+            }
         )
 
     def _on_container_deleted(self, data: Dict[str, Any]) -> None:
-        image_id, container_id, _, website_url = self._extract_core_fields(data)
+        image_id, container_id, external_port, website_url, container_name = self._extract_core_fields(data)
         self.pool.remove_container(image_id, container_id)
         # Si no quedan contenedores para la imagen, limpiar mapping (si se recibió website_url)
         if not self.pool.get_containers(image_id) and website_url:
             self.website_map.remove_image(website_url, image_id)
         logger.info(
             "pool.container_removed",
-            extra={"container_id": container_id, "image_id": image_id}
+            extra={
+                "container_id": container_id,
+                "container_name": container_name,
+                "image_id": image_id
+            }
         )
 
 

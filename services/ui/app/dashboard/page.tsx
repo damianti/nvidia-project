@@ -44,10 +44,10 @@ export default function DashboardPage() {
       <div className="max-w-7xl mx-auto mt-8">
         <div className="modern-card p-8">
           <h1 className="text-4xl font-bold text-gray-900 mb-4">
-            Bienvenido, {user.username}!
+            Welcome, {user.username}!
           </h1>
           <p className="text-lg text-gray-600 mb-8">
-            Administra tus imágenes y contenedores Docker desde un solo lugar.
+            Manage your Docker images and containers from one place.
           </p>
           
           {/* Quick Actions */}
@@ -63,8 +63,8 @@ export default function DashboardPage() {
                     </div>
                   </div>
                   <div className="ml-6">
-                    <p className="text-2xl font-bold text-gray-900">Imágenes</p>
-                    <p className="text-sm text-gray-600 mt-1">Ver y gestionar imágenes Docker</p>
+                    <p className="text-2xl font-bold text-gray-900">Images</p>
+                    <p className="text-sm text-gray-600 mt-1">View and manage Docker images</p>
                   </div>
                 </div>
               </div>
@@ -81,8 +81,8 @@ export default function DashboardPage() {
                     </div>
                   </div>
                   <div className="ml-6">
-                    <p className="text-2xl font-bold text-gray-900">Contenedores</p>
-                    <p className="text-sm text-gray-600 mt-1">Ver y gestionar contenedores Docker</p>
+                    <p className="text-2xl font-bold text-gray-900">Containers</p>
+                    <p className="text-sm text-gray-600 mt-1">View and manage Docker containers</p>
                   </div>
                 </div>
               </div>

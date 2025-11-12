@@ -31,7 +31,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const checkAuth = async () => {
     try {
-      // Las cookies se envían automáticamente con credentials: 'include'
+      // Cookies are sent automatically with credentials: 'include'
       const response = await fetch('/api/auth/me', {
         credentials: 'include',
       })
@@ -54,14 +54,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         headers: {
           'Content-Type': 'application/json',
         },
-        credentials: 'include', // Las cookies se guardan automáticamente
+        credentials: 'include', // Cookies are saved automatically
         body: JSON.stringify({ email, password }),
       })
 
       const data = await response.json()
 
       if (response.ok) {
-        // El token ya está guardado en cookies HTTP-only por el servidor
+        // Token is already saved in HTTP-only cookies by the server
         setUser(data.user)
         router.push('/dashboard')
         return true
@@ -104,7 +104,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logout = async () => {
     try {
-      // Las cookies se envían automáticamente
+      // Cookies are sent automatically
       await fetch('/api/auth/logout', {
         method: 'POST',
         credentials: 'include',

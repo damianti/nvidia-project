@@ -27,14 +27,12 @@ export interface UpdateImageRequest extends Partial<CreateImageRequest> {}
 
 // Image service class
 class ImageService {
-  private baseUrl = 'http://localhost:8080/api/images'
+  private baseUrl = '/api/images'
 
-  // Helper para obtener headers con token
-  private getAuthHeaders(): HeadersInit {
-    const token = localStorage.getItem('auth-token')
+  // Helper para obtener headers
+  private getHeaders(): HeadersInit {
     return {
       'Content-Type': 'application/json',
-      ...(token && { 'Authorization': `Bearer ${token}` }),
     }
   }
 
@@ -43,7 +41,8 @@ class ImageService {
     try {
       const response = await fetch(this.baseUrl, {
         method: 'GET',
-        headers: this.getAuthHeaders(),
+        headers: this.getHeaders(),
+        credentials: 'include', // Include cookies
       })
 
       if (!response.ok) {
@@ -66,7 +65,8 @@ class ImageService {
     try {
       const response = await fetch(`${this.baseUrl}/${id}`, {
         method: 'GET',
-        headers: this.getAuthHeaders(),
+        headers: this.getHeaders(),
+        credentials: 'include',
       })
 
       if (!response.ok) {
@@ -89,7 +89,8 @@ class ImageService {
     try {
       const response = await fetch(this.baseUrl, {
         method: 'POST',
-        headers: this.getAuthHeaders(),
+        headers: this.getHeaders(),
+        credentials: 'include',
         body: JSON.stringify(imageData),
       })
 
@@ -113,7 +114,8 @@ class ImageService {
     try {
       const response = await fetch(`${this.baseUrl}/${id}`, {
         method: 'PUT',
-        headers: this.getAuthHeaders(),
+        headers: this.getHeaders(),
+        credentials: 'include',
         body: JSON.stringify(imageData),
       })
 
@@ -137,7 +139,8 @@ class ImageService {
     try {
       const response = await fetch(`${this.baseUrl}/${id}`, {
         method: 'DELETE',
-        headers: this.getAuthHeaders(),
+        headers: this.getHeaders(),
+        credentials: 'include',
       })
 
       if (!response.ok) {

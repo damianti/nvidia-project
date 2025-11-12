@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-
-const  API_GATEWAY_EXTERNAL_URL = process.env.API_GATEWAY_EXTERNAL_URL || 'http://localhost:8080'
+import { config } from '@/utils/config'
 
 export async function POST(request: NextRequest) {
   try {
@@ -15,8 +14,8 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Forward request to Orchestrator
-    const response = await fetch(`${API_GATEWAY_EXTERNAL_URL}/api/auth/signup`, {
+    // Forward request to API Gateway
+    const response = await fetch(`${config.apiGatewayUrl}/auth/signup`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

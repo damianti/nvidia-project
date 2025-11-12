@@ -1,5 +1,5 @@
-from fastapi import APIRouter, Depends
-from fastapi.security import OAuth2PasswordBearer
+from fastapi import APIRouter, Depends, HTTPException, Header
+from typing import Optional
 
 from app.schemas.user import LoginRequest, UserCreate
 from app.clients.auth_client import AuthClient
@@ -8,7 +8,16 @@ from app.services import auth_service
 
 
 router = APIRouter(tags=["auth"])
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
+
+def get_authorization_header(
+    authorization: Optional[str] = Header(default=None, alias="Authorization")
+) -> str:
+    """Extract and validate Authorization header"""
+    if not authorization:
+        raise HTTPException(status_code=401, detail="Authorization header required")
+    if not authorization.startswith("Bearer "):
+        raise HTTPException(status_code=401, detail="Invalid authorization header format")
+    return authorization
 
 @router.post("/login")
 async def login_user(
@@ -19,10 +28,10 @@ async def login_user(
 
 @router.post("/logout")
 async def logout_user(
-    token: str = Depends(oauth2_scheme),
+    authorization_header: str = Depends(get_authorization_header),
     auth_client: AuthClient = Depends(get_auth_client)
 ):
-    return await auth_service.handle_logout(token, auth_client)
+    return await auth_service.handle_logout(authorization_header, auth_client)
 
 @router.post("/signup")
 async def signup_user(
@@ -33,8 +42,8 @@ async def signup_user(
 
 @router.get("/me")
 async def get_current_user(
-    token: str = Depends(oauth2_scheme),
+    authorization_header: str = Depends(get_authorization_header),
     auth_client: AuthClient = Depends(get_auth_client)
 ):  
-    return await auth_service.handle_get_current_user(token, auth_client)
+    return await auth_service.handle_get_current_user(authorization_header, auth_client)
 

@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-
-const  API_GATEWAY_EXTERNAL_URL = process.env.API_GATEWAY_EXTERNAL_URL || 'http://localhost:8080'
+import { config } from '@/utils/config'
 
 // Helper function to get auth token from cookies
 function getAuthToken(request: NextRequest): string | null {
@@ -21,13 +20,13 @@ export async function GET(request: NextRequest) {
 
     // Fetch images and containers in parallel
     const [imagesResponse, containersResponse] = await Promise.all([
-      fetch(`${API_GATEWAY_EXTERNAL_URL}/api/images`, {
+      fetch(`${config.apiGatewayUrl}/api/images`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
       }),
-      fetch(`${API_GATEWAY_EXTERNAL_URL}/api/containers`, {
+      fetch(`${config.apiGatewayUrl}/api/containers`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',

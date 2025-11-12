@@ -2,11 +2,17 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { imageService, Image, CreateImageRequest } from '../services/imageService'
-import { useAuth } from '../contexts/AuthContext'
+import { useRouter } from 'next/navigation'
+
+
+import { imageService, Image, CreateImageRequest } from '@/services/imageService'
+import { useAuth } from '@/contexts/AuthContext'
+import Navbar from '@/components/Navbar'
+import LoadingSpinner from '@/components/LoadingSpinner'
 
 export default function ImagesPage() {
-  const { user } = useAuth()
+  const router = useRouter()
+  const { user, loading: authLoading } = useAuth()
   const [images, setImages] = useState<Image[]>([])
   const [loading, setLoading] = useState(true)
   const [showUploadForm, setShowUploadForm] = useState(false)
@@ -25,8 +31,11 @@ export default function ImagesPage() {
 
   
   useEffect(() => {
+    if (!authLoading && !user) {
+        router.push('/login')
+    }
     fetchImages()
-  }, [])
+  }, [authLoading, user, router])
 
   const fetchImages = async () => {
     try {
@@ -103,6 +112,13 @@ export default function ImagesPage() {
     }
   }
 
+  if (authLoading) {
+    return <LoadingSpinner />
+  }
+  if (!user){
+    return null
+  }
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -116,35 +132,7 @@ export default function ImagesPage() {
 
   return (
     <div className="min-h-screen p-4">
-      {/* Header */}
-      <div className="modern-nav rounded-2xl mb-8">
-        <div className="max-w-7xl mx-auto px-6 py-6">
-          <div className="flex justify-between items-center">
-            <div>
-              <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                Images
-              </h1>
-              <p className="mt-2 text-gray-600">
-                Manage your Docker images and their configurations
-              </p>
-            </div>
-            <div className="flex space-x-4">
-              <Link
-                href="/dashboard"
-                className="btn-modern"
-              >
-                Back to Dashboard
-              </Link>
-              <button
-                onClick={() => setShowUploadForm(true)}
-                className="btn-modern"
-              >
-                Upload Image
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
+      <Navbar/>
 
       {/* Error Message */}
       {error && (

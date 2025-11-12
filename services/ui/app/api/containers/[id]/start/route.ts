@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-
-const  API_GATEWAY_EXTERNAL_URL = process.env.API_GATEWAY_EXTERNAL_URL || 'http://localhost:8080'
+import { config } from '@/utils/config'
 
 
 // Helper function to get auth token from cookies
@@ -23,7 +22,7 @@ export async function POST(
       )
     }
 
-    const response = await fetch(`${API_GATEWAY_EXTERNAL_URL}/api/containers/${id}/start`, {
+    const response = await fetch(`${config.apiGatewayUrl}/api/containers/${id}/start`, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${token}`,

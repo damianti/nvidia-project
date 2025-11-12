@@ -31,29 +31,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const checkAuth = async () => {
     try {
-      const token = localStorage.getItem('auth-token')
-      if (!token) {
-        setLoading(false)
-        return
-      }
-
-    
-      const response = await fetch('http://localhost:8080/api/auth/me', {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
+      // Las cookies se envían automáticamente con credentials: 'include'
+      const response = await fetch('/api/auth/me', {
+        credentials: 'include',
       })
       
       if (response.ok) {
         const userData = await response.json()
         setUser(userData)
-      } else {
-        // Token inválido, limpiar
-        localStorage.removeItem('auth-token')
       }
     } catch (error) {
       console.error('Auth check failed:', error)
-      localStorage.removeItem('auth-token')
     } finally {
       setLoading(false)
     }
@@ -61,19 +49,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = async (email: string, password: string): Promise<boolean> => {
     try {
-      const response = await fetch('http://localhost:8080/api/auth/login', {
+      const response = await fetch('/api/auth/login', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
+        credentials: 'include', // Las cookies se guardan automáticamente
         body: JSON.stringify({ email, password }),
       })
 
       const data = await response.json()
 
       if (response.ok) {
-        // Guardar token en localStorage
-        localStorage.setItem('auth-token', data.access_token)
+        // El token ya está guardado en cookies HTTP-only por el servidor
         setUser(data.user)
         router.push('/dashboard')
         return true
@@ -89,11 +77,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signup = async (username: string, email: string, password: string): Promise<boolean> => {
     try {
-      const response = await fetch('http://localhost:8080/api/auth/signup', {
+      const response = await fetch('/api/auth/signup', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
+        credentials: 'include',
         body: JSON.stringify({ username, email, password }),
       })
 
@@ -115,21 +104,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logout = async () => {
     try {
-      const token = localStorage.getItem('auth-token')
-      if (token) {
-        await fetch('http://localhost:8080/api/auth/logout', {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${token}`,
-          },
-        })
-      }
-      localStorage.removeItem('auth-token')
+      // Las cookies se envían automáticamente
+      await fetch('/api/auth/logout', {
+        method: 'POST',
+        credentials: 'include',
+      })
       setUser(null)
       router.push('/login')
     } catch (error) {
       console.error('Logout error:', error)
-      localStorage.removeItem('auth-token')
+      setUser(null)
+      router.push('/login')
     }
   }
 

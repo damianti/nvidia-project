@@ -92,12 +92,16 @@ async def verify_token_and_get_user_id(
     authorization: str = Header(..., alias="Authorization"),
     auth_client: AuthClient = Depends(get_auth_client)
 ) -> int:
-
+    """
+    Verify JWT token and extract user_id.
+    This dependency is used for routes that require authentication.
+    """
     if not authorization.startswith("Bearer "):
         raise HTTPException(
             status_code=401,
             detail="Invalid authorization header format"
         )
+    
     response = await auth_client.get_current_user(authorization)
 
     if response.status_code == 200:

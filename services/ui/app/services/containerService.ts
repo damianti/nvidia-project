@@ -19,13 +19,11 @@ export interface Container {
 
 class ContainerService {
 
-    private baseUrl = 'http://localhost:8080/api/containers'
+    private baseUrl = '/api/containers'
 
-    private getAuthHeaders(): HeadersInit {
-        const token = localStorage.getItem('auth-token')
+    private getHeaders(): HeadersInit {
         return {
           'Content-Type': 'application/json',
-          ...(token && { 'Authorization': `Bearer ${token}` }),
         }
       }
 
@@ -33,7 +31,8 @@ class ContainerService {
         try{
             const response = await fetch(this.baseUrl, {
                 method: 'GET',
-                headers: this.getAuthHeaders(),
+                headers: this.getHeaders(),
+                credentials: 'include',
             })
 
             if (!response.ok){
@@ -52,9 +51,10 @@ class ContainerService {
     }
     async getImagesWithContainers(): Promise<ImageWithContainers[]> {
         try {
-            const response = await fetch ('http://localhost:8080/api/images/with-containers', {
+            const response = await fetch('/api/images/with-containers', {
                 method: 'GET',
-                headers: this.getAuthHeaders(),
+                headers: this.getHeaders(),
+                credentials: 'include',
             })
             if (!response.ok){
                 if (response.status == 401) {
@@ -72,9 +72,10 @@ class ContainerService {
 
     async createContainer(imageId: number, containerName?: string, count: number = 1): Promise<Container[]> {
         try {
-            const response = await fetch (`${this.baseUrl}/${imageId}/create`, {
+            const response = await fetch (`/api/images/${imageId}/containers`, {
                 method: 'POST',
-                headers: this.getAuthHeaders(),
+                headers: this.getHeaders(),
+                credentials: 'include',
                 body: JSON.stringify({
                     name: containerName || `container-${Date.now()}`,
                     image_id: imageId,
@@ -99,7 +100,8 @@ class ContainerService {
         try {
             const response = await fetch (`${this.baseUrl}/${containerId}/start`, {
                 method: 'POST',
-                headers: this.getAuthHeaders(),
+                headers: this.getHeaders(),
+                credentials: 'include',
             })
             if (!response.ok){
                 
@@ -119,7 +121,8 @@ class ContainerService {
         try {
             const response = await fetch (`${this.baseUrl}/${containerId}/stop`,{
                 method: 'POST',
-                headers: this.getAuthHeaders(),
+                headers: this.getHeaders(),
+                credentials: 'include',
             })
             if (!response.ok){
                 if (response.status == 401){
@@ -138,7 +141,8 @@ class ContainerService {
         try {
             const response = await fetch (`${this.baseUrl}/${containerId}`,{
                 method: 'DELETE',
-                headers: this.getAuthHeaders(),
+                headers: this.getHeaders(),
+                credentials: 'include',
             })
             if (!response.ok){
                 if (response.status == 401){

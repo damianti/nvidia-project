@@ -1,20 +1,38 @@
 version: '3.8'
 
 services:
-  # PostgreSQL Database
-  postgres:
+  # PostgreSQL Database for Orchestrator
+  orch-postgres:
     image: postgres:15
-    container_name: nvidia-postgres
+    container_name: nvidia-orch-postgres
     environment:
-      POSTGRES_DB: ${POSTGRES_DB}
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${ORCH_POSTGRES_DB}
+      POSTGRES_USER: ${ORCH_POSTGRES_USER}
+      POSTGRES_PASSWORD: ${ORCH_POSTGRES_PASSWORD}
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - orch_postgres_data:/var/lib/postgresql/data
     networks:
       - nvidia-network
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U nvidia_user -d nvidia_cloud"]
+      test: ["CMD-SHELL", "pg_isready -U ${ORCH_POSTGRES_USER} -d ${ORCH_POSTGRES_DB}"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # PostgreSQL Database for Auth Service
+  auth-postgres:
+    image: postgres:15
+    container_name: nvidia-auth-postgres
+    environment:
+      POSTGRES_DB: ${AUTH_POSTGRES_DB}
+      POSTGRES_USER: ${AUTH_POSTGRES_USER}
+      POSTGRES_PASSWORD: ${AUTH_POSTGRES_PASSWORD}
+    volumes:
+      - auth_postgres_data:/var/lib/postgresql/data
+    networks:
+      - nvidia-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${AUTH_POSTGRES_USER} -d ${AUTH_POSTGRES_DB}"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -71,7 +89,12 @@ services:
       dockerfile: Dockerfile
     container_name: nvidia-auth-service
     environment:
-      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:${POSTGRES_PORT}/${POSTGRES_DB}
+      - DATABASE_URL=postgresql://${AUTH_POSTGRES_USER}:${AUTH_POSTGRES_PASSWORD}@auth-postgres:${AUTH_POSTGRES_PORT}/${AUTH_POSTGRES_DB}
+      - DB_USER=${AUTH_POSTGRES_USER}
+      - DB_PASSWORD=${AUTH_POSTGRES_PASSWORD}
+      - DB_HOST=auth-postgres
+      - DB_PORT=${AUTH_POSTGRES_PORT}
+      - DB_NAME=${AUTH_POSTGRES_DB}
       - JWT_SECRET_KEY=${JWT_SECRET_KEY}
       - JWT_ALGORITHM=${JWT_ALGORITHM}
       - ACCESS_TOKEN_EXPIRE_MINUTES=${ACCESS_TOKEN_EXPIRE_MINUTES}
@@ -92,7 +115,7 @@ services:
       dockerfile: Dockerfile
     container_name: nvidia-orchestrator
     environment:
-      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:${POSTGRES_PORT}/${POSTGRES_DB}
+      - DATABASE_URL=postgresql://${ORCH_POSTGRES_USER}:${ORCH_POSTGRES_PASSWORD}@orch-postgres:${ORCH_POSTGRES_PORT}/${ORCH_POSTGRES_DB}
       - JWT_SECRET_KEY=${JWT_SECRET_KEY}
       - JWT_ALGORITHM=${JWT_ALGORITHM}
       - ACCESS_TOKEN_EXPIRE_MINUTES=${ACCESS_TOKEN_EXPIRE_MINUTES}
@@ -101,7 +124,7 @@ services:
       - KAFKA_PRODUCER_TOPIC=container-lifecycle
       - DOCKER_NETWORK=${DOCKER_NETWORK:-nvidia-project_nvidia-network}
     depends_on:
-      postgres:
+      orch-postgres:
         condition: service_healthy
       docker-dind:
         condition: service_started
@@ -178,7 +201,8 @@ services:
 
 
 volumes:
-  postgres_data:
+  orch_postgres_data:
+  auth_postgres_data:
   orchestrator_builds:
   dind-storage:  
   

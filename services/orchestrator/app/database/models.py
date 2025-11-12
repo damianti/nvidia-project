@@ -63,7 +63,6 @@ class Billing(Base):
     __tablename__ = "billings"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    user_id: Mapped[int] = mapped_column(Integer, ForeignKey("users.id"))
-    user: Mapped["User"] = relationship(back_populates="billings")
+    user_id: Mapped[int] = mapped_column(Integer, nullable=False)
     amount: Mapped[float] = mapped_column(Float, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)

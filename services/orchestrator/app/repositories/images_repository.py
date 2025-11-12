@@ -1,7 +1,7 @@
 from sqlalchemy.orm import Session, joinedload
 from typing import Optional
 
-from app.database.models import Image, User
+from app.database.models import Image
 
 
 def create(db: Session, image: Image) -> Image:

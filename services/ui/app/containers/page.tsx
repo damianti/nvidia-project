@@ -1,13 +1,18 @@
 "use client";
 
-import { useState, useEffect, Suspense } from "react";
+import { useState, useEffect, Suspense, useCallback } from "react";
 import { useSearchParams } from 'next/navigation'
 import Link from "next/link";
-import { containerService, ImageWithContainers, } from "../services/containerService";
-import { useAuth } from "../contexts/AuthContext";
+import { useRouter } from "next/navigation";
+
+import { containerService, ImageWithContainers, } from "@/services/containerService";
+import { useAuth } from "@/contexts/AuthContext";
+import Navbar from "@/components/Navbar";
+import LoadingSpinner from "@/components/LoadingSpinner";
 
 function ContainersPageContent() {
-  const { user } = useAuth();
+  const router = useRouter();
+  const { user, loading: authLoading } = useAuth();
   const searchParams = useSearchParams();
   const imageFilter = searchParams.get('image');
 
@@ -19,10 +24,12 @@ function ContainersPageContent() {
   const [containerCount, setContainerCount] = useState(1)
 
   useEffect(() => {
-    fetchImages();
-  }, []);
+    if (!authLoading && !user){
+      router.push('/login')
+    }
+  }, [authLoading, user, router]);
 
-  const fetchImages = async () => {
+  const fetchImages = useCallback(async () => {
     try {
       setLoading(true);
       setError("");
@@ -41,7 +48,13 @@ function ContainersPageContent() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [imageFilter]);
+
+  useEffect(() => {
+    if (user) {
+      fetchImages();
+    }
+  }, [user, fetchImages]);
   const handleStart = async (containerId: number) => {
     try {
       setLoading (true);
@@ -114,6 +127,14 @@ function ContainersPageContent() {
       setLoading(false);
     }
   }
+
+  if (authLoading) {
+    return <LoadingSpinner />
+  }
+  if (!user){
+    return null
+  }
+  
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -127,39 +148,7 @@ function ContainersPageContent() {
 
   return (
     <div className="min-h-screen p-4">
-      {/* Header */}
-      <div className="modern-nav rounded-2xl mb-8">
-        <div className="max-w-7xl mx-auto px-6 py-6">
-          <div className="flex justify-between items-center">
-            <div>
-              <h1 className="text-4xl font-bold bg-gradient-to-r from-green-600 to-blue-600 bg-clip-text text-transparent">
-                Containers
-              </h1>
-              <p className="mt-2 text-gray-600">
-                Monitor and manage your running containers
-              </p>
-            </div>
-            <div className="flex space-x-4">
-              {imageFilter && (<Link href="/containers" className="btn-modern">
-                Show All Images
-              </Link>)}
-              <button
-                onClick={() => setShowCreateModal(true)}
-                className="btn-modern"
-              >
-                Create Container
-              </button>
-              <Link href="/dashboard" className="btn-modern">
-                Back to Dashboard
-              </Link>
-              <Link href="/images" className="btn-modern">
-                Manage Images
-              </Link>
-            </div>
-          </div>
-        </div>
-      </div>
-
+      <Navbar/>
       {/* Main Content */}
       <div className="max-w-7xl mx-auto">
         {/* Stats Summary */}
@@ -314,9 +303,24 @@ function ContainersPageContent() {
 
         {images.length > 0 ? (
           <div className="modern-card p-8 fade-in">
-            <h3 className="text-2xl font-bold text-gray-900 mb-6">
-              Your Images ({images.length})
-            </h3>
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-2xl font-bold text-gray-900">
+                Your Images ({images.length})
+              </h3>
+              <button
+                onClick={() => {
+                  setSelectedImageId(null);
+                  setContainerCount(1);
+                  setShowCreateModal(true);
+                }}
+                className="btn-modern"
+              >
+                <svg className="w-5 h-5 mr-2 inline-block" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                </svg>
+                Create Container
+              </button>
+            </div>
             <div className="space-y-8">
               {images.map((image) => (
                 <div key={image.id} className="modern-card p-6">
@@ -346,6 +350,19 @@ function ContainersPageContent() {
                         {image.containers.length !== 1 ? "s" : ""})
                       </span>
                     </div>
+                    <button
+                      onClick={() => {
+                        setSelectedImageId(image.id);
+                        setContainerCount(1);
+                        setShowCreateModal(true);
+                      }}
+                      className="btn-modern text-sm"
+                    >
+                      <svg className="w-4 h-4 mr-1 inline-block" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                      </svg>
+                      Add Container
+                    </button>
                   </div>
 
                   {/* Containers de esta imagen */}

@@ -106,8 +106,8 @@ app.add_middleware(
 
 
 
+app.include_router(auth_router, prefix="/auth", tags=["auth"])
 app.include_router(proxy_router, tags=["proxy"])
-app.include_router(auth_router, tags=["auth"])
 
 @app.get("/")
 async def root():

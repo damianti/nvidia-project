@@ -1,6 +1,6 @@
 import jwt
 from typing import Dict, Any
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 from app.utils.config import SECRET_KEY, ALGORITHM, ACCESS_TOKEN_EXPIRE_MINUTES
 from app.schemas.user import TokenData
@@ -8,7 +8,7 @@ from app.exceptions.domain import TokenExpiredError, InvalidTokenError
 
 def create_access_token(data: Dict[str, Any]) -> str:
     to_encode = data.copy()
-    expire = datetime.now(datetime.timezone.utc) + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    expire = datetime.now(timezone.utc) + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
 
     to_encode.update({"exp": expire})
     encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)

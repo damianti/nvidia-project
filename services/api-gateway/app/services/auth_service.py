@@ -26,8 +26,8 @@ async def handle_signup(user_data: UserCreate, auth_client: AuthClient):
         detail=error_data.get("detail", "Signup failed")
     )
 
-async def handle_get_current_user(token: str, auth_client: AuthClient):
-    response = await auth_client.get_current_user(token)
+async def handle_get_current_user(authorization_header: str, auth_client: AuthClient):
+    response = await auth_client.get_current_user(authorization_header)
     
     if response.status_code == 200:
         return response.json()
@@ -37,8 +37,8 @@ async def handle_get_current_user(token: str, auth_client: AuthClient):
         status_code=response.status_code,
         detail=error_data.get("detail", "Failed to get current user")
     )
-async def handle_logout(token: str, auth_client: AuthClient):
-    response = await auth_client.logout(token)
+async def handle_logout(authorization_header: str, auth_client: AuthClient):
+    response = await auth_client.logout(authorization_header)
     
     if response.status_code == 200:
         return response.json()

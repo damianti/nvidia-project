@@ -12,7 +12,6 @@ from app.services.orchestrator_service import handle_orchestrator_proxy
 from app.utils.dependencies import verify_token_and_get_user_id
 router = APIRouter(tags=["proxy"])
 
-
 @router.api_route("/route", methods=["GET", "POST", "DELETE", "PUT", "PATCH"])
 async def post_route(
     request: Request,
@@ -43,6 +42,6 @@ async def proxy_api(
     return await handle_orchestrator_proxy(
         request=request,
         path=path,
-        user_id= user_id,
+        user_id=user_id,
         orchestrator_client=orchestrator_client
     )

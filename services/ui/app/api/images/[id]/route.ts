@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-
-const  API_GATEWAY_EXTERNAL_URL = process.env.API_GATEWAY_EXTERNAL_URL || 'http://localhost:8080'
+import { config } from '@/utils/config'
 
 // Helper function to get auth token from cookies
 function getAuthToken(request: NextRequest): string | null {
@@ -22,7 +21,7 @@ export async function GET(
       )
     }
 
-    const response = await fetch(`${API_GATEWAY_EXTERNAL_URL}/api/images/${id}`, {
+    const response = await fetch(`${config.apiGatewayUrl}/api/images/${id}`, {
       headers: {
         'Authorization': `Bearer ${token}`,
         'Content-Type': 'application/json',
@@ -66,7 +65,7 @@ export async function PUT(
 
     const body = await request.json()
 
-    const response = await fetch(`${API_GATEWAY_EXTERNAL_URL}/api/images/${id}`, {
+    const response = await fetch(`${config.apiGatewayUrl}/api/images/${id}`, {
       method: 'PUT',
       headers: {
         'Authorization': `Bearer ${token}`,
@@ -110,7 +109,7 @@ export async function DELETE(
       )
     }
 
-    const response = await fetch(`${API_GATEWAY_EXTERNAL_URL}/api/images/${id}`, {
+    const response = await fetch(`${config.apiGatewayUrl}/api/images/${id}`, {
       method: 'DELETE',
       headers: {
         'Authorization': `Bearer ${token}`,

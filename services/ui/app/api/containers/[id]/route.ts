@@ -49,51 +49,6 @@ export async function GET(
   }
 }
 
-// POST /api/containers/[id] - Update container
-export async function POST(
-  request: NextRequest,
-  { params }: { params: Promise <{ id: string } >}
-) {
-  try {
-    const token = getAuthToken(request)
-    const { id } = await params;
-    if (!token) {
-      return NextResponse.json(
-        { error: 'Authentication required' },
-        { status: 401 }
-      )
-    }
-
-    const body = await request.json()
-
-    const response = await fetch(`${config.apiGatewayUrl}/api/containers/${id}`, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(body),
-    })
-
-    const data = await response.json()
-
-    if (!response.ok) {
-      return NextResponse.json(
-        { error: data.detail || 'Failed to create container' },
-        { status: response.status }
-      )
-    }
-
-    return NextResponse.json(data)
-
-  } catch (error) {
-    console.error('Update container API error:', error)
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    )
-  }
-}
 // PUT /api/containers/[id] - Update container
 export async function PUT(
   request: NextRequest,

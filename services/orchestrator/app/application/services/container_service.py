@@ -46,6 +46,9 @@ def create_containers(db: Session, image_id: int, user_id: int, container_data: 
         
         for db_container in created_containers:
             try:
+                # Get container IP for service discovery
+                container_ip = docker_service.get_container_ip(db_container.container_id)
+                
                 KafkaProducerSingleton.instance().produce_json(
                     topic="container-lifecycle",
                     key=str(db_container.image_id),
@@ -53,7 +56,9 @@ def create_containers(db: Session, image_id: int, user_id: int, container_data: 
                         "event": "container.created",
                         "container_id": db_container.container_id,
                         "container_name": db_container.name,
+                        "container_ip": container_ip,
                         "image_id": db_container.image_id,
+                        "internal_port": db_container.internal_port,
                         "port": db_container.external_port,
                         "website_url": website_url
                     }
@@ -64,6 +69,7 @@ def create_containers(db: Session, image_id: int, user_id: int, container_data: 
                     extra={
                         "event": "container.created",
                         "container_id": db_container.container_id,
+                        "container_name": db_container.name,
                         "error": str(e),
                         "error_type": type(e).__name__
                     }

@@ -180,5 +180,38 @@ def delete_container(container_docker_id: str) -> bool:
 
     except DockerException as e:
         raise HTTPException(status_code=500, detail=f"Failed to delete: {str(e)}")
+
+def get_container_ip(container_docker_id: str) -> str:
+    """Get the internal IP address of a container"""
+    try:
+        client = docker.from_env()
+        container = client.containers.get(container_docker_id)
+        container.reload()
+        
+        # Get IP from NetworkSettings
+        network_settings = container.attrs['NetworkSettings']
+        
+        # Try to get IP from the first network
+        if network_settings.get('Networks'):
+            for network_name, network_info in network_settings['Networks'].items():
+                ip_address = network_info.get('IPAddress')
+                if ip_address:
+                    return ip_address
+        
+        # Fallback to IPAddress field (default bridge network)
+        ip_address = network_settings.get('IPAddress')
+        if ip_address:
+            return ip_address
+        
+        raise HTTPException(
+            status_code=500,
+            detail=f"Could not find IP address for container '{container_docker_id}'"
+        )
+    
+    except DockerException as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to get container IP: {str(e)}"
+        )
     
     

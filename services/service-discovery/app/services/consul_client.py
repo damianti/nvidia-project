@@ -3,11 +3,11 @@ import httpx
 from typing import Dict, List, Optional, Any
 
 from app.utils.config import CONSUL_HOST, SERVICE_NAME
-
+from app.schemas.container_data import ContainerEventData
 logger = logging.getLogger(SERVICE_NAME)
 
 
-async def register_service(container_info: Dict[str, Any]) -> bool:
+async def register_service(container_info: ContainerEventData) -> bool:
     """
     Register a container as a service in Consul with health checks.
     
@@ -28,16 +28,16 @@ async def register_service(container_info: Dict[str, Any]) -> bool:
         # Use TCP check since we don't know if containers have /health endpoint
         # TCP check is more reliable as it just verifies the port is open
         service_data = {
-            "ID": container_info["container_id"],
+            "ID": container_info.container_id,
             "Name": "webapp-service",  # Common name for all web containers
-            "Address": container_info["container_ip"],
-            "Port": container_info["internal_port"],
+            "Address": container_info.container_ip,
+            "Port": container_info.internal_port,
             "Tags": [
-                f"image-{container_info['image_id']}",
-                f"container-{container_info['container_name']}"
+                f"image-{container_info.image_id}",
+                f"container-{container_info.container_name}"
             ],
             "Check": {
-                "TCP": f"{container_info['container_ip']}:{container_info['internal_port']}",
+                "TCP": f"{container_info.container_ip}:{container_info.internal_port}",
                 "Interval": "10s",
                 "Timeout": "2s",
                 "DeregisterCriticalServiceAfter": "60s"
@@ -45,8 +45,8 @@ async def register_service(container_info: Dict[str, Any]) -> bool:
         }
         
         # Add website_url tag if present
-        if container_info.get("website_url"):
-            service_data["Tags"].append(f"website-{container_info['website_url']}")
+        if container_info.website_url:
+            service_data["Tags"].append(f"website-{container_info.website_url}")
         
         async with httpx.AsyncClient(timeout=5.0) as client:
             response = await client.put(
@@ -58,10 +58,10 @@ async def register_service(container_info: Dict[str, Any]) -> bool:
                 logger.info(
                     "consul.service_registered",
                     extra={
-                        "container_id": container_info["container_id"],
-                        "container_name": container_info["container_name"],
-                        "container_ip": container_info["container_ip"],
-                        "port": container_info["internal_port"]
+                        "container_id": container_info.container_id,
+                        "container_name": container_info.container_name,
+                        "container_ip": container_info.container_ip,
+                        "port": container_info.internal_port
                     }
                 )
                 return True
@@ -69,7 +69,7 @@ async def register_service(container_info: Dict[str, Any]) -> bool:
                 logger.error(
                     "consul.register_failed",
                     extra={
-                        "container_id": container_info["container_id"],
+                        "container_id": container_info.container_id,
                         "status_code": response.status_code,
                         "response": response.text
                     }
@@ -80,7 +80,7 @@ async def register_service(container_info: Dict[str, Any]) -> bool:
         logger.error(
             "consul.register_error",
             extra={
-                "container_id": container_info.get("container_id", "unknown"),
+                "container_id": container_info.container_id,
                 "error": str(e),
                 "error_type": type(e).__name__
             }

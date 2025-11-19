@@ -1,15 +1,14 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 
 
-# Import routers
-from .api import health, images, containers
+
 from app.utils.config import SERVICE_NAME, HOST, PORT
 
-# Import services
 from app.middleware.logging import LoggingMiddleware
 from app.utils.logger import setup_logger
+from app.services.kafka_consumer import KafkaConsumerService
 
 logger = setup_logger(SERVICE_NAME)
 
@@ -18,17 +17,31 @@ logger = setup_logger(SERVICE_NAME)
 async def lifespan(app: FastAPI):
     """Application lifespan manager"""
     # Startup
-    logger.info("orchestrator.startup")
+    logger.info(
+        "sd.startup",
+        extra={
+            "service_name": SERVICE_NAME,
+        }
+    )
+    kafka_consumer = KafkaConsumerService()
+    await kafka_consumer.start()
 
+    app.state.kafka_consumer = kafka_consumer
     yield
     
     # Shutdown
-    logger.info("orchestrator.shutdown")
+    logger.info(
+        "sd.shutdown",
+        extra={
+            "service_name": SERVICE_NAME,
+        }
+    )
+    await kafka_consumer.stop()
   
 # Create FastAPI app with lifespan
 app = FastAPI(
-    title="NVIDIA Orchestrator",
-    description="Container and Image Orchestration Service",
+    title="NVIDIA service-discovery",
+    description="Service discovery for user services",
     version="1.0.0",
     lifespan=lifespan
 )
@@ -44,24 +57,20 @@ app.add_middleware(
 )
 
 
-@app.get("/")
-async def root():
-    """Root endpoint"""
-    return {
-        "message": "NVIDIA Orchestrator with Service Discovery and Message Queue",
-        "version": "1.0.0",
-        "endpoints": {
-            "health": "/health",
-            "images": "/api/images",
-            "containers": "/api/containers",
-        }
-    }
+@app.get("/health")
+async def health():
+    return {"status": "healthy"}
 
+
+@app.get("/metrics")
+async def metrics(request: Request):
+    consumer = request.app.state.kafka_consumer
+    return {"messages_processed": consumer.message_count}
 
 if __name__ == "__main__":
     import uvicorn
     
-    logger.info(f"Starting Orchestrator on {HOST}:{PORT}")
+    logger.info(f"Starting sd on {HOST}:{PORT}")
     uvicorn.run(app, host=HOST, port=PORT)
 
 

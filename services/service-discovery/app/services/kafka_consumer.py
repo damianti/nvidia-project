@@ -1,21 +1,26 @@
 import json
+import asyncio
 from typing import Any, Dict
 from confluent_kafka import Consumer
 import logging
+from pydantic import ValidationError
 
-from app.services.container_pool import ContainerPool, ContainerData
-from app.services.website_mapping import WebsiteMapping
+
+from app.schemas.container_data import ContainerEventData
+from app.services import consul_client 
 from app.utils.config import KAFKA_BOOTSTRAP_SERVERS, KAFKA_CONSUMER_GROUP, SERVICE_NAME
 logger = logging.getLogger(SERVICE_NAME)
 
 # TODO implement event: image deleted, change url from image.
 class KafkaConsumerService:
-    def __init__(self, pool: ContainerPool, website_map: WebsiteMapping) -> None:
-        self.pool = pool
+    def __init__(self) -> None:
         self.running = False
         self.consumer = None
-        self.website_map = website_map
-        # Dispatch map de evento -> handler
+        self.message_count = 0 
+        self.registration_success = 0
+        self.registration_failures = 0
+        
+        # Dispatch map of event -> handler
         self._event_handlers = {
             "container.created": self._on_container_created,
             "container.started": self._on_container_started,
@@ -76,41 +81,39 @@ class KafkaConsumerService:
 
 
     def process_message(self, message: Dict):
-        """Processes a Kafka message and updates the container pool"""
+        """Processes a Kafka message and dispatch to event handler"""
         try:
-            data = json.loads(message.value())
-            event = data.get("event")
-            if not event:
-                logger.warning("kafka.message_missing_event")
-                return
-
+            raw_data = json.loads(message.value())
+            container_data = ContainerEventData(**raw_data)
+            
             logger.info(
                 "kafka.processing_event",
                 extra={
-                    "event": event,
-                    "container_id": data.get("container_id", "unknown"),
+                    "event": container_data.event,
+                    "container_id": container_data.container_id,
                 }
             )
 
-            handler = self._event_handlers.get(event)
-            if handler is None:
-                logger.warning(
-                    "kafka.unknown_event",
-                    extra={"event": event}
-                )
-                return
-
-            handler(data)
+            handler = self._event_handlers.get(container_data.event)
+            
+            handler(container_data)
 
         except json.JSONDecodeError as e:
             logger.error(
                 "kafka.json_decode_error",
-                extra={"error": str(e)}
+                extra={
+                    "error": str(e),
+                    "raw_message": message.value()[:200]
+                }
             )
-        except KeyError as e:
+        except ValidationError as e:
             logger.error(
-                "kafka.missing_field",
-                extra={"field": str(e)}
+                "kafka.validation_error",
+                extra={
+                    "error": str(e),
+                    "errors": e.errors(),
+                    "raw_data": raw_data
+                }
             )
         except Exception as e:
             logger.error(
@@ -118,113 +121,81 @@ class KafkaConsumerService:
                 extra={"error": str(e), "error_type": type(e).__name__}
             )
 
-    def _extract_core_fields(self, data: Dict[str, Any]):
-        image_id = data["image_id"]
-        container_id = data["container_id"]
-        external_port = data.get("port")
-        website_url = data.get("website_url")
-        container_name = data.get("container_name")  # Container name (optional)
-        return image_id, container_id, external_port, website_url, container_name
-
-    def _on_container_created(self, data: Dict[str, Any]) -> None:
-        image_id, container_id, external_port, website_url, container_name = self._extract_core_fields(data)
+    def _on_container_created(self, data: ContainerEventData) -> None:
         logger.info(
             "kafka.container_created",
             extra={
-                "container_id": container_id,
-                "container_name": container_name,
-                "image_id": image_id,
-                "website_url": website_url,
+                "container_id": data.container_id,
+                "container_name": data.container_name,
+                "image_id": data.image_id,
+                "website_url": data.website_url,
             }
         )
-        container_data = ContainerData(
-            container_id=container_id,
-            image_id=image_id,
-            external_port=external_port,
-            status="running",
-            container_name=container_name
-        )
-        if website_url:
-            self.website_map.add(website_url, image_id)
-        else:
-            logger.warning(
-                "kafka.created_missing_website_url",
-                extra={"container_id": container_id}
-            )
-        self.pool.add_container(container_data)
-        logger.info(
-            "pool.container_added",
-            extra={"container_id": container_id, "image_id": image_id}
-        )
+        success = asyncio.run(consul_client.register_service(data))
 
-    def _on_container_started(self, data: Dict[str, Any]) -> None:
-        image_id, container_id, external_port, website_url, container_name = self._extract_core_fields(data)
+        self.message_count += 1
+        if success:
+            self.registration_success += 1
+            logger.info(
+                "consul.registration_success",
+                extra={
+                    "container_id": data.container_id,
+                    "container_name": data.container_name
+                }
+            )
+        else:
+            self.registration_failures += 1
+            logger.error(  # ← Cambiar a error
+                "consul.registration_failed",
+                extra={
+                    "container_id": data.container_id,
+                    "container_name": data.container_name
+                }
+            )
+      
+      
+    def _on_container_deleted(self, data: ContainerEventData) -> None:
+        logger.info(
+            "kafka.container_deleted",
+            extra={
+                "container_id": data.container_id,
+                "container_name": data.container_name,
+                "image_id": data.image_id,
+                "website_url": data.website_url,
+            }
+        )
+        success = asyncio.run(
+            consul_client.deregister_service(data.container_id)
+        )
+        if success:
+            logger.info(
+                "consul.deregistration_success",
+                extra={"container_id": data.container_id}
+            )
+        else:
+            logger.error(
+                "consul.deregistration_failed",
+                extra={"container_id": data.container_id}
+            )
+
+    def _on_container_started(self, data: ContainerEventData) -> None:
         logger.info(
             "kafka.container_started",
             extra={
-                "container_id": container_id,
-                "container_name": container_name,
-                "image_id": image_id,
-                "website_url": website_url,
+                "container_id": data.container_id,
+                "container_name": data.container_name,
+                "note": "Consul will detect via health check"  # ← Agregar
             }
         )
-        existing = self.pool.find_container(image_id, container_id)
-        if not existing:
-            container_data = ContainerData(
-                container_id=container_id,
-                image_id=image_id,
-                external_port=external_port,
-                status="running",
-                container_name=container_name
-            )
-            if website_url:
-                self.website_map.add(website_url, image_id)
-            else:
-                logger.warning(
-                    "kafka.started_missing_website_url",
-                    extra={"container_id": container_id}
-                )
-            self.pool.add_container(container_data)
-            logger.info(
-                "pool.container_added",
-                extra={"container_id": container_id, "image_id": image_id}
-            )
-        else:
-            self.pool.start_container(image_id, container_id)
-            logger.info(
-                "pool.container_started",
-                extra={"container_id": container_id, "image_id": image_id}
-            )
 
-    def _on_container_stopped(self, data: Dict[str, Any]) -> None:
-        image_id, container_id, external_port, website_url, container_name = self._extract_core_fields(data)
-        self.pool.stop_container(image_id, container_id)
+       
+
+    def _on_container_stopped(self, data: ContainerEventData) -> None:
         logger.info(
-            "pool.container_stopped",
+            "kafka.container_stopped",
             extra={
-                "container_id": container_id,
-                "container_name": container_name,
-                "image_id": image_id
+                "container_id": data.container_id,
+                "container_name": data.container_name,
+                "note": "Consul will detect via health check"  # ← Agregar
             }
         )
-
-    def _on_container_deleted(self, data: Dict[str, Any]) -> None:
-        image_id, container_id, external_port, website_url, container_name = self._extract_core_fields(data)
-        self.pool.remove_container(image_id, container_id)
-        # Si no quedan contenedores para la imagen, limpiar mapping (si se recibió website_url)
-        if not self.pool.get_containers(image_id) and website_url:
-            self.website_map.remove_image(website_url, image_id)
-        logger.info(
-            "pool.container_removed",
-            extra={
-                "container_id": container_id,
-                "container_name": container_name,
-                "image_id": image_id
-            }
-        )
-
-
-
-
-
-

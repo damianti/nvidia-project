@@ -44,6 +44,7 @@ class Container(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     container_id: Mapped[str] = mapped_column(String(255), nullable=False, unique=True)
+    container_ip: Mapped[str] = mapped_column(String(255), nullable=False)
     name: Mapped[str] = mapped_column(String(255), nullable=False)
     internal_port: Mapped[int] = mapped_column(Integer, nullable=False, default=80)
     external_port: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)

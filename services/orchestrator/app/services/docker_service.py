@@ -84,10 +84,11 @@ def cleanup_files(folder: str)-> None:
     if os.path.exists(folder):
         os.rmdir(folder)
 
-def run_container(image_name: str, image_tag: str , container_name: str, env_vars: dict ) -> tuple[Container, int]:
+def run_container(image_name: str, image_tag: str , container_name: str, env_vars: dict ) -> tuple[Container, int, str]:
     """
     Creates and runs a container, connecting it directly to the nvidia-network.
     The containers do not expose ports publicly (they are only accessible from the Docker network).
+    Returns: (container, external_port, container_ip)
     """
     try:
         
@@ -99,27 +100,27 @@ def run_container(image_name: str, image_tag: str , container_name: str, env_var
                 status_code=500,
                 detail=f"Cannot connect to docker DinD. Error: {str(e)}"
             )
+        # NOTE: The containers are created inside docker-dind, which has its own network context.
+        # The nvidia-network exists on the Docker Compose host, not inside docker-dind.
+        # Therefore, we cannot connect the containers directly to nvidia-network from here.
+        # Solution: Create the container WITHOUT specifying a network, and then expose port 80.
+        # The container will be accessible from docker-dind using the exposed port.
         
-        # NOTA: Los containers se crean dentro de docker-dind, que tiene su propio contexto de redes.
-        # La red nvidia-network existe en el host de Docker Compose, no dentro de docker-dind.
-        # Por lo tanto, no podemos conectar los containers directamente a nvidia-network desde aquí.
-        # Solución: Crear el container SIN especificar red, y luego exponer el puerto 80.
-        # El container será accesible desde docker-dind usando el puerto expuesto.
-        
-        # Crear container con puerto expuesto dinámicamente (no fijo)
-        # Esto permite que el container sea accesible desde otros containers en docker-dind
+        # Create container with dynamically exposed port (not fixed)
+        # This allows the container to be accessible from other containers in docker-dind
         container = client.containers.run(
             image=f"{image_name}:{image_tag}",
             name=container_name,
-            ports={'80/tcp': None},  # Exponer puerto 80 dinámicamente
+            ports={'80/tcp': None},  # Expose port 80 dynamically
             detach=True,
             environment=env_vars or {}
         )
         
         container.reload()
         
-        # Obtener el puerto externo asignado dinámicamente
-        port_bindings = container.attrs['NetworkSettings']['Ports']
+        
+        network_settings = container.attrs['NetworkSettings']
+        port_bindings = network_settings['Ports']
         external_port = int(port_bindings['80/tcp'][0]['HostPort']) if port_bindings.get('80/tcp') else None
         
         if external_port is None:
@@ -134,11 +135,28 @@ def run_container(image_name: str, image_tag: str , container_name: str, env_var
                 detail=f"Failed to assign external port to container '{container_name}'."
             )
         
-        # El container está en la red interna de docker-dind.
-        # Para accederlo desde nvidia-network, usaremos docker-dind como host y el puerto externo.
-        # NOTA: Los puertos están expuestos solo dentro de docker-dind (no públicamente en el host).
+        container_ip = None
+        if network_settings.get('Networks'):
+            for network_name, network_info in network_settings['Networks'].items():
+                container_ip = network_info.get('IPAddress')
+                if container_ip:
+                    break
+        if not container_ip:
+            container_ip = network_settings.get('IPAddress')
         
-        return container, external_port
+        if not container_ip:
+            try:
+                logger.error(f"Container {container_name} failed to get IP. Network settings: {network_settings}")
+                container.stop()
+                container.remove()
+            except:
+                pass
+            raise HTTPException(
+                status_code=500,
+                detail=f"Could not obtain IP address for container '{container_name}'"
+            )
+        
+        return container, external_port, container_ip
 
     except DockerException as e:
         raise HTTPException(

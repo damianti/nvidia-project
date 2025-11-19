@@ -1,7 +1,7 @@
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
-
+import asyncio
 
 
 from app.utils.config import SERVICE_NAME, HOST, PORT
@@ -15,7 +15,12 @@ logger = setup_logger(SERVICE_NAME)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Application lifespan manager"""
+    """
+    Application lifespan manager.
+    
+    Starts the Kafka consumer as an asyncio task (not a thread).
+    This is cleaner and more pythonic than using threading.
+    """
     # Startup
     logger.info(
         "sd.startup",
@@ -24,9 +29,12 @@ async def lifespan(app: FastAPI):
         }
     )
     kafka_consumer = KafkaConsumerService()
-    await kafka_consumer.start()
-
     app.state.kafka_consumer = kafka_consumer
+
+    # Start the consumer as an asyncio task
+    consumer_task = asyncio.create_task(kafka_consumer.start())
+    app.state.consumer_task = consumer_task
+    
     yield
     
     # Shutdown
@@ -36,7 +44,14 @@ async def lifespan(app: FastAPI):
             "service_name": SERVICE_NAME,
         }
     )
-    await kafka_consumer.stop()
+    kafka_consumer.stop()
+    
+    # Wait for the consumer task to finish
+    try:
+        await asyncio.wait_for(consumer_task, timeout=5.0)
+    except asyncio.TimeoutError:
+        logger.warning("kafka.consumer_stop_timeout")
+        consumer_task.cancel()
   
 # Create FastAPI app with lifespan
 app = FastAPI(
@@ -65,7 +80,11 @@ async def health():
 @app.get("/metrics")
 async def metrics(request: Request):
     consumer = request.app.state.kafka_consumer
-    return {"messages_processed": consumer.message_count}
+    return {
+        "messages_processed": consumer.message_count,
+        "registration_success": consumer.registration_success,
+        "registration_failures": consumer.registration_failures,
+    }
 
 if __name__ == "__main__":
     import uvicorn

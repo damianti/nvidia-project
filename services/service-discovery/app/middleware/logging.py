@@ -4,8 +4,9 @@ import time
 import uuid
 
 from app.utils.logger import correlation_id_var, setup_logger
+from app.utils.config import SERVICE_NAME
 
-logger = setup_logger("orchestrator")
+logger = setup_logger(SERVICE_NAME)
 
 
 class LoggingMiddleware(BaseHTTPMiddleware):

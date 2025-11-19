@@ -1,6 +1,6 @@
 import json
 import asyncio
-from typing import Any, Dict
+from typing import Dict
 from confluent_kafka import Consumer
 import logging
 from pydantic import ValidationError
@@ -20,7 +20,7 @@ class KafkaConsumerService:
         self.registration_success = 0
         self.registration_failures = 0
         
-        # Dispatch map of event -> handler
+        # Dispatch map of event -> handler (all async now)
         self._event_handlers = {
             "container.created": self._on_container_created,
             "container.started": self._on_container_started,
@@ -28,9 +28,13 @@ class KafkaConsumerService:
             "container.deleted": self._on_container_deleted,
         }
 
-    def start(self):
-        """Starts the Kafka consumer"""
+    async def start(self):
+        """
+        Start the Kafka consumer in an async loop.
         
+        Runs indefinitely until stop() is called.
+        Uses asyncio.to_thread() to run the blocking consumer.poll() without blocking the event loop.
+        """
         config = {
             'bootstrap.servers': KAFKA_BOOTSTRAP_SERVERS,
             'group.id': KAFKA_CONSUMER_GROUP,
@@ -53,7 +57,9 @@ class KafkaConsumerService:
 
         while self.running:
             try:
-                message = self.consumer.poll(timeout=1.0)
+                # Run the blocking poll() in a separate thread to not block the event loop
+                message = await asyncio.to_thread(self.consumer.poll, 1.0)
+                
                 if message is None:
                     continue
                 elif message.error():
@@ -62,7 +68,7 @@ class KafkaConsumerService:
                         extra={"error": str(message.error())}
                     )
                 else:
-                    self.process_message(message)
+                    await self.process_message(message)
             except KeyboardInterrupt:
                 logger.info("kafka.stopping_consumer")
                 self.running = False
@@ -80,7 +86,7 @@ class KafkaConsumerService:
             logger.info("kafka.consumer_closed")            
 
 
-    def process_message(self, message: Dict):
+    async def process_message(self, message: Dict):
         """Processes a Kafka message and dispatch to event handler"""
         try:
             raw_data = json.loads(message.value())
@@ -96,7 +102,8 @@ class KafkaConsumerService:
 
             handler = self._event_handlers.get(container_data.event)
             
-            handler(container_data)
+            # All handlers are async now
+            await handler(container_data)
 
         except json.JSONDecodeError as e:
             logger.error(
@@ -121,7 +128,7 @@ class KafkaConsumerService:
                 extra={"error": str(e), "error_type": type(e).__name__}
             )
 
-    def _on_container_created(self, data: ContainerEventData) -> None:
+    async def _on_container_created(self, data: ContainerEventData) -> None:
         logger.info(
             "kafka.container_created",
             extra={
@@ -131,7 +138,7 @@ class KafkaConsumerService:
                 "website_url": data.website_url,
             }
         )
-        success = asyncio.run(consul_client.register_service(data))
+        success = await consul_client.register_service(data)
 
         self.message_count += 1
         if success:
@@ -145,7 +152,7 @@ class KafkaConsumerService:
             )
         else:
             self.registration_failures += 1
-            logger.error(  # ← Cambiar a error
+            logger.error(
                 "consul.registration_failed",
                 extra={
                     "container_id": data.container_id,
@@ -154,7 +161,7 @@ class KafkaConsumerService:
             )
       
       
-    def _on_container_deleted(self, data: ContainerEventData) -> None:
+    async def _on_container_deleted(self, data: ContainerEventData) -> None:
         logger.info(
             "kafka.container_deleted",
             extra={
@@ -164,9 +171,7 @@ class KafkaConsumerService:
                 "website_url": data.website_url,
             }
         )
-        success = asyncio.run(
-            consul_client.deregister_service(data.container_id)
-        )
+        success = await consul_client.deregister_service(data.container_id)
         if success:
             logger.info(
                 "consul.deregistration_success",
@@ -178,24 +183,22 @@ class KafkaConsumerService:
                 extra={"container_id": data.container_id}
             )
 
-    def _on_container_started(self, data: ContainerEventData) -> None:
+    async def _on_container_started(self, data: ContainerEventData) -> None:
         logger.info(
             "kafka.container_started",
             extra={
                 "container_id": data.container_id,
                 "container_name": data.container_name,
-                "note": "Consul will detect via health check"  # ← Agregar
+                "note": "Consul will detect via health check"
             }
         )
 
-       
-
-    def _on_container_stopped(self, data: ContainerEventData) -> None:
+    async def _on_container_stopped(self, data: ContainerEventData) -> None:
         logger.info(
             "kafka.container_stopped",
             extra={
                 "container_id": data.container_id,
                 "container_name": data.container_name,
-                "note": "Consul will detect via health check"  # ← Agregar
+                "note": "Consul will detect via health check"
             }
         )

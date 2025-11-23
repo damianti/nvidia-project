@@ -13,7 +13,8 @@ def create_image(db: Session, payload: ImageCreate, user_id: int) -> Image:
     try:
         existing = images_repository.get_by_website_url(
             db,
-            website_url = payload.website_url
+            website_url = payload.website_url,
+            user_id = user_id
         )
         if existing:
             raise HTTPException(status_code=400, detail="Image with same website_url already exists for this user")

@@ -267,7 +267,18 @@ export default function ImagesPage() {
         {/* Images List */}
         {images.length > 0 ? (
           <div className="modern-card p-8 fade-in">
-            <h3 className="text-2xl font-bold text-gray-900 mb-6">Your Images ({images.length})</h3>
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-2xl font-bold text-gray-900">Your Images ({images.length})</h3>
+              <button
+                onClick={() => setShowUploadForm(true)}
+                className="btn-modern"
+              >
+                <svg className="w-5 h-5 mr-2 inline-block" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                </svg>
+                Upload New Image
+              </button>
+            </div>
             <div className="space-y-6">
               {images.map((image) => (
                 <div key={image.id} className="modern-card p-6 hover:scale-[1.02] transition-transform">

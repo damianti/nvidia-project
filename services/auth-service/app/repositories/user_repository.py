@@ -23,3 +23,7 @@ def create_user(email: EmailStr, username: str,  hashed_password: str, db: Sessi
     db.flush()
 
     return db_user
+
+def count_users(db: Session) -> int:
+    """Count total number of users in the database"""
+    return db.query(User).count()

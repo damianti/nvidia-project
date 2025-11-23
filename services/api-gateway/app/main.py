@@ -26,7 +26,7 @@ logger = setup_logger("api-gateway")
 
 # TODO put this function in corresponding file
 async def clear_cache(cached_memory: Cache):
-    """Background task que limpia entradas expiradas del cache periódicamente"""
+    """Background task that periodically cleans expired entries from the cache"""
     while True:
         try:
             count = cached_memory.clear_expired()

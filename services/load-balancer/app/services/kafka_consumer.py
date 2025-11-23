@@ -211,7 +211,7 @@ class KafkaConsumerService:
     def _on_container_deleted(self, data: Dict[str, Any]) -> None:
         image_id, container_id, external_port, website_url, container_name = self._extract_core_fields(data)
         self.pool.remove_container(image_id, container_id)
-        # Si no quedan contenedores para la imagen, limpiar mapping (si se recibió website_url)
+        # If no containers remain for the image, clear mapping (if website_url was received)
         if not self.pool.get_containers(image_id) and website_url:
             self.website_map.remove_image(website_url, image_id)
         logger.info(

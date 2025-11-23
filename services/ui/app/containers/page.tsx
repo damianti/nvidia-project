@@ -324,7 +324,7 @@ function ContainersPageContent() {
             <div className="space-y-8">
               {images.map((image) => (
                 <div key={image.id} className="modern-card p-6">
-                  {/* Header de la imagen */}
+                  {/* Image header */}
                   <div className="flex items-center justify-between mb-4">
                     <div className="flex items-center space-x-3">
                       <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-blue-600 rounded-lg flex items-center justify-center">
@@ -365,7 +365,7 @@ function ContainersPageContent() {
                     </button>
                   </div>
 
-                  {/* Containers de esta imagen */}
+                  {/* Containers for this image */}
                   {image.containers.length > 0 ? (
                     <div className="space-y-3 pl-4 border-l-2 border-blue-200">
                       {image.containers.map((container) => (

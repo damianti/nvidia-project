@@ -18,8 +18,8 @@ async def get_healthy_services(
     """
     Get healthy services from Consul.
     
-    Service Discovery mantiene cache actualizado via Watch API.
-    Este endpoint retorna datos del cache (muy rápido).
+    Service Discovery maintains cache updated via Watch API.
+    This endpoint returns data from the cache (very fast).
     """
     service_cache : ServiceCache = request.app.state.service_cache
 

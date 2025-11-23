@@ -78,9 +78,9 @@ def signup(user_data: UserCreate, db: Session) -> User:
         extra={"email": user_data.email, "username": user_data.username, "service_name": SERVICE_NAME}
     )
     
-    hashed_password = passwords.get_password_hash(user_data.password)
-    
     try:
+        # Hash password before creating user (security responsibility)
+        hashed_password = passwords.get_password_hash(user_data.password)
         db_user = user_service.create_user(
             email=user_data.email,
             username=user_data.username,

@@ -25,7 +25,7 @@ def create_user(
     hashed_password: str,
     db: Session
 )-> User:
-    """Creates a new user"""
+    """Creates a new user with already hashed password"""
     try:
         user = user_repository.create_user(email, username, hashed_password, db)    
         db.commit()
@@ -43,3 +43,7 @@ def create_user(
         raise DatabaseError(
             f"Database error occurred while creating user: {str(e)}"
         ) from e
+
+def count_users(db: Session) -> int:
+    """Count total number of users in the database"""
+    return user_repository.count_users(db)

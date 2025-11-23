@@ -175,7 +175,7 @@ def delete_container(db: Session, user_id: int, container_id: int) -> Dict[str, 
     if not db_container:
         raise HTTPException(status_code=404, detail=f"container {container_id} not found")
 
-    # Capturar datos antes de eliminar
+    # Capture data before deleting
     image = images_repository.get_by_id(db, db_container.image_id, user_id)
     website_url = image.website_url if image else None
     container_data = {

@@ -12,6 +12,8 @@ from app.utils.config import (
     PORT,
     SERVICE_NAME,
 )
+from app.setup import create_default_user_if_needed
+
 logger = setup_logger(SERVICE_NAME)
 
 
@@ -27,6 +29,8 @@ async def lifespan(app: FastAPI):
     )
     try:
         Base.metadata.create_all(bind=engine)
+        # Create default user if no users exist
+        create_default_user_if_needed()
         
     except Exception as e:
         logger.error(

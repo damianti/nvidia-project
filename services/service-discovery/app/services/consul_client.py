@@ -27,6 +27,9 @@ async def register_service(container_info: ContainerEventData) -> bool:
     try:
         # Use TCP check since we don't know if containers have /health endpoint
         # TCP check is more reliable as it just verifies the port is open
+        # IMPORTANT: Use docker-dind:external_port instead of container_ip:internal_port
+        # because Consul cannot access the internal container IP directly.
+        # The external_port is mapped on the docker-dind host and accessible from nvidia-network.
         service_data = {
             "ID": container_info.container_id,
             "Name": "webapp-service",  # Common name for all web containers
@@ -34,10 +37,11 @@ async def register_service(container_info: ContainerEventData) -> bool:
             "Port": container_info.internal_port,
             "Tags": [
                 f"image-{container_info.image_id}",
-                f"container-{container_info.container_name}"
+                f"container-{container_info.container_name}",
+                f"external-port-{container_info.port}"  # Add external_port to tags for reference
             ],
             "Check": {
-                "TCP": f"{container_info.container_ip}:{container_info.internal_port}",
+                "TCP": f"docker-dind:{container_info.port}",  # Use docker-dind hostname + external_port
                 "Interval": "10s",
                 "Timeout": "2s",
                 "DeregisterCriticalServiceAfter": "60s"
@@ -61,7 +65,9 @@ async def register_service(container_info: ContainerEventData) -> bool:
                         "container_id": container_info.container_id,
                         "container_name": container_info.container_name,
                         "container_ip": container_info.container_ip,
-                        "port": container_info.internal_port
+                        "internal_port": container_info.internal_port,
+                        "external_port": container_info.port,
+                        "health_check": f"docker-dind:{container_info.port}"
                     }
                 )
                 return True

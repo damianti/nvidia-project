@@ -12,6 +12,7 @@ from app.utils.config import SERVICE_NAME, HOST, PORT
 from app.services.kafka_consumer import KafkaConsumerService
 from app.services.service_cache import ServiceCache
 from app.services.consul_watcher import ConsulWatcher
+from app.services.website_mapping import WebsiteMapping
 
 logger = setup_logger(SERVICE_NAME)
 
@@ -30,8 +31,10 @@ async def lifespan(app: FastAPI):
             "service_name": SERVICE_NAME,
         }
     )
-    service_cache = ServiceCache()
+    website_map = WebsiteMapping()
+    service_cache = ServiceCache(website_map)
     app.state.service_cache = service_cache
+    app.state.website_map = website_map
     
     kafka_consumer = KafkaConsumerService()
     app.state.kafka_consumer = kafka_consumer
@@ -55,7 +58,7 @@ async def lifespan(app: FastAPI):
         }
     )
     kafka_consumer.stop()
-    watcher_task.stop()
+    consul_watcher.stop()
     
     try:
         await asyncio.wait_for(asyncio.gather(kafka_task, watcher_task), timeout=5.0)

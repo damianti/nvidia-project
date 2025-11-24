@@ -1,16 +1,27 @@
 from fastapi import Request, HTTPException
 
-from app.services.container_pool import ContainerPool
-from app.services.website_mapping import WebsiteMapping
+from app.services.service_discovery_client import ServiceDiscoveryClient
+from app.services.service_selector import RoundRobinSelector
 
-def get_pool_from_app(request: Request) -> ContainerPool:
-    pool = getattr(request.app.state, "container_pool", None)
-    if pool is None:
-        raise HTTPException(status_code=500, detail="Container pool not initialized")
-    return pool
 
-def get_map_from_app(request: Request) -> WebsiteMapping:
-    website_mp = getattr(request.app.state, "website_map", None)
-    if website_mp is None:
-        raise HTTPException(status_code=500, detail="website map not initialized")
-    return website_mp
+def _get_from_state(request: Request, attribute: str, detail: str):
+    value = getattr(request.app.state, attribute, None)
+    if value is None:
+        raise HTTPException(status_code=500, detail=detail)
+    return value
+
+
+def get_discovery_client(request: Request) -> ServiceDiscoveryClient:
+    return _get_from_state(
+        request,
+        "discovery_client",
+        "Service discovery client not initialized",
+    )
+
+
+def get_service_selector(request: Request) -> RoundRobinSelector:
+    return _get_from_state(
+        request,
+        "service_selector",
+        "Service selector not initialized",
+    )

@@ -8,6 +8,7 @@ SERVICE_NAME = "load-balancer"
 # Service URLs
 LOAD_BALANCER_URL = os.getenv("LOAD_BALANCER_URL", "http://load-balancer:3004")
 ORCHESTRATOR_URL = os.getenv("ORCHESTRATOR_URL", "http://orchestrator:3003")
+SERVICE_DISCOVERY_URL = os.getenv("SERVICE_DISCOVERY_URL", "http://service-discovery:3006")
 TARGET_HOST = os.getenv("TARGET_HOST", "docker-dind")
 
 # Kafka variables

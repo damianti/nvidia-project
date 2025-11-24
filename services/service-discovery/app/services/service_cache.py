@@ -5,6 +5,7 @@ from datetime import datetime
 
 from app.utils.config import SERVICE_NAME
 from app.schemas.service_info import ServiceInfo
+from app.services.website_mapping import WebsiteMapping
 
 logger = logging.getLogger(SERVICE_NAME)
 
@@ -15,8 +16,9 @@ class ServiceCache:
     Automatically updated via Watch API.
     """
     
-    def __init__(self):
+    def __init__(self, website_map: Optional[WebsiteMapping] = None):
         self._cache: Dict[int, List[ServiceInfo]] = {}
+        self._website_map = website_map or WebsiteMapping()
         self._lock = asyncio.Lock()
         self._last_index: int = 0
         self._last_update: Optional[datetime] = None
@@ -32,8 +34,8 @@ class ServiceCache:
         async with self._lock:
             
             self._cache.clear()
-            
-            
+            self._website_map.clear()
+
             for service in services:
                 if service.image_id is None:
                     continue
@@ -42,6 +44,8 @@ class ServiceCache:
                     self._cache[service.image_id] = []
                 
                 self._cache[service.image_id].append(service)
+                if service.website_url:
+                    self._website_map.add(service.website_url, service.image_id)
             
             self._last_index = index
             self._last_update = datetime.now()
@@ -56,36 +60,32 @@ class ServiceCache:
             )
     
     def get_services(
-        self, 
+        self,
+        *,
         image_id: Optional[int] = None,
-        website_url: Optional[str] = None
+        website_url: Optional[str] = None,
     ) -> List[ServiceInfo]:
         """
         Gets services from cache.
         
         Args:
-            image_id: Filter by image_id
-            website_url: Filter by website_url
+            image_id: Filter by image identifier
+            website_url: Filter by website URL
         
         Returns:
             List of services
         """
-        if image_id is not None:
-            services = self._cache.get(image_id, [])
-        else:
-            # If no filter, return all
-            services = []
-            for service_list in self._cache.values():
-                services.extend(service_list)
-        
-        # Filter by website_url if specified
-        # TODO : im not sure if this is a good thing to do. not practical because we are checking all the services.
         if website_url:
-            services = [
-                s for s in services
-                if s.website_url and s.website_url == website_url
-            ]
-        
+            image_id = self._website_map.get_image_id(website_url)
+            if image_id is None:
+                return []
+
+        if image_id is not None:
+            return self._cache.get(image_id, [])
+
+        services: List[ServiceInfo] = []
+        for service_list in self._cache.values():
+            services.extend(service_list)
         return services
     
     def get_cache_status(self) -> Dict:
@@ -94,5 +94,6 @@ class ServiceCache:
             "last_index": self._last_index,
             "last_update": self._last_update.isoformat() if self._last_update else None,
             "image_ids": list(self._cache.keys()),
-            "total_services": sum(len(services) for services in self._cache.values())
+            "total_services": sum(len(services) for services in self._cache.values()),
+            "url_mappings": self._website_map.size(),
         }

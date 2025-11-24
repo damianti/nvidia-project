@@ -1,11 +1,9 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
-import threading
 
-from app.services.container_pool import ContainerPool
-from app.services.kafka_consumer import KafkaConsumerService
-from app.services.website_mapping import WebsiteMapping
+from app.services.service_discovery_client import ServiceDiscoveryClient
+from app.services.service_selector import RoundRobinSelector
 from app.routes import lb_routes
 from app.middleware.logging import LoggingMiddleware
 from app.utils.logger import setup_logger
@@ -28,19 +26,10 @@ async def lifespan(app: FastAPI):
         }
     )
     
-    container_pool = ContainerPool()
-    website_map = WebsiteMapping()
-    app.state.container_pool = container_pool
-    app.state.website_map = website_map
-    
-    consumer_service = KafkaConsumerService(container_pool, website_map)
-
-    
-    def run_consumer():
-        consumer_service.start()
-
-    thread = threading.Thread(target=run_consumer, daemon=True)
-    thread.start()
+    discovery_client = ServiceDiscoveryClient()
+    service_selector = RoundRobinSelector()
+    app.state.discovery_client = discovery_client
+    app.state.service_selector = service_selector
     yield
     
     # Shutdown
@@ -50,7 +39,7 @@ async def lifespan(app: FastAPI):
             "service_name": SERVICE_NAME,
         }
     )
-    consumer_service.stop()
+    await discovery_client.close()
 
 
     
@@ -81,7 +70,6 @@ async def root():
         "message": "NVIDIA Load Balancer",
         "version": "1.0.0",
         "endpoints": {
-            "GET /pool": "Inspect in-memory pool state",
             "POST /route": "Route request to container by website_url"
         }
     }

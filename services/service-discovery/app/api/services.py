@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Request, Query, HTTPException
 import logging
-from typing import Optional, List
+from typing import List
 
 from app.utils.config import SERVICE_NAME
 from app.services.service_cache import ServiceCache
@@ -12,8 +12,7 @@ router = APIRouter(prefix="/services", tags=["services"])
 @router.get("/healthy", response_model=dict)
 async def get_healthy_services(
     request: Request,
-    image_id: Optional[int] = Query(None, description="Filter by image ID"),
-    website_url: Optional[str] = Query(None, description="Filter by website URL")
+    website_url: str = Query(None, description="Filter by website URL")
 ):
     """
     Get healthy services from Consul.
@@ -28,15 +27,11 @@ async def get_healthy_services(
             status_code=503,
             detail="Service cache not yet initialized. Please wait a few seconds."
         )
-    services : List[ServiceInfo] = service_cache.get_services(
-        image_id = image_id,
-        website_url = website_url
-    )
+    services : List[ServiceInfo] = service_cache.get_services(website_url=website_url)
     return {
         "services": [service.model_dump() for service in services],
         "count": len(services),
         "filters": {
-            "image_id": image_id,
             "website_url": website_url
         }
     }

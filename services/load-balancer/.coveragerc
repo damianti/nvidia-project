@@ -1,0 +1,18 @@
+[run]
+source = app
+
+omit = 
+    */tests/*
+    */venv/*
+    */__pycache__/*
+    */migrations/*
+
+[report]
+precision = 2
+show_missing = True
+skip_covered = False
+# fail_under = 70  # Uncomment when ready to enforce minimum coverage
+
+
+[html]
+directory = htmlcov

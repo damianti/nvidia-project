@@ -11,8 +11,7 @@ from app.utils.config import SERVICE_NAME, HOST, PORT
 # Import services
 from .middleware.logging import LoggingMiddleware
 from .services.kafka_producer import KafkaProducerSingleton
-# from .services.service_discovery import ServiceDiscovery, ServiceInfo
-# from .services.message_processor import MessageProcessor
+
 
 from app.utils.logger import setup_logger
 

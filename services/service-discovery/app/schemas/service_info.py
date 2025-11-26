@@ -1,6 +1,6 @@
 from pydantic import BaseModel, Field
 from typing import List, Optional
-
+from datetime import datetime 
 
 class ServiceInfo(BaseModel):
     """
@@ -15,7 +15,8 @@ class ServiceInfo(BaseModel):
     tags: List[str] = Field(default_factory=list, description="Service tags from Consul")
     image_id: Optional[int] = Field(None, description="Extracted from tags")
     website_url: Optional[str] = Field(None, description="Extracted from tags")
-
+    user_id: Optional[int] = Field(None, description="user id")
+    timestamp: Optional[datetime] = Field(default=None,description="Timestamp in UTC")
     class Config:
         json_schema_extra = {
             "example": {

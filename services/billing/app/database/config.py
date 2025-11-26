@@ -1,8 +1,8 @@
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
+from app.utils.config import DATABASE_URL, SERVICE_NAME
 import logging
 from urllib.parse import urlparse
-from app.utils.config import DATABASE_URL, SERVICE_NAME
 
 logger = logging.getLogger(SERVICE_NAME)
 

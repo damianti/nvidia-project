@@ -17,7 +17,7 @@ from app.utils.config import SERVICE_NAME
 logger = logging.getLogger(SERVICE_NAME)
 router = APIRouter(tags=["load_balancer"])
 
-
+    
 @router.get("/health")
 async def health():
     return {"status": "ok"}

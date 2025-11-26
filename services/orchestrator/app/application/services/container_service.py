@@ -1,6 +1,7 @@
 from sqlalchemy.orm import Session
 from fastapi import HTTPException
 from typing import List, Dict
+from datetime import datetime, timezone
 import logging
 
 
@@ -53,13 +54,15 @@ def create_containers(db: Session, image_id: int, user_id: int, container_data: 
                     key=str(db_container.image_id),
                     value={
                         "event": "container.created",
+                        "user_id": db_container.user_id,
                         "container_id": db_container.container_id,
                         "container_name": db_container.name,
                         "container_ip": db_container.container_ip,
                         "image_id": db_container.image_id,
                         "internal_port": db_container.internal_port,
                         "port": db_container.external_port,
-                        "website_url": website_url
+                        "website_url": website_url,
+                        "timestamp": datetime.now(timezone.utc)
                     }
                 )
             except Exception as e:
@@ -108,11 +111,15 @@ def start_container(db: Session, user_id: int, container_id: int):
             key=str(db_container.image_id),
             value={
                 "event": "container.started",
+                "user_id": db_container.user_id,
                 "container_id": db_container.container_id,
+                "container_ip": db_container.container_ip,
                 "container_name": db_container.name,
                 "image_id": db_container.image_id,
+                "internal_port": db_container.internal_port,
                 "port": db_container.external_port,
-                "website_url": website_url
+                "website_url": website_url,
+                "timestamp": datetime.now(timezone.utc)
             }
         )
     except Exception as e:
@@ -147,13 +154,15 @@ def stop_container(db: Session, user_id: int, container_id: int):
             key=str(db_container.image_id),
             value={
                 "event": "container.stopped",
+                "user_id": db_container.user_id,
                 "container_id": db_container.container_id,
                 "container_name": db_container.name,
                 "container_ip": db_container.container_ip,
                 "image_id": db_container.image_id,
                 "internal_port": db_container.internal_port,
                 "port": db_container.external_port,
-                "website_url": website_url
+                "website_url": website_url,
+                "timestamp": datetime.now(timezone.utc)
             }
         )
     except Exception as e:
@@ -179,13 +188,15 @@ def delete_container(db: Session, user_id: int, container_id: int) -> Dict[str, 
     image = images_repository.get_by_id(db, db_container.image_id, user_id)
     website_url = image.website_url if image else None
     container_data = {
+        "user_id": db_container.user_id,
         "container_id": db_container.container_id,
         "container_name": db_container.name,
         "container_ip": db_container.container_ip,
         "image_id": db_container.image_id,
         "internal_port": db_container.internal_port,
         "port": db_container.external_port,
-        "website_url": website_url
+        "website_url": website_url,
+        "timestamp": datetime.now(timezone.utc)
     }
 
     docker_service.delete_container(db_container.container_id)
@@ -197,13 +208,15 @@ def delete_container(db: Session, user_id: int, container_id: int) -> Dict[str, 
             key=str(container_data["image_id"]),
             value={
                 "event": "container.deleted",
+                "user_id": container_data["user_id"],
                 "container_id": container_data["container_id"],
                 "container_name": container_data["container_name"],
                 "container_ip": container_data["container_ip"],
                 "image_id": container_data["image_id"],
                 "internal_port": container_data["internal_port"],
                 "port": container_data["port"],
-                "website_url": container_data["website_url"]
+                "website_url": container_data["website_url"],
+                "timestamp": container_data["timestamp"]
             }
         )
     except Exception as e:

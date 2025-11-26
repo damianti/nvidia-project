@@ -1,6 +1,6 @@
 from pydantic import BaseModel, Field
 from typing import Optional, Literal
-
+from datetime import datetime
 
 
 
@@ -17,6 +17,8 @@ class ContainerEventData(BaseModel):
     internal_port: int = Field(..., description="Port exposed inside container", ge=1, le=65535)
     port: int = Field(..., description="External port mapped on host", ge=1, le=65535)
     website_url: Optional[str] = Field(None, description="Website URL for routing")
+    user_id: Optional[int] = Field(None, description="User ID who owns the container")
+    timestamp: Optional[datetime] = Field(None, description="Event timestamp in UTC")
 
     class Config:
 

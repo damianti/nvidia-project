@@ -36,6 +36,24 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
+  
+  # PostgreSQL Database for Billing Service
+  billing-postgres:
+    image: postgres:15
+    container_name: nvidia-billing-postgres
+    environment:
+      POSTGRES_DB: ${BILLING_POSTGRES_DB}
+      POSTGRES_USER: ${BILLING_POSTGRES_USER}
+      POSTGRES_PASSWORD: ${BILLING_POSTGRES_PASSWORD}
+    volumes:
+      - billing_postgres_data:/var/lib/postgresql/data
+    networks:
+      - nvidia-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${BILLING_POSTGRES_USER} -d ${BILLING_POSTGRES_DB}"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
 
   docker-dind:
     image: docker:24-dind
@@ -237,9 +255,33 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
+  billing:
+    build:
+      context: ./services/billing
+      dockerfile: Dockerfile
+    container_name: nvidia-billing
+    environment:
+      - PYTHONUNBUFFERED=1
+      - DATABASE_URL=postgresql://${BILLING_POSTGRES_USER}:${BILLING_POSTGRES_PASSWORD}@billing-postgres:${BILLING_POSTGRES_PORT}/${BILLING_POSTGRES_DB}
+      - KAFKA_BOOTSTRAP_SERVERS=${KAFKA_BROKER_URL}
+      - KAFKA_CONSUMER_GROUP=${BILLING_GROUP}
+      - PORT=${BILLING_PORT}
+      - SERVICE_NAME=${BILLING_SERVICE_NAME}
+    depends_on:
+      - kafka
+      - billing-postgres:
+        condition: service_healthy
+    networks:
+      - nvidia-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3007/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
 volumes:
   orch_postgres_data:
   auth_postgres_data:
+  billing_postgres_data:
   orchestrator_builds:
   dind-storage:  
   

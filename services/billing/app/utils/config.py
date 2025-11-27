@@ -19,3 +19,6 @@ KAFKA_CONSUMER_GROUP = os.getenv("KAFKA_CONSUMER_GROUP", 'billing')
 
 # Logging configuration
 LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO").upper()
+
+# Constants
+RATE_PER_MINUTE = 0.01

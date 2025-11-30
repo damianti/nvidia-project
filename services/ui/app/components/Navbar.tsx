@@ -22,6 +22,7 @@ export default function Navbar() {
                         <Link href="/dashboard">Dashboard</Link>
                         <Link href="/images">Images</Link>
                         <Link href="/containers">Containers</Link>
+                        <Link href="/billing">Billing</Link>
                     </div>
                 )}
 

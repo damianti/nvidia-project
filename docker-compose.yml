@@ -268,8 +268,9 @@ services:
       - PORT=${BILLING_PORT}
       - SERVICE_NAME=${BILLING_SERVICE_NAME}
     depends_on:
-      - kafka
-      - billing-postgres:
+      kafka:
+        condition: service_started
+      billing-postgres:
         condition: service_healthy
     networks:
       - nvidia-network

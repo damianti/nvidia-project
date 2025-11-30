@@ -62,7 +62,7 @@ def create_containers(db: Session, image_id: int, user_id: int, container_data: 
                         "internal_port": db_container.internal_port,
                         "port": db_container.external_port,
                         "website_url": website_url,
-                        "timestamp": datetime.now(timezone.utc)
+                        "timestamp": datetime.now(timezone.utc).isoformat()
                     }
                 )
             except Exception as e:

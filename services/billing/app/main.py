@@ -8,6 +8,7 @@ from app.api.billing import router as billing_router
 from app.middleware.logging import LoggingMiddleware
 from app.utils.logger import setup_logger
 from app.utils.config import SERVICE_NAME, HOST, PORT
+from app.database.create_tables import create_tables
 
 from app.services.kafka_consumer import KafkaConsumerService
 
@@ -19,7 +20,7 @@ async def lifespan(app: FastAPI):
     """
     Application lifespan manager.
     
-    Starts the Kafka consumer as asyncio tasks.
+    Creates database tables and starts the Kafka consumer.
     """
     # Startup
     logger.info(
@@ -29,7 +30,22 @@ async def lifespan(app: FastAPI):
         }
     )
     
+    # Create database tables
+    try:
+        create_tables()
+        logger.info("billing.database_tables_created")
+    except Exception as e:
+        logger.error(
+            "billing.database_tables_creation_failed",
+            extra={
+                "error": str(e),
+                "error_type": type(e).__name__
+            },
+            exc_info=True
+        )
+        # Don't fail startup - tables might already exist
     
+    # Start Kafka consumer
     kafka_consumer = KafkaConsumerService()
     app.state.kafka_consumer = kafka_consumer
     
@@ -81,13 +97,13 @@ async def health():
 
 @app.get("/metrics")
 async def metrics(request: Request):
+    """Get billing service metrics"""
     consumer = request.app.state.kafka_consumer
-    return None
-    # return {
-    #     "messages_processed": consumer.message_count,
-    #     "registration_success": consumer.registration_success,
-    #     "registration_failures": consumer.registration_failures,
-    # }
+    return {
+        "messages_processed": consumer.message_count,
+        "processed_success": consumer.processed_success,
+        "processed_failures": consumer.processed_failures,
+    }
 
 
 

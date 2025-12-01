@@ -19,10 +19,10 @@ export default function Navbar() {
                 
                 {user && (
                     <div className='flex space-x-4'>
-                        <Link href="/dashboard">Dashboard</Link>
-                        <Link href="/images">Images</Link>
-                        <Link href="/containers">Containers</Link>
-                        <Link href="/billing">Billing</Link>
+                        <Link href="/dashboard" className="btn-modern">Dashboard</Link>
+                        <Link href="/images" className="btn-modern">Images</Link>
+                        <Link href="/containers" className="btn-modern">Containers</Link>
+                        <Link href="/billing" className="btn-modern">Billing</Link>
                     </div>
                 )}
 

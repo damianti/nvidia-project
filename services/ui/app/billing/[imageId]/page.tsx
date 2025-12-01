@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useRouter, useParams } from 'next/navigation'
 import { billingService, BillingDetail } from '@/services/billingService'
+import { containerService, ImageWithContainers } from '@/services/containerService'
 import { useAuth } from '@/contexts/AuthContext'
 import Navbar from '@/components/Navbar'
 import LoadingSpinner from '@/components/LoadingSpinner'
@@ -13,6 +14,7 @@ export default function BillingDetailPage() {
   const params = useParams()
   const { user, loading: authLoading } = useAuth()
   const [billingDetail, setBillingDetail] = useState<BillingDetail | null>(null)
+  const [images, setImages] = useState<ImageWithContainers[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
@@ -23,20 +25,24 @@ export default function BillingDetailPage() {
       router.push('/login')
       return
     }
-    if (imageId && !isNaN(imageId)) {
-      fetchBillingDetail(imageId)
+    if (user && imageId && !isNaN(imageId)) {
+      fetchData(imageId)
     } else {
       setError('Invalid image ID')
       setLoading(false)
     }
   }, [authLoading, user, router, imageId])
 
-  const fetchBillingDetail = async (imageId: number) => {
+  const fetchData = async (imageId: number) => {
     try {
       setLoading(true)
       setError('')
-      const detail = await billingService.getImageBilling(imageId)
+      const [detail, fetchedImages] = await Promise.all([
+        billingService.getImageBilling(imageId),
+        containerService.getImagesWithContainers(),
+      ])
       setBillingDetail(detail)
+      setImages(fetchedImages)
     } catch (error) {
       console.error('Error fetching billing detail:', error)
       setError(error instanceof Error ? error.message : 'Failed to load billing detail. Please try again.')
@@ -53,6 +59,19 @@ export default function BillingDetailPage() {
       minimumFractionDigits: 2,
       maximumFractionDigits: 2,
     }).format(amount)
+  }
+
+  const getImageDisplay = (imageId: number): string => {
+    const image = images.find((img) => img.id === imageId)
+    if (!image) {
+      return `Image #${imageId}`
+    }
+
+    const base = `${image.name}:${image.tag}`
+    if (image.website_url) {
+      return `${base} → ${image.website_url}`
+    }
+    return base
   }
 
   const formatDate = (dateString: string | null): string => {
@@ -137,7 +156,12 @@ export default function BillingDetailPage() {
 
         {/* Summary Card */}
         <div className="modern-card p-8 mb-6 fade-in">
-          <h1 className="text-3xl font-bold text-gray-900 mb-6">Billing Detail - Image {summary.image_id}</h1>
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">
+            Billing Detail - {getImageDisplay(summary.image_id)}
+          </h1>
+          <p className="text-sm text-gray-500 mb-6">
+            Image ID: {summary.image_id}
+          </p>
           
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div className="bg-gradient-to-r from-blue-50 to-blue-100 p-6 rounded-xl">
@@ -168,7 +192,7 @@ export default function BillingDetailPage() {
               <table className="w-full">
                 <thead>
                   <tr className="border-b border-gray-200">
-                    <th className="text-left py-3 px-4 font-semibold text-gray-700">Container ID</th>
+                    <th className="text-left py-3 px-4 font-semibold text-gray-700">Container</th>
                     <th className="text-left py-3 px-4 font-semibold text-gray-700">Status</th>
                     <th className="text-left py-3 px-4 font-semibold text-gray-700">Start Time</th>
                     <th className="text-left py-3 px-4 font-semibold text-gray-700">End Time</th>
@@ -179,8 +203,15 @@ export default function BillingDetailPage() {
                 <tbody>
                   {containers.map((container) => (
                     <tr key={container.id} className="border-b border-gray-100 hover:bg-gray-50">
-                      <td className="py-3 px-4 text-sm text-gray-600 font-mono">
-                        {container.container_id.substring(0, 12)}...
+                      <td className="py-3 px-4 text-sm text-gray-600">
+                        <div className="flex items-center space-x-2">
+                          <span className="font-mono text-xs bg-gray-100 px-2 py-1 rounded">
+                            {container.container_id.substring(0, 12)}
+                          </span>
+                          <span className="text-gray-400 text-xs" title={container.container_id}>
+                            ...
+                          </span>
+                        </div>
                       </td>
                       <td className="py-3 px-4">
                         <span className={`status-badge ${
@@ -218,4 +249,5 @@ export default function BillingDetailPage() {
     </div>
   )
 }
+
 

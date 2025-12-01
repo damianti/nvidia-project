@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation'
 import Navbar from '@/components/Navbar'
 import { useAuth } from '@/contexts/AuthContext'
 import LoadingSpinner from '@/components/LoadingSpinner'
+import { billingService, BillingSummary } from '@/services/billingService'
 
 interface DashboardStats {
   totalImages: number
@@ -22,12 +23,56 @@ interface DashboardStats {
 export default function DashboardPage() {
   const router = useRouter()
   const { user, loading: authLoading } = useAuth()
+  const [billingSummaries, setBillingSummaries] = useState<BillingSummary[]>([])
+  const [billingLoading, setBillingLoading] = useState(true)
 
   useEffect(() => {
     if (!authLoading && !user){
       router.push('/login')
     }
   }, [authLoading, user, router])
+
+  useEffect(() => {
+    if (user) {
+      fetchBillingData()
+    }
+  }, [user])
+
+  const fetchBillingData = async () => {
+    try {
+      setBillingLoading(true)
+      const summaries = await billingService.getAllBillingSummaries()
+      setBillingSummaries(summaries)
+    } catch (error) {
+      console.error('Error fetching billing data:', error)
+      // Silently fail - billing is optional for dashboard
+    } finally {
+      setBillingLoading(false)
+    }
+  }
+
+  const formatCurrency = (amount: number): string => {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }).format(amount)
+  }
+
+  const formatMinutes = (minutes: number): string => {
+    if (minutes < 60) {
+      return `${minutes} min`
+    }
+    const hours = Math.floor(minutes / 60)
+    const mins = minutes % 60
+    return mins > 0 ? `${hours}h ${mins}m` : `${hours}h`
+  }
+
+  // Calculate billing totals
+  const totalCost = billingSummaries.reduce((sum, s) => sum + s.total_cost, 0)
+  const totalMinutes = billingSummaries.reduce((sum, s) => sum + s.total_minutes, 0)
+  const activeContainers = billingSummaries.reduce((sum, s) => sum + s.active_containers, 0)
 
   if (authLoading) {
     return <LoadingSpinner />
@@ -50,6 +95,32 @@ export default function DashboardPage() {
             Manage your Docker images and containers from one place.
           </p>
           
+          {/* Billing Overview */}
+          {!billingLoading && billingSummaries.length > 0 && (
+            <div className="mb-8">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-2xl font-bold text-gray-900">Billing Overview</h2>
+                <Link href="/billing" className="text-blue-600 hover:text-blue-800 text-sm font-semibold">
+                  View Details →
+                </Link>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="bg-gradient-to-r from-blue-50 to-blue-100 p-6 rounded-xl">
+                  <div className="text-sm font-semibold text-blue-700 mb-1">Total Cost</div>
+                  <div className="text-3xl font-bold text-blue-900">{formatCurrency(totalCost)}</div>
+                </div>
+                <div className="bg-gradient-to-r from-purple-50 to-purple-100 p-6 rounded-xl">
+                  <div className="text-sm font-semibold text-purple-700 mb-1">Total Usage</div>
+                  <div className="text-3xl font-bold text-purple-900">{formatMinutes(totalMinutes)}</div>
+                </div>
+                <div className="bg-gradient-to-r from-orange-50 to-orange-100 p-6 rounded-xl">
+                  <div className="text-sm font-semibold text-orange-700 mb-1">Active Containers</div>
+                  <div className="text-3xl font-bold text-orange-900">{activeContainers}</div>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Quick Actions */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <Link href="/images" className="group">

@@ -342,9 +342,16 @@ function ContainersPageContent() {
                           />
                         </svg>
                       </div>
-                      <h4 className="text-xl font-bold text-gray-900">
-                        {image.name}:{image.tag}
-                      </h4>
+                      <div>
+                        <h4 className="text-xl font-bold text-gray-900">
+                          {image.name}:{image.tag}
+                        </h4>
+                        {image.website_url && (
+                          <p className="text-sm text-blue-600 mt-1">
+                            {image.website_url}
+                          </p>
+                        )}
+                      </div>
                       <span className="text-sm text-gray-500">
                         ({image.containers.length} container
                         {image.containers.length !== 1 ? "s" : ""})
@@ -405,6 +412,12 @@ function ContainersPageContent() {
                                 </span>
                               </div>
                               <div className="flex items-center space-x-3 text-xs text-gray-600 mt-1">
+                                {image.website_url && (
+                                  <>
+                                    <span className="text-blue-600 font-medium">{image.website_url}</span>
+                                    <span>•</span>
+                                  </>
+                                )}
                                 <span>Port: {container.port}</span>
                                 <span>•</span>
                                 <span>CPU: {container.cpu_usage}</span>

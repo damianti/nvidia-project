@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { billingService, BillingSummary } from '@/services/billingService'
+import { containerService, ImageWithContainers } from '@/services/containerService'
 import { useAuth } from '@/contexts/AuthContext'
 import Navbar from '@/components/Navbar'
 import LoadingSpinner from '@/components/LoadingSpinner'
@@ -12,6 +13,7 @@ export default function BillingPage() {
   const router = useRouter()
   const { user, loading: authLoading } = useAuth()
   const [summaries, setSummaries] = useState<BillingSummary[]>([])
+  const [images, setImages] = useState<ImageWithContainers[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
@@ -19,15 +21,21 @@ export default function BillingPage() {
     if (!authLoading && !user) {
       router.push('/login')
     }
-    fetchBillingSummaries()
+    if (user) {
+      fetchData()
+    }
   }, [authLoading, user, router])
 
-  const fetchBillingSummaries = async () => {
+  const fetchData = async () => {
     try {
       setLoading(true)
       setError('')
-      const fetchedSummaries = await billingService.getAllBillingSummaries()
+      const [fetchedSummaries, fetchedImages] = await Promise.all([
+        billingService.getAllBillingSummaries(),
+        containerService.getImagesWithContainers(),
+      ])
       setSummaries(fetchedSummaries)
+      setImages(fetchedImages)
     } catch (error) {
       console.error('Error fetching billing summaries:', error)
       setError(error instanceof Error ? error.message : 'Failed to load billing information. Please try again.')
@@ -43,6 +51,19 @@ export default function BillingPage() {
       minimumFractionDigits: 2,
       maximumFractionDigits: 2,
     }).format(amount)
+  }
+
+  const getImageDisplay = (imageId: number): string => {
+    const image = images.find((img) => img.id === imageId)
+    if (!image) {
+      return `Image #${imageId}`
+    }
+
+    const base = `${image.name}:${image.tag}`
+    if (image.website_url) {
+      return `${base} → ${image.website_url}`
+    }
+    return base
   }
 
   const formatDate = (dateString: string | null): string => {
@@ -139,8 +160,11 @@ export default function BillingPage() {
                       <div>
                         <div className="flex items-center space-x-3">
                           <h3 className="text-lg font-semibold text-gray-900">
-                            Image ID: {summary.image_id}
+                            {getImageDisplay(summary.image_id)}
                           </h3>
+                          <span className="text-xs text-gray-400">
+                            (ID: {summary.image_id})
+                          </span>
                           {summary.active_containers > 0 && (
                             <span className="status-badge status-registered">
                               {summary.active_containers} Active
@@ -191,4 +215,5 @@ export default function BillingPage() {
     </div>
   )
 }
+
 

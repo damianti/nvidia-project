@@ -279,6 +279,28 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
+  client-workload:
+    build:
+      context: ./services/client-workload
+      dockerfile: Dockerfile
+    container_name: nvidia-client-workload
+    environment:
+      - PYTHONUNBUFFERED=1
+      - LOAD_BALANCER_URL=${LOAD_BALANCER_URL:-http://load-balancer:3004}
+      - SERVICE_DISCOVERY_URL=${SERVICE_DISCOVERY_URL:-http://service-discovery:3006}
+      - PORT=3008
+    ports:
+      - "3008:3008"
+    depends_on:
+      - load-balancer
+      - service-discovery
+    networks:
+      - nvidia-network
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:3008/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
 volumes:
   orch_postgres_data:
   auth_postgres_data:

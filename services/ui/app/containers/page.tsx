@@ -19,6 +19,8 @@ function ContainersPageContent() {
   const [images, setImages] = useState<ImageWithContainers[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
+  const [actionLoading, setActionLoading] = useState<{ [key: number]: string }>({}); // Track loading per container
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [selectedImageId, setSelectedImageId] = useState<number | null>(null)
   const [containerCount, setContainerCount] = useState(1)
@@ -57,52 +59,74 @@ function ContainersPageContent() {
   }, [user, fetchImages]);
   const handleStart = async (containerId: number) => {
     try {
-      setLoading (true);
+      setActionLoading(prev => ({ ...prev, [containerId]: 'starting' }));
       setError("");
+      setSuccess("");
       await containerService.startContainer(containerId);
+      setSuccess("Container started successfully");
       await fetchImages();
+      setTimeout(() => setSuccess(""), 3000);
     }
     catch (error){
       console.error ("Error starting container: ", error);
       setError("Failed to start container. Please try again");
+      setTimeout(() => setError(""), 5000);
     }
     finally {
-      setLoading(false);
+      setActionLoading(prev => {
+        const newState = { ...prev };
+        delete newState[containerId];
+        return newState;
+      });
     }
-    
   };
 
   const handleStop = async (containerId: number) => {
     try {
-      setLoading (true);
+      setActionLoading(prev => ({ ...prev, [containerId]: 'stopping' }));
       setError("");
+      setSuccess("");
       await containerService.stopContainer(containerId);
+      setSuccess("Container stopped successfully");
       await fetchImages();
+      setTimeout(() => setSuccess(""), 3000);
     }
     catch (error){
       console.error ("Error stopping container: ", error);
       setError("Failed to stop container. Please try again");
+      setTimeout(() => setError(""), 5000);
     }
     finally {
-      setLoading(false);
+      setActionLoading(prev => {
+        const newState = { ...prev };
+        delete newState[containerId];
+        return newState;
+      });
     }
-    
   };
 
   const handleDelete = async (containerId: number) => {
     if (confirm("Are you sure you want to delete this container?")) {
       try {
-        setLoading (true);
+        setActionLoading(prev => ({ ...prev, [containerId]: 'deleting' }));
         setError("");
+        setSuccess("");
         await containerService.deleteContainer(containerId);
+        setSuccess("Container deleted successfully");
         await fetchImages();
+        setTimeout(() => setSuccess(""), 3000);
       }
       catch (error){
         console.error("Error deleting container: ", error);
         setError("Failed to delete container. Please try again");
+        setTimeout(() => setError(""), 5000);
       }
       finally {
-        setLoading(false);
+        setActionLoading(prev => {
+          const newState = { ...prev };
+          delete newState[containerId];
+          return newState;
+        });
       }  
     }
   };
@@ -110,18 +134,29 @@ function ContainersPageContent() {
     try {
       setLoading(true);
       setError('');
+      setSuccess('');
       const imageId = imageFilter ? Number(imageFilter) : selectedImageId
       if (!imageId){
         setError('Please select an image');
+        setLoading(false);
+        return;
+      }
+      if (containerCount < 1 || containerCount > 10) {
+        setError('Container count must be between 1 and 10');
+        setLoading(false);
         return;
       }
       await containerService.createContainer(imageId, undefined, containerCount);
+      setSuccess(`Successfully created ${containerCount} container(s)`);
       setShowCreateModal(false);
+      setContainerCount(1);
       await fetchImages();
+      setTimeout(() => setSuccess(""), 3000);
     }
     catch (error){
       console.error('Error creating container:', error);
-      setError('Failed to create container. Please try again');
+      setError(error instanceof Error ? error.message : 'Failed to create container. Please try again');
+      setTimeout(() => setError(""), 5000);
     }
     finally {
       setLoading(false);
@@ -149,6 +184,35 @@ function ContainersPageContent() {
   return (
     <div className="min-h-screen p-4">
       <Navbar/>
+      
+      {/* Success Message */}
+      {success && (
+        <div className="max-w-7xl mx-auto mb-6">
+          <div className="modern-card p-4 bg-green-50 border border-green-200 rounded-lg">
+            <div className="flex items-center">
+              <svg className="w-5 h-5 text-green-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+              </svg>
+              <p className="text-green-700 font-medium">{success}</p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Error Message */}
+      {error && (
+        <div className="max-w-7xl mx-auto mb-6">
+          <div className="modern-card p-4 bg-red-50 border border-red-200 rounded-lg">
+            <div className="flex items-center">
+              <svg className="w-5 h-5 text-red-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+              <p className="text-red-700 font-medium">{error}</p>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Main Content */}
       <div className="max-w-7xl mx-auto">
         {/* Stats Summary */}
@@ -430,23 +494,47 @@ function ContainersPageContent() {
                             {container.status === "running" ? (
                               <button
                                 onClick={() => handleStop(container.id)}
-                                className="px-3 py-1 text-sm btn-modern"
+                                disabled={actionLoading[container.id] !== undefined}
+                                className="px-3 py-1 text-sm btn-modern disabled:opacity-50 disabled:cursor-not-allowed"
                               >
-                                Stop
+                                {actionLoading[container.id] === 'stopping' ? (
+                                  <span className="flex items-center">
+                                    <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-white mr-1"></div>
+                                    Stopping...
+                                  </span>
+                                ) : (
+                                  'Stop'
+                                )}
                               </button>
                             ) : (
                               <button
                                 onClick={() => handleStart(container.id)}
-                                className="px-3 py-1 text-sm btn-modern"
+                                disabled={actionLoading[container.id] !== undefined}
+                                className="px-3 py-1 text-sm btn-modern disabled:opacity-50 disabled:cursor-not-allowed"
                               >
-                                Start
+                                {actionLoading[container.id] === 'starting' ? (
+                                  <span className="flex items-center">
+                                    <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-white mr-1"></div>
+                                    Starting...
+                                  </span>
+                                ) : (
+                                  'Start'
+                                )}
                               </button>
                             )}
                             <button
                               onClick={() => handleDelete(container.id)}
-                              className="px-3 py-1 text-sm btn-modern"
+                              disabled={actionLoading[container.id] !== undefined}
+                              className="px-3 py-1 text-sm btn-modern disabled:opacity-50 disabled:cursor-not-allowed"
                             >
-                              Delete
+                              {actionLoading[container.id] === 'deleting' ? (
+                                <span className="flex items-center">
+                                  <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-white mr-1"></div>
+                                  Deleting...
+                                </span>
+                              ) : (
+                                'Delete'
+                              )}
                             </button>
                           </div>
                         </div>

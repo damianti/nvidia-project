@@ -18,6 +18,8 @@ export default function ImagesPage() {
   const [showUploadForm, setShowUploadForm] = useState(false)
   const [uploadLoading, setUploadLoading] = useState(false)
   const [error, setError] = useState('')
+  const [success, setSuccess] = useState('')
+  const [deletingImageId, setDeletingImageId] = useState<number | null>(null)
   const [uploadForm, setUploadForm] = useState<CreateImageRequest>({
     name: '',
     tag: 'latest',
@@ -59,8 +61,38 @@ export default function ImagesPage() {
       return
     }
     
+    // Form validation
+    if (!uploadForm.name.trim()) {
+      setError('Image name is required')
+      return
+    }
+    if (!uploadForm.tag.trim()) {
+      setError('Image tag is required')
+      return
+    }
+    if (!uploadForm.website_url.trim()) {
+      setError('Website URL is required')
+      return
+    }
+    // Basic URL validation
+    try {
+      new URL(uploadForm.website_url.startsWith('http') ? uploadForm.website_url : `https://${uploadForm.website_url}`)
+    } catch {
+      setError('Please enter a valid website URL (e.g., example.com or https://example.com)')
+      return
+    }
+    if (uploadForm.min_instances < 1 || uploadForm.max_instances < 1) {
+      setError('Instance counts must be at least 1')
+      return
+    }
+    if (uploadForm.min_instances > uploadForm.max_instances) {
+      setError('Min instances cannot be greater than max instances')
+      return
+    }
+    
     setUploadLoading(true)
     setError('')
+    setSuccess('')
     
     try {
       // Create the image using the service with user_id
@@ -85,30 +117,41 @@ export default function ImagesPage() {
         user_id: 0
       })
       setShowUploadForm(false)
+      setSuccess(`Image "${newImage.name}:${newImage.tag}" created successfully`)
+      setTimeout(() => setSuccess(""), 3000)
       
     } catch (error) {
       console.error('Error uploading image:', error)
       setError(error instanceof Error ? error.message : 'Failed to upload image')
+      setTimeout(() => setError(""), 5000)
     } finally {
       setUploadLoading(false)
     }
   }
 
   const handleDelete = async (imageId: number) => {
-    if (!confirm('Are you sure you want to delete this image?')) {
+    if (!confirm('Are you sure you want to delete this image? All containers from this image must be stopped first.')) {
       return
     }
 
     try {
+      setDeletingImageId(imageId)
       setError('')
+      setSuccess('')
       await imageService.deleteImage(imageId)
       
       // Remove the image from the list
+      const deletedImage = images.find(img => img.id === imageId)
       setImages(prevImages => prevImages.filter(img => img.id !== imageId))
+      setSuccess(`Image "${deletedImage?.name}:${deletedImage?.tag}" deleted successfully`)
+      setTimeout(() => setSuccess(""), 3000)
       
     } catch (error) {
       console.error('Error deleting image:', error)
       setError(error instanceof Error ? error.message : 'Failed to delete image')
+      setTimeout(() => setError(""), 5000)
+    } finally {
+      setDeletingImageId(null)
     }
   }
 
@@ -134,11 +177,30 @@ export default function ImagesPage() {
     <div className="min-h-screen p-4">
       <Navbar/>
 
+      {/* Success Message */}
+      {success && (
+        <div className="max-w-7xl mx-auto mb-6">
+          <div className="modern-card p-4 bg-green-50 border border-green-200 rounded-lg">
+            <div className="flex items-center">
+              <svg className="w-5 h-5 text-green-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+              </svg>
+              <p className="text-green-700 font-medium">{success}</p>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Error Message */}
       {error && (
         <div className="max-w-7xl mx-auto mb-6">
-          <div className="modern-card p-4 bg-red-50 border border-red-200">
-            <p className="text-red-600">{error}</p>
+          <div className="modern-card p-4 bg-red-50 border border-red-200 rounded-lg">
+            <div className="flex items-center">
+              <svg className="w-5 h-5 text-red-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+              <p className="text-red-700 font-medium">{error}</p>
+            </div>
           </div>
         </div>
       )}
@@ -318,9 +380,17 @@ export default function ImagesPage() {
                       </Link>
                       <button
                         onClick={() => handleDelete(image.id)}
-                        className="btn-modern"
+                        disabled={deletingImageId === image.id}
+                        className="btn-modern disabled:opacity-50 disabled:cursor-not-allowed"
                       >
-                        Delete
+                        {deletingImageId === image.id ? (
+                          <span className="flex items-center">
+                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                            Deleting...
+                          </span>
+                        ) : (
+                          'Delete'
+                        )}
                       </button>
                     </div>
                   </div>

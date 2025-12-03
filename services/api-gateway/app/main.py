@@ -120,6 +120,14 @@ async def root():
         }
     }
 
+@app.get("/health")
+async def health():
+    """Health check endpoint"""
+    return {
+        "status": "healthy",
+        "service": "api-gateway"
+    }
+
 
 if __name__ == "__main__":
     import uvicorn

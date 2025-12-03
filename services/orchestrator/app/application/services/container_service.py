@@ -15,9 +15,49 @@ from app.repositories import containers_repository, images_repository
 logger = logging.getLogger("orchestrator")
 
 def create_containers(db: Session, image_id: int, user_id: int, container_data: ContainerCreate) -> List[Container]:
-    """ Create and run containers from a specific image """
+    """
+    Create and start multiple container instances from a Docker image.
+    
+    This function:
+    1. Retrieves the image metadata (including website_url)
+    2. Creates the specified number of containers using Docker-in-Docker
+    3. Persists container records to the database
+    4. Publishes container.created events to Kafka for Service Discovery and Billing
+    
+    Args:
+        db: Database session
+        image_id: ID of the image to create containers from
+        user_id: ID of the user creating the containers
+        container_data: Container creation request (name, count)
+    
+    Returns:
+        List of created Container objects
+    
+    Raises:
+        HTTPException: 404 if image not found, 400 if invalid count, 500 if container creation fails
+    """
     try:
-        website_url = images_repository.get_by_id(db, image_id, user_id).website_url
+        # Validate image exists and belongs to user
+        image = images_repository.get_by_id(db, image_id, user_id)
+        if not image:
+            raise HTTPException(
+                status_code=404,
+                detail=f"Image with id {image_id} not found or access denied"
+            )
+        
+        # Validate container count
+        if container_data.count <= 0:
+            raise HTTPException(
+                status_code=400,
+                detail="Container count must be greater than 0"
+            )
+        if container_data.count > 10:  # Reasonable limit
+            raise HTTPException(
+                status_code=400,
+                detail="Cannot create more than 10 containers at once"
+            )
+        
+        website_url = image.website_url
         created_containers = []
         for _ in range(container_data.count):
 
@@ -79,6 +119,10 @@ def create_containers(db: Session, image_id: int, user_id: int, container_data: 
 
         return created_containers
 
+    except HTTPException:
+        # Re-raise HTTP exceptions (like validation errors)
+        db.rollback()
+        raise
     except Exception as e:
         db.rollback()
         logger.error(
@@ -91,16 +135,58 @@ def create_containers(db: Session, image_id: int, user_id: int, container_data: 
             },
             exc_info=True
         )
-        raise HTTPException(status_code=500, detail=f"Error creating containers: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail="Failed to create containers. Please try again or contact support."
+        ) from e
 
 def start_container(db: Session, user_id: int, container_id: int):
+    """
+    Start a stopped container and publish container.started event.
+    
+    Args:
+        db: Database session
+        user_id: ID of the user owning the container
+        container_id: ID of the container to start
+    
+    Returns:
+        Updated Container object
+    
+    Raises:
+        HTTPException: 404 if container not found, 400 if already running
+    """
     db_container = containers_repository.get_by_id_and_user(db, container_id, user_id)
     
     if not db_container:
-        raise HTTPException(status_code=404, detail=f"container {container_id} not found")
+        raise HTTPException(
+            status_code=404,
+            detail=f"Container with id {container_id} not found or access denied"
+        )
     
-    docker_service.start_container(db_container.container_id)
-    db_container.status = ContainerStatus.RUNNING
+    # Validate container is not already running
+    if db_container.status == ContainerStatus.RUNNING:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Container {container_id} is already running"
+        )
+    
+    try:
+        docker_service.start_container(db_container.container_id)
+        db_container.status = ContainerStatus.RUNNING
+    except Exception as e:
+        logger.error(
+            "container.start_docker_failed",
+            extra={
+                "container_id": container_id,
+                "error": str(e),
+                "error_type": type(e).__name__
+            },
+            exc_info=True
+        )
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to start container {container_id}. Docker service may be unavailable."
+        ) from e
     db.commit()
     db.refresh(db_container)
     try:
@@ -137,13 +223,52 @@ def start_container(db: Session, user_id: int, container_id: int):
 
 
 def stop_container(db: Session, user_id: int, container_id: int):
+    """
+    Stop a running container and publish container.stopped event.
+    
+    Args:
+        db: Database session
+        user_id: ID of the user owning the container
+        container_id: ID of the container to stop
+    
+    Returns:
+        Updated Container object with STOPPED status
+    
+    Raises:
+        HTTPException: 404 if container not found
+    """
     db_container = containers_repository.get_by_id_and_user(db, container_id, user_id)
     
     if not db_container:
-        raise HTTPException(status_code=404, detail=f"container {container_id} not found")
+        raise HTTPException(
+            status_code=404,
+            detail=f"Container with id {container_id} not found or access denied"
+        )
     
-    docker_service.stop_container(db_container.container_id)
-    db_container.status = ContainerStatus.STOPPED
+    # Validate container is not already stopped
+    if db_container.status == ContainerStatus.STOPPED:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Container {container_id} is already stopped"
+        )
+    
+    try:
+        docker_service.stop_container(db_container.container_id)
+        db_container.status = ContainerStatus.STOPPED
+    except Exception as e:
+        logger.error(
+            "container.stop_docker_failed",
+            extra={
+                "container_id": container_id,
+                "error": str(e),
+                "error_type": type(e).__name__
+            },
+            exc_info=True
+        )
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to stop container {container_id}. Docker service may be unavailable."
+        ) from e
     db.commit()
     db.refresh(db_container)
     try:
@@ -179,10 +304,32 @@ def stop_container(db: Session, user_id: int, container_id: int):
     return db_container
 
 def delete_container(db: Session, user_id: int, container_id: int) -> Dict[str, str]:
+    """
+    Delete a container and publish container.deleted event.
+    
+    This function:
+    1. Stops and removes the Docker container
+    2. Deletes the database record
+    3. Publishes container.deleted event to Kafka
+    
+    Args:
+        db: Database session
+        user_id: ID of the user owning the container
+        container_id: ID of the container to delete
+    
+    Returns:
+        Dictionary with deletion confirmation message
+    
+    Raises:
+        HTTPException: 404 if container not found
+    """
     db_container = containers_repository.get_by_id_and_user(db, container_id, user_id)
 
     if not db_container:
-        raise HTTPException(status_code=404, detail=f"container {container_id} not found")
+        raise HTTPException(
+            status_code=404,
+            detail=f"Container with id {container_id} not found or access denied"
+        )
 
     # Capture data before deleting
     image = images_repository.get_by_id(db, db_container.image_id, user_id)

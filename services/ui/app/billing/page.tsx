@@ -111,8 +111,13 @@ export default function BillingPage() {
       {/* Error Message */}
       {error && (
         <div className="max-w-7xl mx-auto mb-6">
-          <div className="modern-card p-4 bg-red-50 border border-red-200">
-            <p className="text-red-600">{error}</p>
+          <div className="modern-card p-4 bg-red-50 border border-red-200 rounded-lg">
+            <div className="flex items-center">
+              <svg className="w-5 h-5 text-red-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+              <p className="text-red-700 font-medium">{error}</p>
+            </div>
           </div>
         </div>
       )}

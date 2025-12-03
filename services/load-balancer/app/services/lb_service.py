@@ -25,8 +25,25 @@ async def _pick_service(
     fallback_cache: FallbackCache,
 ) -> Optional[ServiceInfo]:
     """
-    Pick a service using Service Discovery with Circuit Breaker protection.
-    Falls back to cache if Service Discovery is unavailable.
+    Select a healthy service instance for the given website URL.
+    
+    This function implements a resilient service selection pattern:
+    1. Attempts to get services from Service Discovery (protected by Circuit Breaker)
+    2. On Circuit Breaker OPEN or Service Discovery errors, falls back to cache
+    3. Uses Round Robin selector to distribute load evenly
+    
+    Args:
+        website_url: Normalized website URL to route
+        discovery_client: Service Discovery client for querying healthy services
+        selector: Round Robin selector for load distribution
+        circuit_breaker: Circuit Breaker to protect against cascading failures
+        fallback_cache: Cache for last known good service list
+    
+    Returns:
+        ServiceInfo if a service is available, None otherwise
+    
+    Raises:
+        ServiceDiscoveryError: If Service Discovery fails and no fallback cache available
     """
     services = None
     
@@ -103,9 +120,63 @@ async def handle_request(
     circuit_breaker: CircuitBreaker,
     fallback_cache: FallbackCache,
 ) -> dict:
-    body = await request.body()
-    data = json.loads(body)
-    website_url = data["website_url"].strip().lower()
+    """
+    Handle a routing request from the API Gateway.
+    
+    Processes the request to find an available container for the given website URL.
+    Returns routing information (host, port) that the API Gateway can use to proxy requests.
+    
+    Args:
+        request: FastAPI request object containing website_url in JSON body
+        discovery_client: Service Discovery client
+        selector: Round Robin selector
+        circuit_breaker: Circuit Breaker instance
+        fallback_cache: Fallback cache instance
+    
+    Returns:
+        Dictionary with routing information:
+        - target_host: Host where container is running
+        - target_port: External port of the container
+        - container_id: ID of the selected container
+        - image_id: ID of the image
+        - ttl: Cache TTL in seconds
+    
+    Raises:
+        HTTPException: 503 if no services available or Service Discovery is down
+    """
+    # Parse and validate request body
+    try:
+        body = await request.body()
+        if not body:
+            raise HTTPException(
+                status_code=400,
+                detail="Request body is required"
+            )
+        
+        data = json.loads(body)
+        if "website_url" not in data:
+            raise HTTPException(
+                status_code=400,
+                detail="Missing required field: website_url"
+            )
+        
+        website_url = data["website_url"].strip().lower()
+        if not website_url:
+            raise HTTPException(
+                status_code=400,
+                detail="website_url cannot be empty"
+            )
+    except json.JSONDecodeError as e:
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid JSON in request body"
+        ) from e
+    except KeyError as e:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Missing required field: {str(e)}"
+        ) from e
+    
     logger.info(
         "lb.route.received",
         extra={

@@ -99,7 +99,7 @@ class WorkloadGenerator:
                     else:
                         error = f"Load balancer error: {route_response.status_code}"
             else:
-                # Direct container access (would need to get container info first)
+                    
                 # For now, use Load Balancer
                 async with httpx.AsyncClient(timeout=10.0) as client:
                     route_response = await client.post(

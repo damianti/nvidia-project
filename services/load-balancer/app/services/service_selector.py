@@ -17,6 +17,21 @@ class RoundRobinSelector:
         self._lock = threading.RLock()
 
     def select(self, image_id: int, services: List[ServiceInfo]) -> Optional[ServiceInfo]:
+        """
+        Select the next service using round-robin algorithm.
+        
+        Maintains a separate round-robin index for each image_id to ensure
+        even distribution across multiple images.
+        
+        Args:
+            image_id: ID of the image to select a service for
+            services: List of available healthy services for this image
+        
+        Returns:
+            Selected ServiceInfo, or None if services list is empty
+        
+        Thread-safe: Uses RLock to prevent race conditions in multi-threaded environments.
+        """
         if not services:
             return None
 

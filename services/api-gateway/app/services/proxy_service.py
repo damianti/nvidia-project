@@ -40,6 +40,32 @@ async def proxy_to_target(
             status_code=response.status_code,
             headers=dict(response.headers)
         )
+    except httpx.TimeoutException as e:
+        logger.error(
+            "proxy.timeout",
+            extra={
+                "target_url": target_url,
+                "method": method,
+                "error": str(e)
+            }
+        )
+        return Response(
+            content="Request timeout - container may be overloaded",
+            status_code=504
+        )
+    except httpx.ConnectError as e:
+        logger.error(
+            "proxy.connection_error",
+            extra={
+                "target_url": target_url,
+                "method": method,
+                "error": str(e)
+            }
+        )
+        return Response(
+            content="Cannot connect to container - service may be down",
+            status_code=503
+        )
     except Exception as e:
         logger.error(
             "proxy.error",
@@ -52,7 +78,7 @@ async def proxy_to_target(
             exc_info=True
         )
         return Response(
-            content=f"Proxy error: {str(e)}",
+            content="Internal proxy error",
             status_code=502
         )
 

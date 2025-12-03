@@ -1,6 +1,13 @@
 version: '3.8'
 
+# NVIDIA Cloud Platform - Docker Compose Configuration
+# This file defines all services, databases, and infrastructure components
+
 services:
+  # ============================================================================
+  # Database Services
+  # ============================================================================
+  
   # PostgreSQL Database for Orchestrator
   orch-postgres:
     image: postgres:15
@@ -55,32 +62,47 @@ services:
       timeout: 10s
       retries: 3
 
+  # ============================================================================
+  # Infrastructure Services
+  # ============================================================================
+
+  # Docker-in-Docker for container runtime
   docker-dind:
     image: docker:24-dind
     container_name: nvidia-docker-dind
     privileged: true
     environment:
-      - DOCKER_TLS_CERTDIR=  # TODO change this in advanced steps of develop
+      - DOCKER_TLS_CERTDIR=
     volumes:
       - dind-storage:/var/lib/docker
     networks:
       - nvidia-network
     command: ["--storage-driver=overlay2", "--tls=false"]
 
+  # Zookeeper for Kafka coordination
   zookeeper:
     image: confluentinc/cp-zookeeper:latest
+    container_name: nvidia-zookeeper
     environment:
       - ZOOKEEPER_CLIENT_PORT=2181
       - ZOOKEEPER_TICK_TIME=2000
     networks:
       - nvidia-network
+    healthcheck:
+      test: ["CMD", "nc", "-z", "localhost", "2181"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
 
+  # Kafka message broker for event streaming
   kafka:
     image: confluentinc/cp-kafka:7.4.0
+    container_name: nvidia-kafka
     depends_on:
-      - zookeeper
+      zookeeper:
+        condition: service_healthy
     ports:
-    - "9092:9092"
+      - "9092:9092"
     environment:
       - KAFKA_BROKER_ID=1
       - KAFKA_ZOOKEEPER_CONNECT=zookeeper:2181
@@ -90,10 +112,20 @@ services:
       - KAFKA_AUTO_CREATE_TOPICS_ENABLE=true
     networks:
       - nvidia-network
+    healthcheck:
+      test: ["CMD", "kafka-broker-api-versions", "--bootstrap-server", "localhost:9092"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Kafka UI for message broker management
   kafka-ui:
     image: provectuslabs/kafka-ui:latest
+    container_name: nvidia-kafka-ui
     depends_on:
-      - kafka
+      kafka:
+        condition: service_healthy
     ports:
       - "${KAFKA_UI_PORT}:8080"
     environment:
@@ -101,7 +133,13 @@ services:
       KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:9092
     networks:
       - nvidia-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
 
+  # Consul for service discovery and health monitoring
   consul:
     image: hashicorp/consul:1.17
     container_name: nvidia-consul
@@ -116,7 +154,12 @@ services:
       interval: 10s
       timeout: 5s
       retries: 3
-  
+
+  # ============================================================================
+  # Application Services
+  # ============================================================================
+
+  # Authentication and user management service
   auth-service:
     build:
       context: ./services/auth-service
@@ -143,6 +186,8 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
+
+  # Container orchestration and lifecycle management
   orchestrator:
     build:
       context: ./services/orchestrator
@@ -170,6 +215,7 @@ services:
       timeout: 10s
       retries: 3
 
+  # Web UI dashboard (Next.js)
   ui:
     build:
       context: ./services/ui
@@ -182,15 +228,17 @@ services:
     ports:
       - "${UI_EXTERNAL_PORT}:${UI_PORT}"
     depends_on:
-      - orchestrator
+      orchestrator:
+        condition: service_healthy
     networks:
       - nvidia-network
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3000"]
+      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
       interval: 30s
       timeout: 10s
       retries: 3
 
+  # API Gateway - Single entry point for all external requests
   api-gateway:
     build:
       context: ./services/api-gateway
@@ -204,15 +252,17 @@ services:
     ports:
       - ${API_GATEWAY_PORT}:${API_GATEWAY_PORT}
     depends_on:
-      - orchestrator
+      orchestrator:
+        condition: service_healthy
     networks:
       - nvidia-network
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080/"]
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
       interval: 30s
       timeout: 10s
       retries: 3
 
+  # Load Balancer - Traffic distribution and routing
   load-balancer:
     build:
       context: ./services/load-balancer
@@ -224,7 +274,8 @@ services:
       - TARGET_HOST=docker-dind
       - PORT=3004
     depends_on:
-      - kafka
+      kafka:
+        condition: service_healthy
     networks:
       - nvidia-network
     healthcheck:
@@ -233,6 +284,7 @@ services:
       timeout: 10s
       retries: 3
 
+  # Service Discovery - Consul integration and service registry
   service-discovery:
     build:
       context: ./services/service-discovery
@@ -246,8 +298,10 @@ services:
       - TARGET_HOST=docker-dind
       - PORT=3004
     depends_on:
-      - kafka
-      - consul
+      kafka:
+        condition: service_healthy
+      consul:
+        condition: service_healthy
     networks:
       - nvidia-network
     healthcheck:
@@ -255,6 +309,8 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
+
+  # Billing Service - Cost calculation and reporting
   billing:
     build:
       context: ./services/billing
@@ -269,7 +325,7 @@ services:
       - SERVICE_NAME=${BILLING_SERVICE_NAME}
     depends_on:
       kafka:
-        condition: service_started
+        condition: service_healthy
       billing-postgres:
         condition: service_healthy
     networks:
@@ -279,6 +335,8 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
+
+  # Client Workload - Synthetic traffic generator for testing
   client-workload:
     build:
       context: ./services/client-workload
@@ -292,8 +350,10 @@ services:
     ports:
       - "3008:3008"
     depends_on:
-      - load-balancer
-      - service-discovery
+      load-balancer:
+        condition: service_healthy
+      service-discovery:
+        condition: service_healthy
     networks:
       - nvidia-network
     healthcheck:
@@ -301,15 +361,14 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
+
 volumes:
   orch_postgres_data:
   auth_postgres_data:
   billing_postgres_data:
   orchestrator_builds:
-  dind-storage:  
-  
-  
+  dind-storage:
 
 networks:
   nvidia-network:
-    driver: bridge 
+    driver: bridge

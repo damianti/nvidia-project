@@ -30,7 +30,14 @@ async def start_workload(config: WorkloadRequest):
             metrics=metrics
         )
     except Exception as e:
-        logger.error(f"Error starting workload: {e}")
+        logger.error(
+            "workload.start.failed",
+            extra={
+                "error": str(e),
+                "error_type": type(e).__name__
+            },
+            exc_info=True
+        )
         raise HTTPException(status_code=500, detail=str(e))
 
 

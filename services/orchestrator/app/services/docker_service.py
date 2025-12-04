@@ -125,7 +125,13 @@ def run_container(image_name: str, image_tag: str , container_name: str, env_var
         
         if external_port is None:
             try:
-                logger.error(f"Container {container_name} failed to get external port. Port bindings: {port_bindings}")
+                logger.error(
+                    "docker.port_extraction.failed",
+                    extra={
+                        "container_name": container_name,
+                        "port_bindings": str(port_bindings)
+                    }
+                )
                 container.stop()
                 container.remove()
             except:
@@ -146,7 +152,13 @@ def run_container(image_name: str, image_tag: str , container_name: str, env_var
         
         if not container_ip:
             try:
-                logger.error(f"Container {container_name} failed to get IP. Network settings: {network_settings}")
+                logger.error(
+                    "docker.ip_extraction.failed",
+                    extra={
+                        "container_name": container_name,
+                        "network_settings": str(network_settings)
+                    }
+                )
                 container.stop()
                 container.remove()
             except:

@@ -108,7 +108,13 @@ async def metrics(request: Request):
 if __name__ == "__main__":
     import uvicorn
     
-    logger.info(f"Starting sd on {HOST}:{PORT}")
+    logger.info(
+        "service_discovery.startup",
+        extra={
+            "host": HOST,
+            "port": PORT
+        }
+    )
     uvicorn.run(app, host=HOST, port=PORT)
 
 

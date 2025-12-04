@@ -41,10 +41,24 @@ class KafkaProducerSingleton:
     def delivery_report(self, err, msg) -> None:
 
         if err is not None:
-            logger.error(f"[KAFKA] Delivery failed: {err}")
+            logger.error(
+                "kafka.delivery.failed",
+                extra={
+                    "error": str(err),
+                    "topic": msg.topic() if msg else "unknown",
+                    "partition": msg.partition() if msg else None
+                }
+            )
 
         else:
-            logger.info(f"[KAFKA] Delivered to {msg.topic()} [{msg.partition()}] @ offset {msg.offset()}")
+            logger.info(
+                "kafka.delivery.success",
+                extra={
+                    "topic": msg.topic(),
+                    "partition": msg.partition(),
+                    "offset": msg.offset()
+                }
+            )
 
 
     def flush(self, timeout: float = 5.0) -> None:

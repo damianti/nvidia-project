@@ -50,11 +50,28 @@ class ServiceDiscovery:
             # Set heartbeat
             self._update_heartbeat(service.service_id)
             
-            logger.info(f"Service registered: {service.service_type}:{service.service_id}")
+            logger.info(
+                "service_discovery.registration.success",
+                extra={
+                    "service_type": service.service_type,
+                    "service_id": service.service_id,
+                    "host": service.host,
+                    "port": service.port
+                }
+            )
             return True
             
         except Exception as e:
-            logger.error(f"Failed to register service: {e}")
+            logger.error(
+                "service_discovery.registration.failed",
+                extra={
+                    "service_type": service.service_type,
+                    "service_id": service.service_id,
+                    "error": str(e),
+                    "error_type": type(e).__name__
+                },
+                exc_info=True
+            )
             return False
     
     def deregister_service(self, service_type: str, service_id: str) -> bool:
@@ -71,11 +88,26 @@ class ServiceDiscovery:
             # Remove heartbeat
             self.redis_client.delete(f"{self.heartbeat_prefix}{service_id}")
             
-            logger.info(f"Service deregistered: {service_type}:{service_id}")
+            logger.info(
+                "service_discovery.deregistration.success",
+                extra={
+                    "service_type": service_type,
+                    "service_id": service_id
+                }
+            )
             return True
             
         except Exception as e:
-            logger.error(f"Failed to deregister service: {e}")
+            logger.error(
+                "service_discovery.deregistration.failed",
+                extra={
+                    "service_type": service_type,
+                    "service_id": service_id,
+                    "error": str(e),
+                    "error_type": type(e).__name__
+                },
+                exc_info=True
+            )
             return False
     
     def get_services(self, service_type: str) -> List[ServiceInfo]:
@@ -104,7 +136,15 @@ class ServiceDiscovery:
             return services
             
         except Exception as e:
-            logger.error(f"Failed to get services: {e}")
+            logger.error(
+                "service_discovery.get_services.failed",
+                extra={
+                    "service_type": service_type,
+                    "error": str(e),
+                    "error_type": type(e).__name__
+                },
+                exc_info=True
+            )
             return []
     
     def get_service(self, service_type: str, service_id: str) -> Optional[ServiceInfo]:
@@ -128,7 +168,16 @@ class ServiceDiscovery:
             return None
             
         except Exception as e:
-            logger.error(f"Failed to get service: {e}")
+            logger.error(
+                "service_discovery.get_service.failed",
+                extra={
+                    "service_type": service_type,
+                    "service_id": service_id,
+                    "error": str(e),
+                    "error_type": type(e).__name__
+                },
+                exc_info=True
+            )
             return None
     
     def update_heartbeat(self, service_id: str) -> bool:
@@ -137,7 +186,15 @@ class ServiceDiscovery:
             self._update_heartbeat(service_id)
             return True
         except Exception as e:
-            logger.error(f"Failed to update heartbeat: {e}")
+            logger.error(
+                "service_discovery.heartbeat.failed",
+                extra={
+                    "service_id": service_id,
+                    "error": str(e),
+                    "error_type": type(e).__name__
+                },
+                exc_info=True
+            )
             return False
     
     def _update_heartbeat(self, service_id: str):
@@ -173,9 +230,21 @@ class ServiceDiscovery:
                     if self.deregister_service(service_type, service_id):
                         cleaned_count += 1
             
-            logger.info(f"Cleaned up {cleaned_count} dead services")
+            logger.info(
+                "service_discovery.cleanup.success",
+                extra={
+                    "cleaned_count": cleaned_count
+                }
+            )
             return cleaned_count
             
         except Exception as e:
-            logger.error(f"Failed to cleanup dead services: {e}")
+            logger.error(
+                "service_discovery.cleanup.failed",
+                extra={
+                    "error": str(e),
+                    "error_type": type(e).__name__
+                },
+                exc_info=True
+            )
             return 0

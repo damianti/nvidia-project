@@ -39,10 +39,24 @@ class WorkloadGenerator:
                             website_urls.add(service["website_url"])
                     return list(website_urls)
                 else:
-                    logger.warning(f"Failed to get services: {response.status_code}")
+                    logger.warning(
+                        "workload.get_services.failed",
+                        extra={
+                            "status_code": response.status_code,
+                            "service_discovery_url": SERVICE_DISCOVERY_URL
+                        }
+                    )
                     return []
         except Exception as e:
-            logger.error(f"Error getting services: {e}")
+            logger.error(
+                "workload.get_services.error",
+                extra={
+                    "error": str(e),
+                    "error_type": type(e).__name__,
+                    "service_discovery_url": SERVICE_DISCOVERY_URL
+                },
+                exc_info=True
+            )
             return []
     
     async def _make_request_and_collect(
@@ -56,7 +70,16 @@ class WorkloadGenerator:
             metrics = await self.make_request(website_url, use_load_balancer)
             self.test_metrics[test_id].append(metrics)
         except Exception as e:
-            logger.error(f"Error making request: {e}")
+            logger.error(
+                "workload.request.error",
+                extra={
+                    "test_id": test_id,
+                    "website_url": website_url,
+                    "error": str(e),
+                    "error_type": type(e).__name__
+                },
+                exc_info=True
+            )
             # Create error metrics
             error_metrics = RequestMetrics(
                 timestamp=time.time(),
@@ -173,7 +196,17 @@ class WorkloadGenerator:
                 self.test_status[test_id] = "failed"
                 return
         
-        logger.info(f"Starting workload test {test_id} with {len(website_urls)} URLs")
+        logger.info(
+            "workload.test.started",
+            extra={
+                "test_id": test_id,
+                "url_count": len(website_urls),
+                "rps": config.rps,
+                "duration_seconds": config.duration_seconds,
+                "pattern": config.pattern.value,
+                "use_load_balancer": config.use_load_balancer
+            }
+        )
         
         start_time = time.time()
         end_time = start_time + config.duration_seconds
@@ -215,10 +248,23 @@ class WorkloadGenerator:
                 await asyncio.sleep(min(interval, 0.01))  # Minimum 10ms sleep
         
         except asyncio.CancelledError:
-            logger.info(f"Workload test {test_id} was cancelled")
+            logger.info(
+                "workload.test.cancelled",
+                extra={
+                    "test_id": test_id
+                }
+            )
             self.test_status[test_id] = "stopped"
         except Exception as e:
-            logger.error(f"Error in workload test {test_id}: {e}")
+            logger.error(
+                "workload.test.error",
+                extra={
+                    "test_id": test_id,
+                    "error": str(e),
+                    "error_type": type(e).__name__
+                },
+                exc_info=True
+            )
             self.test_status[test_id] = "failed"
         finally:
             if self.test_status[test_id] == "running":

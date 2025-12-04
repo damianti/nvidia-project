@@ -30,7 +30,14 @@ async def lifespan(app: FastAPI):
         logger.info("Database tables created/updated successfully")
     
     except Exception as e:
-        logger.error(f"Error creating database tables: {e}")
+        logger.error(
+            "database.setup.failed",
+            extra={
+                "error": str(e),
+                "error_type": type(e).__name__
+            },
+            exc_info=True
+        )
         raise
 
 
@@ -80,7 +87,13 @@ async def root():
 if __name__ == "__main__":
     import uvicorn
     
-    logger.info(f"Starting Orchestrator on {HOST}:{PORT}")
+    logger.info(
+        "orchestrator.startup",
+        extra={
+            "host": HOST,
+            "port": PORT
+        }
+    )
     uvicorn.run(app, host=HOST, port=PORT)
 
 

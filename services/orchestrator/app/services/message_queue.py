@@ -76,11 +76,28 @@ class MessageQueue:
             # Set message TTL
             self.redis_client.expire(message_key, self.timeout * 2)
             
-            logger.info(f"Message sent: {message.message_id} to {message.recipient}")
+            logger.info(
+                "message_queue.send.success",
+                extra={
+                    "message_id": message.message_id,
+                    "message_type": message.message_type,
+                    "recipient": message.recipient,
+                    "sender": message.sender
+                }
+            )
             return True
             
         except Exception as e:
-            logger.error(f"Failed to send message: {e}")
+            logger.error(
+                "message_queue.send.failed",
+                extra={
+                    "message_id": message.message_id,
+                    "recipient": message.recipient,
+                    "error": str(e),
+                    "error_type": type(e).__name__
+                },
+                exc_info=True
+            )
             return False
     
     def receive_message(self, recipient: str, timeout: int = 5) -> Optional[Message]:
@@ -112,7 +129,16 @@ class MessageQueue:
             return None
             
         except Exception as e:
-            logger.error(f"Failed to receive message: {e}")
+            logger.error(
+                "message_queue.receive.failed",
+                extra={
+                    "recipient": recipient,
+                    "timeout": timeout,
+                    "error": str(e),
+                    "error_type": type(e).__name__
+                },
+                exc_info=True
+            )
             return None
     
     def update_message_status(self, message_id: str, status: str, error_message: str = None) -> bool:
@@ -132,7 +158,16 @@ class MessageQueue:
             return True
             
         except Exception as e:
-            logger.error(f"Failed to update message status: {e}")
+            logger.error(
+                "message_queue.update_status.failed",
+                extra={
+                    "message_id": message_id,
+                    "status": status,
+                    "error": str(e),
+                    "error_type": type(e).__name__
+                },
+                exc_info=True
+            )
             return False
     
     def send_response(self, original_message_id: str, response_data: Dict[str, Any]) -> bool:
@@ -143,7 +178,12 @@ class MessageQueue:
             original_message_data = self.redis_client.hgetall(original_message_key)
             
             if not original_message_data:
-                logger.error(f"Original message not found: {original_message_id}")
+                logger.warning(
+                    "message_queue.response.original_not_found",
+                    extra={
+                        "original_message_id": original_message_id
+                    }
+                )
                 return False
             
             # Create response message
@@ -159,7 +199,15 @@ class MessageQueue:
             return self.send_message(response_message)
             
         except Exception as e:
-            logger.error(f"Failed to send response: {e}")
+            logger.error(
+                "message_queue.response.failed",
+                extra={
+                    "original_message_id": original_message_id,
+                    "error": str(e),
+                    "error_type": type(e).__name__
+                },
+                exc_info=True
+            )
             return False
     
     def get_message_status(self, message_id: str) -> Optional[str]:
@@ -168,7 +216,15 @@ class MessageQueue:
             message_key = f"{self.message_prefix}{message_id}"
             return self.redis_client.hget(message_key, 'status')
         except Exception as e:
-            logger.error(f"Failed to get message status: {e}")
+            logger.error(
+                "message_queue.get_status.failed",
+                extra={
+                    "message_id": message_id,
+                    "error": str(e),
+                    "error_type": type(e).__name__
+                },
+                exc_info=True
+            )
             return None
     
     def cleanup_expired_messages(self) -> int:
@@ -186,11 +242,23 @@ class MessageQueue:
                         self.redis_client.delete(key)
                         cleaned_count += 1
             
-            logger.info(f"Cleaned up {cleaned_count} expired messages")
+            logger.info(
+                "message_queue.cleanup.success",
+                extra={
+                    "cleaned_count": cleaned_count
+                }
+            )
             return cleaned_count
             
         except Exception as e:
-            logger.error(f"Failed to cleanup expired messages: {e}")
+            logger.error(
+                "message_queue.cleanup.failed",
+                extra={
+                    "error": str(e),
+                    "error_type": type(e).__name__
+                },
+                exc_info=True
+            )
             return 0
     
     def get_queue_length(self, recipient: str) -> int:
@@ -199,5 +267,13 @@ class MessageQueue:
             queue_key = f"{self.queue_prefix}{recipient}"
             return self.redis_client.llen(queue_key)
         except Exception as e:
-            logger.error(f"Failed to get queue length: {e}")
+            logger.error(
+                "message_queue.get_queue_length.failed",
+                extra={
+                    "recipient": recipient,
+                    "error": str(e),
+                    "error_type": type(e).__name__
+                },
+                exc_info=True
+            )
             return 0

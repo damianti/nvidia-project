@@ -166,6 +166,8 @@ services:
       dockerfile: Dockerfile
     container_name: nvidia-auth-service
     environment:
+      - PYTHONUNBUFFERED=1
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
       - DATABASE_URL=postgresql://${AUTH_POSTGRES_USER}:${AUTH_POSTGRES_PASSWORD}@auth-postgres:${AUTH_POSTGRES_PORT}/${AUTH_POSTGRES_DB}
       - DB_USER=${AUTH_POSTGRES_USER}
       - DB_PASSWORD=${AUTH_POSTGRES_PASSWORD}
@@ -176,6 +178,8 @@ services:
       - JWT_ALGORITHM=${JWT_ALGORITHM}
       - ACCESS_TOKEN_EXPIRE_MINUTES=${ACCESS_TOKEN_EXPIRE_MINUTES}
       - SERVICE_NAME=${AUTH_SERVICE_NAME}
+    volumes:
+      - ./logs/auth-service:/app/logs
     depends_on:
       auth-postgres:
         condition: service_healthy
@@ -194,6 +198,8 @@ services:
       dockerfile: Dockerfile
     container_name: nvidia-orchestrator
     environment:
+      - PYTHONUNBUFFERED=1
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
       - DATABASE_URL=postgresql://${ORCH_POSTGRES_USER}:${ORCH_POSTGRES_PASSWORD}@orch-postgres:${ORCH_POSTGRES_PORT}/${ORCH_POSTGRES_DB}
       - JWT_SECRET_KEY=${JWT_SECRET_KEY}
       - JWT_ALGORITHM=${JWT_ALGORITHM}
@@ -202,6 +208,8 @@ services:
       - KAFKA_BOOTSTRAP_SERVERS=${KAFKA_BROKER_URL}
       - KAFKA_PRODUCER_TOPIC=container-lifecycle
       - DOCKER_NETWORK=${DOCKER_NETWORK:-nvidia-project_nvidia-network}
+    volumes:
+      - ./logs/orchestrator:/app/logs
     depends_on:
       orch-postgres:
         condition: service_healthy
@@ -245,10 +253,14 @@ services:
       dockerfile: Dockerfile
     container_name: nvidia-api-gateway
     environment:
+      - PYTHONUNBUFFERED=1
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
       - ORCHESTRATOR_URL=${ORCHESTRATOR_URL}
       - LOAD_BALANCER_URL=${LOAD_BALANCER_URL}
       - PORT=${API_GATEWAY_PORT}
       - TARGET_HOST=docker-dind
+    volumes:
+      - ./logs/api-gateway:/app/logs
     ports:
       - ${API_GATEWAY_PORT}:${API_GATEWAY_PORT}
     depends_on:
@@ -269,10 +281,14 @@ services:
       dockerfile: Dockerfile
     container_name: nvidia-load-balancer
     environment:
+      - PYTHONUNBUFFERED=1
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
       - KAFKA_BOOTSTRAP_SERVERS=${KAFKA_BROKER_URL}
       - KAFKA_CONSUMER_GROUP=${LB_GROUP}
       - TARGET_HOST=docker-dind
       - PORT=3004
+    volumes:
+      - ./logs/load-balancer:/app/logs
     depends_on:
       kafka:
         condition: service_healthy
@@ -292,11 +308,14 @@ services:
     container_name: nvidia-service-discovery
     environment:
       - PYTHONUNBUFFERED=1
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
       - KAFKA_BOOTSTRAP_SERVERS=${KAFKA_BROKER_URL}
       - KAFKA_CONSUMER_GROUP=${SD_GROUP}
       - CONSUL_PORT=${CONSUL_PORT}
       - TARGET_HOST=docker-dind
       - PORT=3004
+    volumes:
+      - ./logs/service-discovery:/app/logs
     depends_on:
       kafka:
         condition: service_healthy
@@ -318,11 +337,14 @@ services:
     container_name: nvidia-billing
     environment:
       - PYTHONUNBUFFERED=1
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
       - DATABASE_URL=postgresql://${BILLING_POSTGRES_USER}:${BILLING_POSTGRES_PASSWORD}@billing-postgres:${BILLING_POSTGRES_PORT}/${BILLING_POSTGRES_DB}
       - KAFKA_BOOTSTRAP_SERVERS=${KAFKA_BROKER_URL}
       - KAFKA_CONSUMER_GROUP=${BILLING_GROUP}
       - PORT=${BILLING_PORT}
       - SERVICE_NAME=${BILLING_SERVICE_NAME}
+    volumes:
+      - ./logs/billing:/app/logs
     depends_on:
       kafka:
         condition: service_healthy
@@ -344,9 +366,12 @@ services:
     container_name: nvidia-client-workload
     environment:
       - PYTHONUNBUFFERED=1
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
       - LOAD_BALANCER_URL=${LOAD_BALANCER_URL:-http://load-balancer:3004}
       - SERVICE_DISCOVERY_URL=${SERVICE_DISCOVERY_URL:-http://service-discovery:3006}
       - PORT=3008
+    volumes:
+      - ./logs/client-workload:/app/logs
     ports:
       - "3008:3008"
     depends_on:

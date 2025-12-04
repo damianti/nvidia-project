@@ -327,3 +327,111 @@ grep '"level":"ERROR"' logs/app.log | jq
 grep "response_time_ms" logs/app.log | jq 'select(.response_time_ms > 1000)'
 ```
 
+## Log File Storage and Access
+
+### Docker Volumes Mapped
+
+All Python services have persistent log storage configured via Docker volumes. Logs are written to `/app/logs` inside the container and mapped to the host filesystem.
+
+**Volume Mappings:**
+
+- `./logs/auth-service:/app/logs` - Auth service logs
+- `./logs/orchestrator:/app/logs` - Orchestrator service logs
+- `./logs/api-gateway:/app/logs` - API Gateway logs
+- `./logs/load-balancer:/app/logs` - Load Balancer logs
+- `./logs/service-discovery:/app/logs` - Service Discovery logs
+- `./logs/billing:/app/logs` - Billing service logs
+- `./logs/client-workload:/app/logs` - Client Workload logs
+
+### Accessing Logs from Host
+
+Logs are accessible from the host machine at the project root:
+
+```bash
+# View auth service logs
+tail -f logs/auth-service/app.log
+
+# View orchestrator logs
+tail -f logs/orchestrator/app.log
+
+# View all service logs
+find logs/ -name "*.log" -exec tail -f {} \;
+
+# Search across all logs
+grep -r "error" logs/
+```
+
+### Log File Location
+
+- **Inside container**: `/app/logs/app.log` (JSON format)
+- **On host**: `./logs/<service-name>/app.log`
+
+The log files are automatically rotated daily and kept for 7 days (configurable in each service's logging configuration).
+
+## Real-time Logging in Terminal
+
+### Using LOG_LEVEL Environment Variable
+
+You can control the verbosity of logs in real-time by setting the `LOG_LEVEL` environment variable. This is particularly useful for debugging and development.
+
+**Available Log Levels:**
+- `DEBUG` - Most verbose, includes detailed diagnostic information
+- `INFO` - Normal operational events (default)
+- `WARNING` - Potentially problematic situations
+- `ERROR` - Error conditions only
+
+### Examples
+
+**Run with DEBUG logging:**
+```bash
+LOG_LEVEL=DEBUG docker-compose up
+```
+
+**Run specific service with DEBUG logging:**
+```bash
+LOG_LEVEL=DEBUG docker-compose up auth-service orchestrator
+```
+
+**Set in .env file:**
+```bash
+# .env
+LOG_LEVEL=DEBUG
+```
+
+### PYTHONUNBUFFERED=1
+
+All Python services have `PYTHONUNBUFFERED=1` configured, which ensures that:
+- Python output is not buffered
+- Logs appear immediately in the terminal
+- Real-time debugging is possible
+- No log delays when troubleshooting
+
+This is essential for seeing logs in real-time when using `docker-compose logs -f` or when running services interactively.
+
+### Viewing Real-time Logs
+
+```bash
+# View logs for all services
+docker-compose logs -f
+
+# View logs for specific service
+docker-compose logs -f auth-service
+
+# View logs with timestamps
+docker-compose logs -f --timestamps
+
+# View last 100 lines and follow
+docker-compose logs -f --tail=100 orchestrator
+```
+
+### Combining LOG_LEVEL with Log Viewing
+
+```bash
+# Start services with DEBUG logging and follow logs
+LOG_LEVEL=DEBUG docker-compose up -d
+docker-compose logs -f
+
+# Or in one command
+LOG_LEVEL=DEBUG docker-compose up
+```
+

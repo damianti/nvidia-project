@@ -361,6 +361,40 @@ find services -name "test_*.py" -exec pytest {} \;
 - Kafka UI for event monitoring (http://localhost:8081)
 - Consul UI for service discovery visualization (http://localhost:8500)
 - Metrics endpoints for service statistics
+- Persistent log storage in `./logs/<service>/app.log`
+
+### Viewing Logs
+
+Use the log viewer script for easy log access:
+
+```bash
+# View logs from a specific service
+./scripts/view-logs.sh auth-service
+
+# Follow logs in real-time
+./scripts/view-logs.sh -f orchestrator
+
+# Show only errors from all services
+./scripts/view-logs.sh -e --all
+
+# Search for a pattern in logs
+./scripts/view-logs.sh -s 'error' api-gateway
+
+# List available services
+./scripts/view-logs.sh --list
+```
+
+Or use docker-compose directly:
+```bash
+# View logs from all services
+docker-compose logs -f
+
+# View logs from a specific service
+docker-compose logs -f auth-service
+
+# View logs from host filesystem
+tail -f logs/auth-service/app.log
+```
 
 ## 🐛 Troubleshooting
 

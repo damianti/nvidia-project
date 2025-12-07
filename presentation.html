@@ -1,0 +1,1023 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NVIDIA Cloud Platform - Architecture Presentation</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap');
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
+            color: #ffffff;
+        }
+        
+        .page {
+            width: 297mm;
+            height: 210mm;
+            padding: 30px 60px 40px 60px;
+            page-break-after: always;
+            position: relative;
+            background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .page:last-child {
+            page-break-after: avoid;
+        }
+        
+        /* Header */
+        .header {
+            border-bottom: 3px solid #76b900;
+            padding-bottom: 15px;
+            margin-bottom: 30px;
+        }
+        
+        .header h1 {
+            font-size: 32px;
+            font-weight: 700;
+            color: #76b900;
+            margin-bottom: 5px;
+        }
+        
+        .header p {
+            font-size: 14px;
+            color: #a0a0a0;
+        }
+        
+        /* Footer */
+        .footer {
+            display: none;
+        }
+        
+        /* Title Page */
+        .title-page {
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            background: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 50%, #76b900 100%);
+        }
+        
+        .title-page h1 {
+            font-size: 64px;
+            font-weight: 700;
+            color: #76b900;
+            margin-bottom: 20px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+        }
+        
+        .title-page h2 {
+            font-size: 36px;
+            font-weight: 400;
+            color: #ffffff;
+            margin-bottom: 40px;
+        }
+        
+        .title-page .subtitle {
+            font-size: 20px;
+            color: #a0a0a0;
+            margin-bottom: 10px;
+        }
+        
+        .title-page .date {
+            font-size: 18px;
+            color: #76b900;
+            font-weight: 600;
+        }
+        
+        /* Content Sections */
+        .content {
+            flex: 1;
+        }
+        
+        h2 {
+            font-size: 28px;
+            color: #76b900;
+            margin-bottom: 20px;
+            font-weight: 700;
+        }
+        
+        h3 {
+            font-size: 22px;
+            color: #a0d468;
+            margin-top: 20px;
+            margin-bottom: 15px;
+            font-weight: 600;
+        }
+        
+        p {
+            font-size: 16px;
+            line-height: 1.8;
+            margin-bottom: 15px;
+            color: #e0e0e0;
+        }
+        
+        ul {
+            list-style: none;
+            padding-left: 0;
+        }
+        
+        ul li {
+            font-size: 16px;
+            line-height: 1.8;
+            margin-bottom: 12px;
+            padding-left: 30px;
+            position: relative;
+            color: #e0e0e0;
+        }
+        
+        ul li:before {
+            content: "▸";
+            color: #76b900;
+            font-weight: bold;
+            position: absolute;
+            left: 0;
+            font-size: 20px;
+        }
+        
+        .highlight-box {
+            background: rgba(118, 185, 0, 0.1);
+            border-left: 4px solid #76b900;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 4px;
+        }
+        
+        .highlight-box h3 {
+            margin-top: 0;
+            color: #76b900;
+        }
+        
+        /* Specific styles for Technical Challenges page */
+        .technical-challenges-page .content {
+            padding: 0;
+        }
+        
+        .technical-challenges-page .highlight-box {
+            padding: 10px 12px;
+            margin: 8px 0;
+        }
+        
+        .technical-challenges-page .highlight-box h3 {
+            font-size: 17px;
+            margin-bottom: 6px;
+            margin-top: 0;
+        }
+        
+        .technical-challenges-page .highlight-box p {
+            font-size: 12px;
+            line-height: 1.4;
+            margin-bottom: 6px;
+        }
+        
+        .technical-challenges-page .header {
+            margin-bottom: 12px;
+            padding-bottom: 8px;
+        }
+        
+        .technical-challenges-page .header h1 {
+            font-size: 26px;
+        }
+        
+        .technical-challenges-page .header p {
+            font-size: 12px;
+        }
+        
+        .grid-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-top: 20px;
+        }
+        
+        .grid-3 {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+            margin-top: 20px;
+        }
+        
+        .card {
+            background: rgba(255, 255, 255, 0.05);
+            border: 2px solid rgba(118, 185, 0, 0.3);
+            border-radius: 8px;
+            padding: 20px;
+            transition: all 0.3s;
+        }
+        
+        .card h3 {
+            margin-top: 0;
+            color: #76b900;
+            font-size: 20px;
+        }
+        
+        .card p {
+            font-size: 14px;
+            margin-bottom: 10px;
+        }
+        
+        .card ul li {
+            font-size: 14px;
+            margin-bottom: 8px;
+        }
+        
+        .tech-stack {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 15px;
+        }
+        
+        .tech-badge {
+            background: rgba(118, 185, 0, 0.2);
+            border: 1px solid #76b900;
+            color: #76b900;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 600;
+        }
+        
+        .architecture-diagram {
+            background: rgba(255, 255, 255, 0.05);
+            border: 2px solid #76b900;
+            border-radius: 8px;
+            padding: 10px;
+            margin: 5px 0;
+            text-align: center;
+        }
+        
+        .layer {
+            background: rgba(118, 185, 0, 0.1);
+            border: 2px solid #76b900;
+            border-radius: 6px;
+            padding: 8px;
+            margin: 5px 0;
+            text-align: center;
+        }
+        
+        .layer h4 {
+            color: #76b900;
+            font-size: 15px;
+            margin-bottom: 6px;
+        }
+        
+        .layer-content {
+            display: flex;
+            justify-content: space-around;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 6px;
+        }
+        
+        .component {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(118, 185, 0, 0.5);
+            border-radius: 4px;
+            padding: 6px 10px;
+            font-size: 12px;
+            color: #ffffff;
+        }
+        
+        .arrow {
+            text-align: center;
+            color: #76b900;
+            font-size: 18px;
+            margin: 3px 0;
+        }
+        
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 15px;
+            margin-top: 20px;
+        }
+        
+        .stat-card {
+            background: rgba(118, 185, 0, 0.1);
+            border: 2px solid #76b900;
+            border-radius: 8px;
+            padding: 20px;
+            text-align: center;
+        }
+        
+        .stat-number {
+            font-size: 48px;
+            font-weight: 700;
+            color: #76b900;
+            margin-bottom: 5px;
+        }
+        
+        .stat-label {
+            font-size: 14px;
+            color: #a0a0a0;
+        }
+        
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 20px;
+            margin-top: 20px;
+        }
+        
+        .feature {
+            display: flex;
+            align-items: flex-start;
+            gap: 15px;
+        }
+        
+        .feature-icon {
+            font-size: 32px;
+            color: #76b900;
+        }
+        
+        .feature-content h4 {
+            color: #76b900;
+            font-size: 18px;
+            margin-bottom: 8px;
+        }
+        
+        .feature-content p {
+            font-size: 14px;
+            margin-bottom: 0;
+        }
+        
+        @media print {
+            body {
+                background: white;
+            }
+            
+            .page {
+                margin: 0;
+                border: initial;
+                border-radius: initial;
+                width: initial;
+                min-height: initial;
+                box-shadow: initial;
+                background: initial;
+                page-break-after: always;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Page 1: Title -->
+    <div class="page title-page">
+        <h1>NVIDIA Cloud Platform</h1>
+        <h2>Container Orchestration Platform</h2>
+        <div style="margin-top: 60px;">
+            <p class="subtitle">Distributed Microservices Architecture</p>
+            <p class="subtitle">Scalable • Resilient • Production-Ready</p>
+            <p class="date">December 2025</p>
+        </div>
+    </div>
+
+    <!-- Page 2: Overview -->
+    <div class="page">
+        <div class="header">
+            <h1>Overview</h1>
+            <p>Cloud Platform Overview</p>
+        </div>
+        
+        <div class="content">
+            <p>A production-ready cloud platform that enables users to deploy containerized applications with automatic load balancing, service discovery, and real-time billing.</p>
+            
+            <div class="stats">
+                <div class="stat-card">
+                    <div class="stat-number">8</div>
+                    <div class="stat-label">Microservices</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number">3</div>
+                    <div class="stat-label">Databases</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number">100%</div>
+                    <div class="stat-label">Containerized</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number">∞</div>
+                    <div class="stat-label">Scalable</div>
+                </div>
+            </div>
+            
+            <h3>System Goals</h3>
+            <ul>
+                <li><strong>Scalability:</strong> Handle dynamic workloads with automatic scaling</li>
+                <li><strong>Reliability:</strong> High availability with fault tolerance</li>
+                <li><strong>Performance:</strong> Low latency and high throughput</li>
+                <li><strong>Observability:</strong> Comprehensive monitoring and structured logging</li>
+                <li><strong>Cost Efficiency:</strong> Resource optimization and precise billing</li>
+            </ul>
+        </div>
+        
+        <div class="footer">
+            <span>NVIDIA Cloud Platform</span>
+            <span>Page 2</span>
+        </div>
+    </div>
+
+    <!-- Page 3: Architecture Diagram -->
+    <div class="page" style="padding: 20px 60px 25px 60px;">
+        <div class="header" style="margin-bottom: 10px; padding-bottom: 8px;">
+            <h1 style="font-size: 26px; margin-bottom: 3px;">System Architecture</h1>
+            <p style="font-size: 13px;">Microservices Architecture</p>
+        </div>
+        
+        <div class="content">
+            <div class="architecture-diagram">
+                <div class="layer">
+                    <h4>Client Layer</h4>
+                    <div class="layer-content">
+                        <div class="component">Web UI (Next.js)</div>
+                        <div class="component">API Clients</div>
+                    </div>
+                </div>
+                
+                <div class="arrow">↓</div>
+                
+                <div class="layer">
+                    <h4>API Gateway Layer</h4>
+                    <div class="layer-content">
+                        <div class="component">API Gateway (Port 8080)</div>
+                    </div>
+                </div>
+                
+                <div class="arrow">↓</div>
+                
+                <div class="layer">
+                    <h4>Load Balancing & Routing</h4>
+                    <div class="layer-content">
+                        <div class="component">Load Balancer</div>
+                        <div class="component">Service Discovery</div>
+                        <div class="component">Consul</div>
+                    </div>
+                </div>
+                
+                <div class="arrow">↓</div>
+                
+                <div class="layer">
+                    <h4>Business Services</h4>
+                    <div class="layer-content">
+                        <div class="component">Orchestrator</div>
+                        <div class="component">Auth Service</div>
+                        <div class="component">Billing Service</div>
+                    </div>
+                </div>
+                
+                <div class="arrow">↓</div>
+                
+                <div class="layer">
+                    <h4>Infrastructure Layer</h4>
+                    <div class="layer-content">
+                        <div class="component">Docker-in-Docker</div>
+                        <div class="component">Kafka</div>
+                        <div class="component">PostgreSQL</div>
+                    </div>
+                </div>
+                
+                <div class="arrow">↓</div>
+                
+                <div class="layer">
+                    <h4>Client Containers</h4>
+                    <div class="layer-content">
+                        <div class="component">Container 1</div>
+                        <div class="component">Container 2</div>
+                        <div class="component">Container N</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="footer">
+            <span>NVIDIA Cloud Platform</span>
+            <span>Page 3</span>
+        </div>
+    </div>
+
+    <!-- Page 4: Services -->
+    <div class="page">
+        <div class="header">
+            <h1>Microservices</h1>
+            <p>Service Breakdown</p>
+        </div>
+        
+        <div class="content">
+            <div class="grid-3">
+                <div class="card">
+                    <h3>API Gateway</h3>
+                    <p><strong>Port:</strong> 8080</p>
+                    <ul>
+                        <li>Single entry point</li>
+                        <li>Request routing</li>
+                        <li>Authentication</li>
+                    </ul>
+                </div>
+                
+                <div class="card">
+                    <h3>Orchestrator</h3>
+                    <p><strong>Port:</strong> 3003</p>
+                    <ul>
+                        <li>Container lifecycle</li>
+                        <li>Docker operations</li>
+                        <li>Event publishing</li>
+                    </ul>
+                </div>
+                
+                <div class="card">
+                    <h3>Load Balancer</h3>
+                    <p><strong>Port:</strong> 3004</p>
+                    <ul>
+                        <li>Round-robin routing</li>
+                        <li>Circuit breaker</li>
+                        <li>Health checks</li>
+                    </ul>
+                </div>
+                
+                <div class="card">
+                    <h3>Service Discovery</h3>
+                    <p><strong>Port:</strong> 3006</p>
+                    <ul>
+                        <li>Consul integration</li>
+                        <li>Service registry</li>
+                        <li>Health monitoring</li>
+                    </ul>
+                </div>
+                
+                <div class="card">
+                    <h3>Auth Service</h3>
+                    <p><strong>Port:</strong> 3005</p>
+                    <ul>
+                        <li>JWT authentication</li>
+                        <li>User management</li>
+                        <li>Password hashing</li>
+                    </ul>
+                </div>
+                
+                <div class="card">
+                    <h3>Billing Service</h3>
+                    <p><strong>Port:</strong> 3007</p>
+                    <ul>
+                        <li>Cost calculation</li>
+                        <li>Usage tracking</li>
+                        <li>Real-time billing</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        
+        <div class="footer">
+            <span>NVIDIA Cloud Platform</span>
+            <span>Page 4</span>
+        </div>
+    </div>
+
+    <!-- Page 5: Key Features -->
+    <div class="page">
+        <div class="header">
+            <h1>Key Features</h1>
+            <p>Platform Capabilities</p>
+        </div>
+        
+        <div class="content">
+            <div class="feature-grid">
+                <div class="feature">
+                    <div class="feature-icon">🐳</div>
+                    <div class="feature-content">
+                        <h4>Container Management</h4>
+                        <p>Complete container lifecycle: create, start, stop, delete with Docker-in-Docker integration</p>
+                    </div>
+                </div>
+                
+                <div class="feature">
+                    <div class="feature-icon">⚖️</div>
+                    <div class="feature-content">
+                        <h4>Intelligent Load Balancing</h4>
+                        <p>Round-robin distribution with circuit breaker and fallback cache for maximum resilience</p>
+                    </div>
+                </div>
+                
+                <div class="feature">
+                    <div class="feature-icon">🔍</div>
+                    <div class="feature-content">
+                        <h4>Service Discovery</h4>
+                        <p>Dynamic service registration with Consul, automatic health checks and Watch API</p>
+                    </div>
+                </div>
+                
+                <div class="feature">
+                    <div class="feature-icon">💰</div>
+                    <div class="feature-content">
+                        <h4>Real-time Billing</h4>
+                        <p>Real-time cost tracking ($0.01/min per container) with event-driven architecture</p>
+                    </div>
+                </div>
+                
+                <div class="feature">
+                    <div class="feature-icon">🔐</div>
+                    <div class="feature-content">
+                        <h4>JWT Authentication</h4>
+                        <p>JWT token-based authentication with bcrypt password hashing and user management</p>
+                    </div>
+                </div>
+                
+                <div class="feature">
+                    <div class="feature-icon">📊</div>
+                    <div class="feature-content">
+                        <h4>Observability</h4>
+                        <p>Structured logging with correlation IDs, health checks on all services</p>
+                    </div>
+                </div>
+                
+                <div class="feature">
+                    <div class="feature-icon">🚦</div>
+                    <div class="feature-content">
+                        <h4>Circuit Breaker Pattern</h4>
+                        <p>Protection against cascading failures with automatic retry and fallback cache</p>
+                    </div>
+                </div>
+                
+                <div class="feature">
+                    <div class="feature-icon">📈</div>
+                    <div class="feature-content">
+                        <h4>Event-Driven Architecture</h4>
+                        <p>Kafka for container lifecycle events, consumed by Service Discovery and Billing</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="footer">
+            <span>NVIDIA Cloud Platform</span>
+            <span>Page 5</span>
+        </div>
+    </div>
+
+    <!-- Page 6: Technology Stack -->
+    <div class="page">
+        <div class="header">
+            <h1>Technology Stack</h1>
+            <p>Technologies & Tools</p>
+        </div>
+        
+        <div class="content">
+            <h3>Backend Services</h3>
+            <div class="tech-stack">
+                <div class="tech-badge">Python 3.11+</div>
+                <div class="tech-badge">FastAPI</div>
+                <div class="tech-badge">SQLAlchemy</div>
+                <div class="tech-badge">Pydantic</div>
+                <div class="tech-badge">Asyncio</div>
+            </div>
+            
+            <h3>Frontend</h3>
+            <div class="tech-stack">
+                <div class="tech-badge">Next.js 14</div>
+                <div class="tech-badge">TypeScript</div>
+                <div class="tech-badge">React</div>
+                <div class="tech-badge">Tailwind CSS</div>
+            </div>
+            
+            <h3>Infrastructure</h3>
+            <div class="tech-stack">
+                <div class="tech-badge">Docker</div>
+                <div class="tech-badge">Docker Compose</div>
+                <div class="tech-badge">Docker-in-Docker</div>
+                <div class="tech-badge">Nginx</div>
+            </div>
+            
+            <h3>Databases</h3>
+            <div class="tech-stack">
+                <div class="tech-badge">PostgreSQL 15</div>
+                <div class="tech-badge">Alembic Migrations</div>
+            </div>
+            
+            <h3>Message Broker</h3>
+            <div class="tech-stack">
+                <div class="tech-badge">Apache Kafka</div>
+                <div class="tech-badge">Zookeeper</div>
+                <div class="tech-badge">Kafka UI</div>
+            </div>
+            
+            <h3>Service Discovery</h3>
+            <div class="tech-stack">
+                <div class="tech-badge">Consul</div>
+                <div class="tech-badge">Consul Watch API</div>
+            </div>
+            
+            <h3>Testing & Quality</h3>
+            <div class="tech-stack">
+                <div class="tech-badge">Pytest</div>
+                <div class="tech-badge">Jest</div>
+                <div class="tech-badge">Coverage</div>
+            </div>
+            
+            <h3>Monitoring & Logging</h3>
+            <div class="tech-stack">
+                <div class="tech-badge">Structured Logging</div>
+                <div class="tech-badge">Health Checks</div>
+                <div class="tech-badge">Correlation IDs</div>
+            </div>
+        </div>
+        
+        <div class="footer">
+            <span>NVIDIA Cloud Platform</span>
+            <span>Page 6</span>
+        </div>
+    </div>
+
+    <!-- Page 7: Data Flow -->
+    <div class="page">
+        <div class="header">
+            <h1>Data Flow</h1>
+            <p>Request Flow & Event Processing</p>
+        </div>
+        
+        <div class="content">
+            <h3>HTTP Request Flow (Service Consumption)</h3>
+            <div class="highlight-box">
+                <ol style="list-style: decimal; padding-left: 20px; color: #e0e0e0;">
+                    <li style="margin-bottom: 12px;"><strong>Client</strong> → Sends request to API Gateway (port 8080)</li>
+                    <li style="margin-bottom: 12px;"><strong>API Gateway</strong> → Routes request to Load Balancer (no auth required for consumption)</li>
+                    <li style="margin-bottom: 12px;"><strong>Load Balancer</strong> → Queries Service Discovery for healthy containers</li>
+                    <li style="margin-bottom: 12px;"><strong>Service Discovery</strong> → Returns list of containers from Consul cache</li>
+                    <li style="margin-bottom: 12px;"><strong>Load Balancer</strong> → Selects container using Round Robin and routes request</li>
+                    <li style="margin-bottom: 12px;"><strong>Container</strong> → Processes request and returns response</li>
+                    <li style="margin-bottom: 12px;"><strong>Response</strong> → Flows back through reverse path to client</li>
+                </ol>
+                <p style="margin-top: 15px; font-size: 14px; color: #a0d468;"><strong>Note:</strong> JWT authentication is only required for management operations (create/update/delete containers and images), not for consuming deployed services.</p>
+            </div>
+            
+            <h3>Kafka Event Flow</h3>
+            <div class="highlight-box">
+                <ol style="list-style: decimal; padding-left: 20px; color: #e0e0e0;">
+                    <li style="margin-bottom: 12px;"><strong>User</strong> → Creates Docker image via UI and uploads to Orchestrator</li>
+                    <li style="margin-bottom: 12px;"><strong>Orchestrator</strong> → Builds image, creates/stops/deletes containers</li>
+                    <li style="margin-bottom: 12px;"><strong>Orchestrator</strong> → Publishes event to "container-lifecycle" topic</li>
+                    <li style="margin-bottom: 12px;"><strong>Service Discovery</strong> → Consumes event and registers in Consul</li>
+                    <li style="margin-bottom: 12px;"><strong>Billing Service</strong> → Consumes event and calculates costs</li>
+                    <li style="margin-bottom: 12px;"><strong>Consul</strong> → Executes TCP health checks on containers</li>
+                    <li style="margin-bottom: 12px;"><strong>Service Discovery</strong> → Updates cache with healthy/unhealthy status</li>
+                </ol>
+            </div>
+        </div>
+        
+        <div class="footer">
+            <span>NVIDIA Cloud Platform</span>
+            <span>Page 7</span>
+        </div>
+    </div>
+
+    <!-- Page 8: Resilience -->
+    <div class="page">
+        <div class="header">
+            <h1>Resilience & Fault Tolerance</h1>
+            <p>Fault Tolerance Mechanisms</p>
+        </div>
+        
+        <div class="content">
+            <div class="grid-2">
+                <div>
+                    <h3>Circuit Breaker</h3>
+                    <div class="card">
+                        <p><strong>States:</strong></p>
+                        <ul>
+                            <li><strong>Closed:</strong> Normal operation</li>
+                            <li><strong>Open:</strong> After 3 consecutive failures</li>
+                            <li><strong>Half-Open:</strong> Retry after 15s</li>
+                        </ul>
+                        <p style="margin-top: 15px;"><strong>Benefits:</strong></p>
+                        <ul>
+                            <li>Prevents cascading failures</li>
+                            <li>Fail fast on issues</li>
+                            <li>Automatic self-recovery</li>
+                        </ul>
+                    </div>
+                </div>
+                
+                <div>
+                    <h3>Fallback Cache</h3>
+                    <div class="card">
+                        <p><strong>Features:</strong></p>
+                        <ul>
+                            <li>Cache of last successful response</li>
+                            <li>10 second TTL</li>
+                            <li>Per website_url</li>
+                        </ul>
+                        <p style="margin-top: 15px;"><strong>Benefits:</strong></p>
+                        <ul>
+                            <li>Continuous routing during failures</li>
+                            <li>Graceful degradation</li>
+                            <li>Better user experience</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            
+            <h3>Health Checks</h3>
+            <div class="grid-2">
+                <div class="card">
+                    <h3>Service Health Checks</h3>
+                    <ul>
+                        <li>/health endpoint on each service</li>
+                        <li>Check every 30 seconds</li>
+                        <li>10 second timeout</li>
+                        <li>3 retries before marking unhealthy</li>
+                    </ul>
+                </div>
+                
+                <div class="card">
+                    <h3>Container Health Checks</h3>
+                    <ul>
+                        <li>TCP health checks via Consul</li>
+                        <li>Check every 10 seconds</li>
+                        <li>Auto-deregistration if unhealthy</li>
+                        <li>Routing only to healthy containers</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        
+        <div class="footer">
+            <span>NVIDIA Cloud Platform</span>
+            <span>Page 8</span>
+        </div>
+    </div>
+
+    <!-- Page 9: Security -->
+    <div class="page">
+        <div class="header">
+            <h1>Security</h1>
+            <p>Security Measures</p>
+        </div>
+        
+        <div class="content">
+            <div class="feature-grid">
+                <div class="highlight-box">
+                    <h3>JWT Authentication</h3>
+                    <ul>
+                        <li>JWT tokens with configurable expiration</li>
+                        <li>HS256 algorithm</li>
+                        <li>Secret key in environment variables</li>
+                        <li>Validation at API Gateway</li>
+                    </ul>
+                </div>
+                
+                <div class="highlight-box">
+                    <h3>Password Security</h3>
+                    <ul>
+                        <li>Bcrypt hashing</li>
+                        <li>Automatic salt per user</li>
+                        <li>No password storage in logs</li>
+                        <li>Complexity validation</li>
+                    </ul>
+                </div>
+                
+                <div class="highlight-box">
+                    <h3>Network Security</h3>
+                    <ul>
+                        <li>Private Docker network for internal services</li>
+                        <li>Only API Gateway exposed externally</li>
+                        <li>Properly configured CORS</li>
+                        <li>Input validation on all endpoints</li>
+                    </ul>
+                </div>
+                
+                <div class="highlight-box">
+                    <h3>Environment Variables</h3>
+                    <ul>
+                        <li>Sensitive configuration in .env</li>
+                        <li>Protected database credentials</li>
+                        <li>JWT secrets not hardcoded</li>
+                        <li>.env.example for template</li>
+                    </ul>
+                </div>
+            </div>
+            
+            <h3>Implemented Best Practices</h3>
+            <ul>
+                <li>Separation of concerns in service architecture</li>
+                <li>Least privilege principle for container permissions</li>
+                <li>Structured logging without sensitive information</li>
+                <li>Health checks for early problem detection</li>
+                <li>Configurable timeouts to prevent resource exhaustion</li>
+            </ul>
+        </div>
+        
+        <div class="footer">
+            <span>NVIDIA Cloud Platform</span>
+            <span>Page 9</span>
+        </div>
+    </div>
+
+    <!-- Page 10: Technical Challenges -->
+    <div class="page technical-challenges-page">
+        <div class="header">
+            <h1>Technical Challenges</h1>
+            <p>Key Implementation Challenges</p>
+        </div>
+        
+        <div class="content">
+            <div class="highlight-box">
+                <h3>1. Docker-in-Docker (DinD) - Networking Challenges</h3>
+                <p><strong>Problem:</strong> The Orchestrator needs to create and manage containers dynamically from within a container. Docker doesn't allow running the Docker daemon inside a container natively.</p>
+                <p><strong>Solution:</strong> Used Docker-in-Docker container (`docker:24-dind`) that runs the Docker daemon. Orchestrator connects via <code>DOCKER_HOST=tcp://docker-dind:2375</code>.</p>
+                <p><strong>Challenge:</strong> Containers are created inside docker-dind, which has its own network context. The nvidia-network exists on the Docker Compose host, not inside docker-dind. Solution: Expose ports dynamically and access containers through <code>docker-dind:external_port</code>.</p>
+            </div>
+            
+            <div class="highlight-box">
+                <h3>2. Dynamic Port Mapping</h3>
+                <p><strong>Problem:</strong> Cannot assign fixed ports because they would collide when multiple containers are created.</p>
+                <p><strong>Solution:</strong> Use <code>ports={'80/tcp': None}</code> for dynamic port assignment, then read the assigned port after container creation from <code>container.attrs['NetworkSettings']['Ports']</code>.</p>
+            </div>
+            
+            <div class="highlight-box">
+                <h3>4. Circuit Breaker & Fallback Cache</h3>
+                <p><strong>Problem:</strong> Prevent cascading failures if Service Discovery fails. Need to keep routing even when downstream services are temporarily unavailable.</p>
+                <p><strong>Solution:</strong> Circuit Breaker pattern - opens after 3 consecutive failures, retries after 15s (half-open state), auto-closes on success. Fallback cache maintains last successful response per website_url for 10 seconds, allowing graceful degradation.</p>
+            </div>
+            
+            <div class="highlight-box">
+                <h3>5. Dynamic Load Balancing</h3>
+                <p><strong>Problem:</strong> Route requests to containers that can appear/disappear dynamically. Need real-time service discovery integration.</p>
+                <p><strong>Solution:</strong> Round Robin algorithm over healthy container list obtained from Service Discovery. Async ServiceDiscoveryClient with in-memory cache. Fallback cache ensures routing continues even if Service Discovery is temporarily down.</p>
+            </div>
+            
+            <div class="highlight-box">
+                <h3>6. Real-time Billing</h3>
+                <p><strong>Problem:</strong> Calculate costs in real-time based on container lifecycle events. Need to track usage accurately as containers are created, started, and stopped.</p>
+                <p><strong>Solution:</strong> Event-driven architecture - Billing Service consumes Kafka events from "container-lifecycle" topic. Calculates costs per minute ($0.01/min per container) and updates PostgreSQL records in real-time. Handles container.created, container.started, and container.stopped events.</p>
+            </div>
+        </div>
+        
+        <div class="footer">
+            <span>NVIDIA Cloud Platform</span>
+            <span>Page 10</span>
+        </div>
+    </div>
+
+    <!-- Page 11: Conclusion -->
+    <div class="page">
+        <div class="header">
+            <h1>Conclusion</h1>
+            <p>Platform Summary</p>
+        </div>
+        
+        <div class="content">
+            <h2>Project Achievements</h2>
+            
+            <div class="highlight-box">
+                <h3>✅ Production-Ready Architecture</h3>
+                <p>Complete container orchestration system with all necessary components for production environment: load balancing, service discovery, billing, authentication, and observability.</p>
+            </div>
+            
+            <div class="highlight-box">
+                <h3>✅ Scalable Microservices</h3>
+                <p>8 independent microservices with well-defined responsibilities, event-driven communication, and horizontal scaling capability.</p>
+            </div>
+            
+            <div class="highlight-box">
+                <h3>✅ Resilience & Fault Tolerance</h3>
+                <p>Circuit breaker pattern, fallback cache, automatic health checks, and auto-healing ensure high system availability.</p>
+            </div>
+            
+            <div class="highlight-box">
+                <h3>✅ Complete Observability</h3>
+                <p>Structured logging with correlation IDs, health endpoints, system metrics, and monitoring tools (Kafka UI, Consul UI).</p>
+            </div>
+            
+            <h3>Potential Next Steps</h3>
+            <ul>
+                <li>Implementation of metrics-based auto-scaling</li>
+                <li>Integration with Prometheus and Grafana for dashboards</li>
+                <li>Multi-region deployment with geographic routing</li>
+                <li>Advanced load balancing algorithms (least connections, weighted)</li>
+                <li>Rate limiting and API quotas</li>
+            </ul>
+        </div>
+        
+        <div class="footer">
+            <span>NVIDIA Cloud Platform</span>
+            <span>Page 11</span>
+        </div>
+    </div>
+
+    <!-- Page 12: Thank You -->
+    <div class="page title-page">
+        <h1 style="font-size: 56px; margin-bottom: 30px;">Thank You</h1>
+        <p class="subtitle" style="font-size: 24px; margin-bottom: 20px;">NVIDIA Cloud Platform</p>
+        <p class="subtitle" style="font-size: 18px;">Container Orchestration Platform</p>
+        <div style="margin-top: 80px;">
+            <p style="font-size: 16px; color: #a0a0a0;">Microservices Architecture • Event-Driven • Production-Ready</p>
+        </div>
+    </div>
+</body>
+</html>

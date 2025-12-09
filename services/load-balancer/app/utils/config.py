@@ -11,9 +11,6 @@ ORCHESTRATOR_URL = os.getenv("ORCHESTRATOR_URL", "http://orchestrator:3003")
 SERVICE_DISCOVERY_URL = os.getenv("SERVICE_DISCOVERY_URL", "http://service-discovery:3006")
 TARGET_HOST = os.getenv("TARGET_HOST", "docker-dind")
 
-# Kafka variables
-KAFKA_BOOTSTRAP_SERVERS = os.getenv("KAFKA_BOOTSTRAP_SERVERS", "kafka:9092")
-KAFKA_CONSUMER_GROUP = os.getenv("KAFKA_CONSUMER_GROUP", 'load-balancers')
 # Cache configuration
 CACHE_CLEANUP_INTERVAL = int(os.getenv("CACHE_CLEANUP_INTERVAL", "60"))
 DEFAULT_CACHE_TTL = int(os.getenv("DEFAULT_CACHE_TTL", "1800"))

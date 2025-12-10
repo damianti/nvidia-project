@@ -178,6 +178,7 @@ services:
       - JWT_ALGORITHM=${JWT_ALGORITHM}
       - ACCESS_TOKEN_EXPIRE_MINUTES=${ACCESS_TOKEN_EXPIRE_MINUTES}
       - SERVICE_NAME=${AUTH_SERVICE_NAME}
+      - FRONTEND_URL=${FRONTEND_URL}
     volumes:
       - ./logs/auth-service:/app/logs
     depends_on:
@@ -259,6 +260,7 @@ services:
       - LOAD_BALANCER_URL=${LOAD_BALANCER_URL}
       - PORT=${API_GATEWAY_PORT}
       - TARGET_HOST=docker-dind
+      - FRONTEND_URL=${FRONTEND_URL}
     volumes:
       - ./logs/api-gateway:/app/logs
     ports:
@@ -283,8 +285,6 @@ services:
     environment:
       - PYTHONUNBUFFERED=1
       - LOG_LEVEL=${LOG_LEVEL:-INFO}
-      - KAFKA_BOOTSTRAP_SERVERS=${KAFKA_BROKER_URL}
-      - KAFKA_CONSUMER_GROUP=${LB_GROUP}
       - TARGET_HOST=docker-dind
       - PORT=3004
     volumes:

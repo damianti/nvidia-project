@@ -32,10 +32,18 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    return NextResponse.json(
+    const nextResponse = NextResponse.json(
       { message: 'Registration successful', user: data.user },
       { status: 201 }
     )
+
+    // Copy Set-Cookie header from backend if any (for consistency, though signup might not set cookies)
+    const setCookieHeader = response.headers.get('set-cookie')
+    if (setCookieHeader) {
+      nextResponse.headers.set('Set-Cookie', setCookieHeader)
+    }
+
+    return nextResponse
 
   } catch (error) {
     console.error('Signup API error:', error)

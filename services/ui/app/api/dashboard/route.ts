@@ -1,34 +1,22 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { config } from '@/utils/config'
 
-// Helper function to get auth token from cookies
-function getAuthToken(request: NextRequest): string | null {
-  return request.cookies.get('auth-token')?.value || null
-}
-
 // GET /api/dashboard - Get dashboard statistics
 export async function GET(request: NextRequest) {
   try {
-    const token = getAuthToken(request)
-    
-    if (!token) {
-      return NextResponse.json(
-        { error: 'Authentication required' },
-        { status: 401 }
-      )
-    }
+    const cookieHeader = request.headers.get('cookie') || ''
 
     // Fetch images and containers in parallel
     const [imagesResponse, containersResponse] = await Promise.all([
       fetch(`${config.apiGatewayUrl}/api/images`, {
         headers: {
-          'Authorization': `Bearer ${token}`,
+          'Cookie': cookieHeader,
           'Content-Type': 'application/json',
         },
       }),
       fetch(`${config.apiGatewayUrl}/api/containers`, {
         headers: {
-          'Authorization': `Bearer ${token}`,
+          'Cookie': cookieHeader,
           'Content-Type': 'application/json',
         },
       })
@@ -78,7 +66,20 @@ export async function GET(request: NextRequest) {
       recentActivity
     }
 
-    return NextResponse.json(dashboardData)
+    const responseToClient = NextResponse.json(dashboardData)
+    // Copy Set-Cookie headers from either response if any
+    imagesResponse.headers.forEach((value, key) => {
+      if (key.toLowerCase() === 'set-cookie') {
+        responseToClient.headers.append('Set-Cookie', value)
+      }
+    })
+    containersResponse.headers.forEach((value, key) => {
+      if (key.toLowerCase() === 'set-cookie') {
+        responseToClient.headers.append('Set-Cookie', value)
+      }
+    })
+
+    return responseToClient
 
   } catch (error) {
     console.error('Dashboard API error:', error)

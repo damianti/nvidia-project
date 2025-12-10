@@ -15,6 +15,7 @@ from app.utils.config import (
     AUTH_SERVICE_URL,
     LOAD_BALANCER_URL,
     ORCHESTRATOR_URL,
+    FRONTEND_URL,
     HOST,
     PORT
 )
@@ -98,7 +99,7 @@ app.add_middleware(LoggingMiddleware)
 # Add CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=[FRONTEND_URL],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

@@ -22,14 +22,14 @@ def authenticate_user(email: EmailStr, password: str, db: Session) -> User:
     return user
 
 
-def login(login_data: LoginRequest, db: Session) -> LoginResponse:
+def login(credentials: LoginRequest, db: Session) -> (User, str):
     logger.info(
         "auth.login.attempt",
-        extra={"email": login_data.email, "service_name": SERVICE_NAME}
+        extra={"email": credentials.email, "service_name": SERVICE_NAME}
     )
     
     try:
-        user = authenticate_user(login_data.email, login_data.password, db)
+        user = authenticate_user(credentials.email, credentials.password, db)
         access_token = tokens.create_access_token(data={"sub": user.username})    
     
         logger.info(
@@ -37,17 +37,13 @@ def login(login_data: LoginRequest, db: Session) -> LoginResponse:
         extra={"user_id": user.id, "username": user.username, "service_name": SERVICE_NAME}
         )
         
-        return LoginResponse(
-            access_token= access_token,
-            token_type= "bearer",
-            user= user
-        )
+        return (user, access_token)
 
     except (UserNotFoundError, InvalidPasswordError) as e:
         logger.warning(
             "auth.login.failed",
             extra={
-                "email": login_data.email,
+                "email": credentials.email,
                 "error_type": type(e).__name__,
                 "service_name": SERVICE_NAME
             }
@@ -61,7 +57,7 @@ def login(login_data: LoginRequest, db: Session) -> LoginResponse:
         logger.error(
             "auth.login.error",
             extra={
-                "email": login_data.email,
+                "email": credentials.email,
                 "error": str(e),
                 "service_name": SERVICE_NAME
             }

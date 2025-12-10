@@ -1,34 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { config } from '@/utils/config'
 
-// Helper function to get auth token from cookies
-function getAuthToken(request: NextRequest): string | null {
-  return request.cookies.get('auth-token')?.value || null
-}
-
 // POST /api/images/[id]/containers - Create containers for a specific image
 export async function POST(
   request: NextRequest,
   { params }: { params: Promise <{ id: string } >}
 ) {
   try {
-    const token = getAuthToken(request)
-    const {id} = await params
-    if (!token) {
-      return NextResponse.json(
-        { error: 'Authentication required' },
-        { status: 401 }
-      )
-    }
-
+    const { id } = await params
+    const cookieHeader = request.headers.get('cookie') || ''
     const body = await request.json()
-    const imageId = id
 
     // Forward request to api gateway
-    const response = await fetch(`${config.apiGatewayUrl}/api/containers/${imageId}/create`, {
+    const response = await fetch(`${config.apiGatewayUrl}/api/containers/${id}/create`, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${token}`,
+        'Cookie': cookieHeader,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify(body),
@@ -43,7 +30,14 @@ export async function POST(
       )
     }
 
-    return NextResponse.json(data, { status: 201 })
+    const responseToClient = NextResponse.json(data, { status: 201 })
+    response.headers.forEach((value, key) => {
+      if (key.toLowerCase() === 'set-cookie') {
+        responseToClient.headers.append('Set-Cookie', value)
+      }
+    })
+
+    return responseToClient
 
   } catch (error) {
     console.error('Create containers API error:', error)

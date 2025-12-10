@@ -33,22 +33,15 @@ export async function POST(request: NextRequest) {
         { status: response.status }
       )
     }
-
-    // Set JWT token in cookies
-    const responseWithCookie = NextResponse.json(
-      { message: 'Login successful', user: data.user },
+    const nextResponse = NextResponse.json(
+      { user: data.user },
       { status: 200 }
     )
-
-    responseWithCookie.cookies.set('auth-token', data.access_token, {
-      httpOnly: true,
-      secure: false, // Allow HTTP for development
-      sameSite: 'lax',
-      path: '/',
-      maxAge: 60 * 60 * 24 * 7, // 7 days
-    })
-
-    return responseWithCookie
+    const setCookieHeader = response.headers.get('set-cookie');
+    if (setCookieHeader){
+      nextResponse.headers.set('Set-Cookie', setCookieHeader)
+    }
+    return nextResponse;
 
   } catch (error) {
     console.error('Login API error:', error)

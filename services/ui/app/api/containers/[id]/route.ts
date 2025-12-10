@@ -1,30 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { config } from '@/utils/config'
 
-// Helper function to get auth token from cookies
-function getAuthToken(request: NextRequest): string | null {
-  return request.cookies.get('auth-token')?.value || null
-}
-
 // GET /api/containers/[id] - Get specific container
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise <{ id: string }> }
 ) {
   try {
-    const { id } = await params;
-    const token = getAuthToken(request)
-    
-    if (!token) {
-      return NextResponse.json(
-        { error: 'Authentication required' },
-        { status: 401 }
-      )
-    }
+    const { id } = await params
+    const cookieHeader = request.headers.get('cookie') || ''
 
     const response = await fetch(`${config.apiGatewayUrl}/api/containers/${id}`, {
       headers: {
-        'Authorization': `Bearer ${token}`,
+        'Cookie': cookieHeader,
         'Content-Type': 'application/json',
       },
     })
@@ -38,7 +26,14 @@ export async function GET(
       )
     }
 
-    return NextResponse.json(data)
+    const responseToClient = NextResponse.json(data)
+    response.headers.forEach((value, key) => {
+      if (key.toLowerCase() === 'set-cookie') {
+        responseToClient.headers.append('Set-Cookie', value)
+      }
+    })
+
+    return responseToClient
 
   } catch (error) {
     console.error('Get container API error:', error)
@@ -55,21 +50,14 @@ export async function PUT(
   { params }: { params: Promise <{ id: string } >}
 ) {
   try {
-    const token = getAuthToken(request)
-    const { id } = await params;
-    if (!token) {
-      return NextResponse.json(
-        { error: 'Authentication required' },
-        { status: 401 }
-      )
-    }
-
+    const { id } = await params
+    const cookieHeader = request.headers.get('cookie') || ''
     const body = await request.json()
 
     const response = await fetch(`${config.apiGatewayUrl}/api/containers/${id}`, {
       method: 'PUT',
       headers: {
-        'Authorization': `Bearer ${token}`,
+        'Cookie': cookieHeader,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify(body),
@@ -84,7 +72,14 @@ export async function PUT(
       )
     }
 
-    return NextResponse.json(data)
+    const responseToClient = NextResponse.json(data)
+    response.headers.forEach((value, key) => {
+      if (key.toLowerCase() === 'set-cookie') {
+        responseToClient.headers.append('Set-Cookie', value)
+      }
+    })
+
+    return responseToClient
 
   } catch (error) {
     console.error('Update container API error:', error)
@@ -101,19 +96,13 @@ export async function DELETE(
   { params }: { params: Promise <{ id: string }> }
 ) {
   try {
-    const token = getAuthToken(request)
-    const { id } = await params;
-    if (!token) {
-      return NextResponse.json(
-        { error: 'Authentication required' },
-        { status: 401 }
-      )
-    }
+    const { id } = await params
+    const cookieHeader = request.headers.get('cookie') || ''
 
     const response = await fetch(`${config.apiGatewayUrl}/api/containers/${id}`, {
       method: 'DELETE',
       headers: {
-        'Authorization': `Bearer ${token}`,
+        'Cookie': cookieHeader,
         'Content-Type': 'application/json',
       },
     })
@@ -126,10 +115,17 @@ export async function DELETE(
       )
     }
 
-    return NextResponse.json(
+    const responseToClient = NextResponse.json(
       { message: 'Container deleted successfully' },
       { status: 200 }
     )
+    response.headers.forEach((value, key) => {
+      if (key.toLowerCase() === 'set-cookie') {
+        responseToClient.headers.append('Set-Cookie', value)
+      }
+    })
+
+    return responseToClient
 
   } catch (error) {
     console.error('Delete container API error:', error)

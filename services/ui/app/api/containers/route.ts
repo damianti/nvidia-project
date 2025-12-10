@@ -1,27 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { config } from '@/utils/config'
 
-
-// Helper function to get auth token from cookies
-function getAuthToken(request: NextRequest): string | null {
-  return request.cookies.get('auth-token')?.value || null
-}
-
 // GET /api/containers - Get all containers
 export async function GET(request: NextRequest) {
   try {
-    const token = getAuthToken(request)
-    
-    if (!token) {
-      return NextResponse.json(
-        { error: 'Authentication required' },
-        { status: 401 }
-      )
-    }
+    const cookieHeader = request.headers.get('cookie') || ''
 
     const response = await fetch(`${config.apiGatewayUrl}/api/containers`, {
       headers: {
-        'Authorization': `Bearer ${token}`,
+        'Cookie': cookieHeader,
         'Content-Type': 'application/json',
       },
     })
@@ -35,7 +22,14 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    return NextResponse.json(data)
+    const responseToClient = NextResponse.json(data)
+    response.headers.forEach((value, key) => {
+      if (key.toLowerCase() === 'set-cookie') {
+        responseToClient.headers.append('Set-Cookie', value)
+      }
+    })
+
+    return responseToClient
 
   } catch (error) {
     console.error('Get containers API error:', error)
@@ -49,21 +43,13 @@ export async function GET(request: NextRequest) {
 // POST /api/containers - Create new container
 export async function POST(request: NextRequest) {
   try {
-    const token = getAuthToken(request)
-    
-    if (!token) {
-      return NextResponse.json(
-        { error: 'Authentication required' },
-        { status: 401 }
-      )
-    }
-
+    const cookieHeader = request.headers.get('cookie') || ''
     const body = await request.json()
 
     const response = await fetch(`${config.apiGatewayUrl}/api/containers`, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${token}`,
+        'Cookie': cookieHeader,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify(body),
@@ -78,7 +64,14 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    return NextResponse.json(data, { status: 201 })
+    const responseToClient = NextResponse.json(data, { status: 201 })
+    response.headers.forEach((value, key) => {
+      if (key.toLowerCase() === 'set-cookie') {
+        responseToClient.headers.append('Set-Cookie', value)
+      }
+    })
+
+    return responseToClient
 
   } catch (error) {
     console.error('Create container API error:', error)

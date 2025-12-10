@@ -97,14 +97,21 @@ class AuthClient:
             raise
         
     
-    async def get_current_user(self, authorization_header: str) -> httpx.Response:
+    async def get_current_user(self, authorization_header: str, cookies: Optional[dict] = None) -> httpx.Response:
         try:
             headers = {"Authorization": authorization_header}
             headers.update(self._build_headers())
+            
+            # Build cookies string if provided
+            cookies_dict = {}
+            if cookies:
+                cookies_dict = cookies
+            
             response = await self.http_client.request(
                 method="GET",
                 url=f"{self.base_url}/auth/me",
                 headers=headers,
+                cookies=cookies_dict,
                 timeout=self.timeout_s
             )
             logger.info(
@@ -140,14 +147,20 @@ class AuthClient:
     async def verify_token(self):
         pass
     
-    async def logout(self, token: str) -> httpx.Response:
+    async def logout(self, token: str, cookies: Optional[dict] = None) -> httpx.Response:
         try:
             headers = {"Authorization": f"Bearer {token}"}
             headers.update(self._build_headers())
+            
+            cookies_dict = {}
+            if cookies:
+                cookies_dict = cookies
+            
             response = await self.http_client.request(
                 method="POST",
                 url=f"{self.base_url}/auth/logout",
                 headers=headers,
+                cookies=cookies_dict,
                 timeout=self.timeout_s
             )
             logger.info(

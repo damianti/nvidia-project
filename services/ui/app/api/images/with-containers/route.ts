@@ -1,26 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { config } from '@/utils/config'
 
-// Helper function to get auth token from cookies
-function getAuthToken(request: NextRequest): string | null {
-  return request.cookies.get('auth-token')?.value || null
-}
-
 // GET /api/images/with-containers - Get all images with their containers
 export async function GET(request: NextRequest) {
   try {
-    const token = getAuthToken(request)
-    
-    if (!token) {
-      return NextResponse.json(
-        { error: 'Authentication required' },
-        { status: 401 }
-      )
-    }
+    const cookieHeader = request.headers.get('cookie') || ''
 
     const response = await fetch(`${config.apiGatewayUrl}/api/images/with-containers`, {
       headers: {
-        'Authorization': `Bearer ${token}`,
+        'Cookie': cookieHeader,
         'Content-Type': 'application/json',
       },
     })
@@ -34,7 +22,14 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    return NextResponse.json(data)
+    const responseToClient = NextResponse.json(data)
+    response.headers.forEach((value, key) => {
+      if (key.toLowerCase() === 'set-cookie') {
+        responseToClient.headers.append('Set-Cookie', value)
+      }
+    })
+
+    return responseToClient
 
   } catch (error) {
     console.error('Get images with containers API error:', error)

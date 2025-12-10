@@ -1,31 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { config } from '@/utils/config'
 
-
-// Helper function to get auth token from cookies
-function getAuthToken(request: NextRequest): string | null {
-  return request.cookies.get('auth-token')?.value || null
-}
-
 // POST /api/containers/[id]/start - Start container
 export async function POST(
   request: NextRequest,
   { params }: { params: Promise <{ id: string } >}
 ) {
   try {
-    const token = getAuthToken(request)
-    const {id} = await params;
-    if (!token) {
-      return NextResponse.json(
-        { error: 'Authentication required' },
-        { status: 401 }
-      )
-    }
+    const { id } = await params
+    const cookieHeader = request.headers.get('cookie') || ''
 
     const response = await fetch(`${config.apiGatewayUrl}/api/containers/${id}/start`, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${token}`,
+        'Cookie': cookieHeader,
         'Content-Type': 'application/json',
       },
     })
@@ -39,7 +27,14 @@ export async function POST(
       )
     }
 
-    return NextResponse.json(data)
+    const responseToClient = NextResponse.json(data)
+    response.headers.forEach((value, key) => {
+      if (key.toLowerCase() === 'set-cookie') {
+        responseToClient.headers.append('Set-Cookie', value)
+      }
+    })
+
+    return responseToClient
 
   } catch (error) {
     console.error('Start container API error:', error)

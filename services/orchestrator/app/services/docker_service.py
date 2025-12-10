@@ -4,6 +4,7 @@ from fastapi import HTTPException
 import logging
 from docker.errors import DockerException
 from docker.models.containers import Container
+from typing import Optional
 
 logger = logging.getLogger("orchestrator")
 
@@ -84,6 +85,80 @@ def cleanup_files(folder: str)-> None:
     if os.path.exists(folder):
         os.rmdir(folder)
 
+def get_external_port(container: Container) -> Optional[int]:
+    """
+    Extract the external port (HostPort) from a container's port bindings.
+    
+    Args:
+        container: Docker Container object (should have reload() called before this)
+    
+    Returns:
+        External port number if found, None otherwise
+    """
+    try:
+        network_settings = container.attrs.get('NetworkSettings', {})
+        port_bindings = network_settings.get('Ports', {})
+        
+        # Look for port 80/tcp binding
+        port_80_binding = port_bindings.get('80/tcp')
+        if port_80_binding and len(port_80_binding) > 0:
+            host_port = port_80_binding[0].get('HostPort')
+            if host_port:
+                return int(host_port)
+        
+        return None
+    except (KeyError, ValueError, IndexError, AttributeError) as e:
+        logger.warning(
+            "docker.port_extraction.error",
+            extra={
+                "container_id": container.id,
+                "container_name": container.name,
+                "error": str(e),
+                "error_type": type(e).__name__
+            }
+        )
+        return None
+
+
+def get_container_ip_from_container(container: Container) -> Optional[str]:
+    """
+    Extract the internal IP address from a container's network settings.
+    
+    Args:
+        container: Docker Container object (should have reload() called before this)
+    
+    Returns:
+        IP address string if found, None otherwise
+    """
+    try:
+        network_settings = container.attrs.get('NetworkSettings', {})
+        
+        # Try to get IP from the first network
+        networks = network_settings.get('Networks', {})
+        if networks:
+            for network_name, network_info in networks.items():
+                ip_address = network_info.get('IPAddress')
+                if ip_address:
+                    return ip_address
+        
+        # Fallback to IPAddress field (default bridge network)
+        ip_address = network_settings.get('IPAddress')
+        if ip_address:
+            return ip_address
+        
+        return None
+    except (KeyError, AttributeError) as e:
+        logger.warning(
+            "docker.ip_extraction.error",
+            extra={
+                "container_id": container.id,
+                "container_name": container.name,
+                "error": str(e),
+                "error_type": type(e).__name__
+            }
+        )
+        return None
+
 def run_container(image_name: str, image_tag: str , container_name: str, env_vars: dict ) -> tuple[Container, int, str]:
     """
     Creates and runs a container, connecting it directly to the nvidia-network.
@@ -115,21 +190,17 @@ def run_container(image_name: str, image_tag: str , container_name: str, env_var
             detach=True,
             environment=env_vars or {}
         )
-        
         container.reload()
         
-        
-        network_settings = container.attrs['NetworkSettings']
-        port_bindings = network_settings['Ports']
-        external_port = int(port_bindings['80/tcp'][0]['HostPort']) if port_bindings.get('80/tcp') else None
-        
+        # Extract external port and IP using helper functions
+        external_port = get_external_port(container)
         if external_port is None:
             try:
                 logger.error(
                     "docker.port_extraction.failed",
                     extra={
                         "container_name": container_name,
-                        "port_bindings": str(port_bindings)
+                        "container_id": container.id
                     }
                 )
                 container.stop()
@@ -141,22 +212,14 @@ def run_container(image_name: str, image_tag: str , container_name: str, env_var
                 detail=f"Failed to assign external port to container '{container_name}'."
             )
         
-        container_ip = None
-        if network_settings.get('Networks'):
-            for network_name, network_info in network_settings['Networks'].items():
-                container_ip = network_info.get('IPAddress')
-                if container_ip:
-                    break
-        if not container_ip:
-            container_ip = network_settings.get('IPAddress')
-        
+        container_ip = get_container_ip_from_container(container)
         if not container_ip:
             try:
                 logger.error(
                     "docker.ip_extraction.failed",
                     extra={
                         "container_name": container_name,
-                        "network_settings": str(network_settings)
+                        "container_id": container.id
                     }
                 )
                 container.stop()
@@ -175,13 +238,52 @@ def run_container(image_name: str, image_tag: str , container_name: str, env_var
             status_code=500,
             detail=f"Docker container run failed: {str(e)}") 
 
-def start_container(container_docker_id: str) -> Container:
-    """"Start an existing container """
+def start_container(container_docker_id: str) -> tuple[Container, int, str]:
+    """
+    Start an existing container and return updated port and IP information.
+    
+    Args:
+        container_docker_id: Docker container ID
+    
+    Returns:
+        Tuple of (container, external_port, container_ip)
+    """
     try:
         client = docker.from_env()
         container = client.containers.get(container_docker_id)
         container.start()
-        return container
+        container.reload()
+        
+        # Extract external port and IP using helper functions
+        external_port = get_external_port(container)
+        if external_port is None:
+            logger.warning(
+                "docker.start.port_extraction.failed",
+                extra={
+                    "container_id": container_docker_id,
+                    "container_name": container.name
+                }
+            )
+            raise HTTPException(
+                status_code=500,
+                detail=f"Failed to get external port for container '{container_docker_id}' after start."
+            )
+        
+        container_ip = get_container_ip_from_container(container)
+        if not container_ip:
+            logger.warning(
+                "docker.start.ip_extraction.failed",
+                extra={
+                    "container_id": container_docker_id,
+                    "container_name": container.name
+                }
+            )
+            raise HTTPException(
+                status_code=500,
+                detail=f"Failed to get IP address for container '{container_docker_id}' after start."
+            )
+        
+        return container, external_port, container_ip
     except DockerException as e:
         raise HTTPException(status_code=500, detail=f"Failed to start: {str(e)}")
     

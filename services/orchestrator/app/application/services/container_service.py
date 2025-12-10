@@ -171,8 +171,11 @@ def start_container(db: Session, user_id: int, container_id: int):
         )
     
     try:
-        docker_service.start_container(db_container.container_id)
+        docker_container, external_port, container_ip = docker_service.start_container(db_container.container_id)
         db_container.status = ContainerStatus.RUNNING
+        # Update port and IP in case they changed after restart
+        db_container.external_port = external_port
+        db_container.container_ip = container_ip
     except Exception as e:
         logger.error(
             "container.start_docker_failed",

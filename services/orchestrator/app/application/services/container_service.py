@@ -100,7 +100,7 @@ def create_containers(db: Session, image_id: int, user_id: int, container_data: 
                         "container_ip": db_container.container_ip,
                         "image_id": db_container.image_id,
                         "internal_port": db_container.internal_port,
-                        "port": db_container.external_port,
+                        "external_port": db_container.external_port,
                         "website_url": website_url,
                         "timestamp": datetime.now(timezone.utc).isoformat()
                     }
@@ -206,7 +206,7 @@ def start_container(db: Session, user_id: int, container_id: int):
                 "container_name": db_container.name,
                 "image_id": db_container.image_id,
                 "internal_port": db_container.internal_port,
-                "port": db_container.external_port,
+                "external_port": db_container.external_port,
                 "website_url": website_url,
                 "timestamp": datetime.now(timezone.utc)
             }
@@ -288,7 +288,7 @@ def stop_container(db: Session, user_id: int, container_id: int):
                 "container_ip": db_container.container_ip,
                 "image_id": db_container.image_id,
                 "internal_port": db_container.internal_port,
-                "port": db_container.external_port,
+                "external_port": db_container.external_port,
                 "website_url": website_url,
                 "timestamp": datetime.now(timezone.utc)
             }
@@ -344,7 +344,7 @@ def delete_container(db: Session, user_id: int, container_id: int) -> Dict[str, 
         "container_ip": db_container.container_ip,
         "image_id": db_container.image_id,
         "internal_port": db_container.internal_port,
-        "port": db_container.external_port,
+        "external_port": db_container.external_port,
         "website_url": website_url,
         "timestamp": datetime.now(timezone.utc)
     }
@@ -364,7 +364,7 @@ def delete_container(db: Session, user_id: int, container_id: int) -> Dict[str, 
                 "container_ip": container_data["container_ip"],
                 "image_id": container_data["image_id"],
                 "internal_port": container_data["internal_port"],
-                "port": container_data["port"],
+                "external_port": container_data["external_port"],
                 "website_url": container_data["website_url"],
                 "timestamp": container_data["timestamp"]
             }

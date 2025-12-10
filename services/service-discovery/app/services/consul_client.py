@@ -38,10 +38,10 @@ async def register_service(container_info: ContainerEventData) -> bool:
             "Tags": [
                 f"image-{container_info.image_id}",
                 f"container-{container_info.container_name}",
-                f"external-port-{container_info.port}"  # Add external_port to tags for reference
+                f"external-port-{container_info.external_port}"  # Add external_port to tags for reference
             ],
             "Check": {
-                "TCP": f"docker-dind:{container_info.port}",  # Use docker-dind hostname + external_port
+                "TCP": f"docker-dind:{container_info.external_port}",  # Use docker-dind hostname + external_port
                 "Interval": "10s",
                 "Timeout": "2s",
                 "DeregisterCriticalServiceAfter": "60s"
@@ -66,8 +66,8 @@ async def register_service(container_info: ContainerEventData) -> bool:
                         "container_name": container_info.container_name,
                         "container_ip": container_info.container_ip,
                         "internal_port": container_info.internal_port,
-                        "external_port": container_info.port,
-                        "health_check": f"docker-dind:{container_info.port}"
+                        "external_port": container_info.external_port,
+                        "health_check": f"docker-dind:{container_info.external_port}"
                     }
                 )
                 return True

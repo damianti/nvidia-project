@@ -35,7 +35,7 @@ class TestProcessContainerStarted:
             container_ip="172.17.0.2",
             image_id=1,
             internal_port=80,
-            port=8080,
+            external_port=8080,
             timestamp=datetime.now(timezone.utc)
         )
         
@@ -63,7 +63,7 @@ class TestProcessContainerStarted:
             container_ip="172.17.0.2",
             image_id=1,
             internal_port=80,
-            port=8080,
+            external_port=8080,
             timestamp=datetime.now(timezone.utc)
         )
         
@@ -85,7 +85,7 @@ class TestProcessContainerStarted:
             container_ip="172.17.0.2",
             image_id=1,
             internal_port=80,
-            port=8080,
+            external_port=8080,
             timestamp=datetime.now(timezone.utc)
         )
         
@@ -119,7 +119,7 @@ class TestProcessContainerStopped:
             container_ip="172.17.0.2",
             image_id=1,
             internal_port=80,
-            port=8080,
+            external_port=8080,
             timestamp=datetime.now(timezone.utc)
         )
         
@@ -145,7 +145,7 @@ class TestProcessContainerStopped:
             container_ip="172.17.0.2",
             image_id=1,
             internal_port=80,
-            port=8080,
+            external_port=8080,
             timestamp=datetime.now(timezone.utc)
         )
         

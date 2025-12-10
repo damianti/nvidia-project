@@ -45,21 +45,36 @@ def create_containers(db: Session, image_id: int, user_id: int, container_data: 
                 detail=f"Image with id {image_id} not found or access denied"
             )
         
-        # Validate container count
-        if container_data.count <= 0:
+        
+        # Check max_instances limit (count ALL containers, not just RUNNING)
+        existing_containers = containers_repository.get_containers_by_image_id(db, image_id)
+        existing_count = len(existing_containers)
+        max_allowed = image.max_instances - existing_count
+        
+        if max_allowed <= 0:
             raise HTTPException(
                 status_code=400,
-                detail="Container count must be greater than 0"
+                detail=f"Cannot create containers: image already has {existing_count} containers (max: {image.max_instances})"
             )
-        if container_data.count > 10:  # Reasonable limit
-            raise HTTPException(
-                status_code=400,
-                detail="Cannot create more than 10 containers at once"
+        
+        # Adjust count if requested count exceeds max_allowed
+        actual_count = min(container_data.count, max_allowed)
+        if actual_count < container_data.count:
+            logger.warning(
+                "container.count_adjusted",
+                extra={
+                    "image_id": image_id,
+                    "user_id": user_id,
+                    "requested_count": container_data.count,
+                    "actual_count": actual_count,
+                    "existing_count": existing_count,
+                    "max_instances": image.max_instances
+                }
             )
         
         website_url = image.website_url
         created_containers = []
-        for _ in range(container_data.count):
+        for _ in range(actual_count):
 
             docker_container, external_port, container_ip = docker_service.run_container(
                 image_name = "nginx",

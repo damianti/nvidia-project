@@ -57,6 +57,21 @@ function ContainersPageContent() {
       fetchImages();
     }
   }, [user, fetchImages]);
+
+  // Reset containerCount when image selection changes to ensure it's within valid range
+  useEffect(() => {
+    const imageId = imageFilter ? Number(imageFilter) : selectedImageId;
+    if (imageId) {
+      const selectedImage = images.find(img => img.id === imageId);
+      if (selectedImage) {
+        const existingCount = selectedImage.containers?.length || 0;
+        const maxAllowed = Math.max(1, selectedImage.max_instances - existingCount);
+        if (containerCount > maxAllowed) {
+          setContainerCount(maxAllowed);
+        }
+      }
+    }
+  }, [selectedImageId, imageFilter, images, containerCount]);
   const handleStart = async (containerId: number) => {
     try {
       setActionLoading(prev => ({ ...prev, [containerId]: 'starting' }));
@@ -141,11 +156,37 @@ function ContainersPageContent() {
         setLoading(false);
         return;
       }
-      if (containerCount < 1 || containerCount > 10) {
-        setError('Container count must be between 1 and 10');
+      
+      // Find selected image to check max_instances
+      const selectedImage = images.find(img => img.id === imageId);
+      if (!selectedImage) {
+        setError('Selected image not found');
         setLoading(false);
         return;
       }
+      
+      // Calculate max allowed based on existing containers
+      const existingCount = selectedImage.containers?.length || 0;
+      const maxAllowed = selectedImage.max_instances - existingCount;
+      
+      if (maxAllowed <= 0) {
+        setError(`Cannot create containers: image already has ${existingCount} containers (max: ${selectedImage.max_instances})`);
+        setLoading(false);
+        return;
+      }
+      
+      if (containerCount < 1) {
+        setError('Container count must be at least 1');
+        setLoading(false);
+        return;
+      }
+      
+      if (containerCount > maxAllowed) {
+        setError(`Cannot create more than ${maxAllowed} container(s). Image limit: ${selectedImage.max_instances}, existing: ${existingCount}`);
+        setLoading(false);
+        return;
+      }
+      
       await containerService.createContainer(imageId, undefined, containerCount);
       setSuccess(`Successfully created ${containerCount} container(s)`);
       setShowCreateModal(false);
@@ -616,11 +657,37 @@ function ContainersPageContent() {
           <div className="mb-6">
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Number of Containers
+              {(() => {
+                const imageId = imageFilter ? Number(imageFilter) : selectedImageId;
+                const selectedImage = imageId ? images.find(img => img.id === imageId) : null;
+                if (selectedImage) {
+                  const existingCount = selectedImage.containers?.length || 0;
+                  const maxAllowed = selectedImage.max_instances - existingCount;
+                  return maxAllowed > 0 ? (
+                    <span className="text-sm text-gray-500 ml-2">
+                      (Max: {maxAllowed}, Existing: {existingCount}/{selectedImage.max_instances})
+                    </span>
+                  ) : (
+                    <span className="text-sm text-red-500 ml-2">
+                      (Limit reached: {existingCount}/{selectedImage.max_instances})
+                    </span>
+                  );
+                }
+                return null;
+              })()}
             </label>
             <input
             type="number"
             min="1"
-            max="10"
+            max={(() => {
+              const imageId = imageFilter ? Number(imageFilter) : selectedImageId;
+              const selectedImage = imageId ? images.find(img => img.id === imageId) : null;
+              if (selectedImage) {
+                const existingCount = selectedImage.containers?.length || 0;
+                return Math.max(1, selectedImage.max_instances - existingCount);
+              }
+              return 10;
+            })()}
             value={containerCount}
             onChange={(e)=> setContainerCount(Number(e.target.value))}
             className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"

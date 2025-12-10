@@ -1,4 +1,5 @@
-from pydantic import  BaseModel
+from pydantic import  BaseModel, Field
+from typing import Annotated
 from datetime import datetime
 from typing import Optional
 
@@ -15,7 +16,7 @@ class ContainerBase(BaseModel):
 class ContainerCreate(BaseModel):
     name: str
     image_id: int
-    count: int = 1
+    count: Annotated[int, Field(gt=0, lt=10)] = 1
     
 
 class ContainerResponse(ContainerBase):

@@ -3,6 +3,7 @@ from fastapi import HTTPException
 from typing import List, Dict
 from datetime import datetime, timezone
 import logging
+import uuid
 
 
 from app.database.models import Container, ContainerStatus
@@ -74,12 +75,15 @@ def create_containers(db: Session, image_id: int, user_id: int, container_data: 
         
         website_url = image.website_url
         created_containers = []
-        for _ in range(actual_count):
+        for i in range(actual_count):
+            # Generate unique container name to avoid conflicts
+            unique_suffix = uuid.uuid4().hex[:8]  # 8-character hex string
+            unique_container_name = f"{container_data.name}-{unique_suffix}"
 
             docker_container, external_port, container_ip = docker_service.run_container(
                 image_name = "nginx",
                 image_tag = "latest",
-                container_name =container_data.name,
+                container_name = unique_container_name,
                 env_vars = {} )
             
             db_container = Container(

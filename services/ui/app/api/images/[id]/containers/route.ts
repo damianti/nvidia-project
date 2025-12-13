@@ -12,7 +12,7 @@ export async function POST(
     const body = await request.json()
 
     // Forward request to api gateway
-    const response = await fetch(`${config.apiGatewayUrl}/api/containers/${id}/create`, {
+    const response = await fetch(`${config.apiGatewayUrl}/api/containers/${id}`, {
       method: 'POST',
       headers: {
         'Cookie': cookieHeader,

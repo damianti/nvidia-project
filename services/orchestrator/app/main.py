@@ -47,12 +47,29 @@ async def lifespan(app: FastAPI):
     logger.info("orchestrator.shutdown")
     KafkaProducerSingleton.instance().flush(5)
   
+# Tags metadata for Swagger organization
+tags_metadata = [
+    {
+        "name": "health",
+        "description": "Health check and diagnostic endpoints",
+    },
+    {
+        "name": "images",
+        "description": "Docker image management operations",
+    },
+    {
+        "name": "containers",
+        "description": "Container lifecycle management operations",
+    },
+]
+
 # Create FastAPI app with lifespan
 app = FastAPI(
     title="NVIDIA Orchestrator",
     description="Container and Image Orchestration Service",
     version="1.0.0",
-    lifespan=lifespan
+    lifespan=lifespan,
+    tags_metadata=tags_metadata
 )
 
 app.add_middleware(LoggingMiddleware)

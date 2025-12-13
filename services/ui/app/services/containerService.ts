@@ -72,7 +72,7 @@ class ContainerService {
 
     async createContainer(imageId: number, containerName?: string, count: number = 1): Promise<Container[]> {
         try {
-            const response = await fetch (`/api/images/${imageId}/containers`, {
+            const response = await fetch (`/api/containers/${imageId}`, {
                 method: 'POST',
                 headers: this.getHeaders(),
                 credentials: 'include',

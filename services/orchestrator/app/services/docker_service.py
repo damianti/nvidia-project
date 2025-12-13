@@ -2,10 +2,15 @@ import docker
 import os
 from fastapi import HTTPException
 import logging
-from docker.errors import DockerException
+from docker.errors import DockerException, APIError
 from docker.models.containers import Container
-from typing import Optional
+from typing import Optional, TypeVar, Callable
+import time
 
+RETRYABLE_HTTP_STATUS_CODES = {
+    409,  # Conflict: port/name already in use
+    500,  # Internal Server Error: Docker daemon error
+}
 logger = logging.getLogger("orchestrator")
 
 def generate_html(folder: str, website_url: str) -> None:
@@ -53,10 +58,12 @@ def build_image(image_name: str, image_tag: str, website_url: str, user_id: int)
                 status_code=500,
                 detail=f"Cannot connect to docker DinD. Error: {str(e)}"
             )
-        client.images.build(
-            path=folder,
-            tag=f"{image_name}:{image_tag}")
-    
+        _retry_docker_operation(
+            lambda:
+                client.images.build(
+                    path=folder,
+                    tag=f"{image_name}:{image_tag}")
+        )
         cleanup_files(folder)
 
     except DockerException as e:
@@ -77,13 +84,85 @@ def build_image(image_name: str, image_tag: str, website_url: str, user_id: int)
             detail=f"unexpected error: {str(e)}")
             
 
-def cleanup_files(folder: str)-> None:
+def cleanup_files(folder: str) -> None:
     if os.path.exists(f"{folder}/index.html"):
         os.remove(f"{folder}/index.html")
     if os.path.exists(f"{folder}/Dockerfile"):
         os.remove(f"{folder}/Dockerfile")
     if os.path.exists(folder):
         os.rmdir(folder)
+    
+def _is_retryable_error(error) -> bool:
+    if not isinstance(error, APIError):
+        return False
+    try:
+        status_code = error.response.status_code
+        return status_code in RETRYABLE_HTTP_STATUS_CODES
+    
+    except (AttributeError, KeyError):
+        return True
+
+T = TypeVar('T')
+def _retry_docker_operation(
+    operation: Callable[[], T],
+    max_retries: int = 3,
+    initial_delay: float = 1.0
+    ) -> T:
+    attempt = 1
+    delay = initial_delay
+    while attempt <= max_retries:
+        try:
+            result = operation()
+            if attempt > 1:
+                logger.info(
+                    "docker.operation.retry_succeeded",
+                    extra={
+                        "attempt": attempt,
+                        "max_retries": max_retries
+                    }
+                )
+            return result
+        except Exception as e :
+            if _is_retryable_error(e):
+                logger.warning(
+                    "docker.operation.retry_attempt",
+                    extra={
+                        "attempt": attempt,
+                        "max_retries": max_retries,
+                        "error": str(e),
+                        "error_type": type(e).__name__,
+                        "retry_delay_seconds": delay
+                    }
+                )
+                if attempt >= max_retries:
+                    logger.error(
+                        "docker.operation.retry_exhausted",
+                        extra={
+                            "attempt": attempt,
+                            "max_retries": max_retries,
+                            "error": str(e),
+                            "error_type": type(e).__name__
+                        }
+                    )
+                    raise e
+                time.sleep(delay)
+                delay*=2
+                attempt+=1
+            else:
+                logger.error(
+                    "docker.operation.non_retryable_error",
+                    extra={
+                        "attempt": attempt,
+                        "error": str(e),
+                        "error_type": type(e).__name__
+                    }
+                )
+                raise e
+
+
+    
+
+
 
 def get_external_port(container: Container) -> Optional[int]:
     """
@@ -175,20 +254,17 @@ def run_container(image_name: str, image_tag: str , container_name: str, env_var
                 status_code=500,
                 detail=f"Cannot connect to docker DinD. Error: {str(e)}"
             )
-        # NOTE: The containers are created inside docker-dind, which has its own network context.
-        # The nvidia-network exists on the Docker Compose host, not inside docker-dind.
-        # Therefore, we cannot connect the containers directly to nvidia-network from here.
-        # Solution: Create the container WITHOUT specifying a network, and then expose port 80.
-        # The container will be accessible from docker-dind using the exposed port.
         
-        # Create container with dynamically exposed port (not fixed)
-        # This allows the container to be accessible from other containers in docker-dind
-        container = client.containers.run(
-            image=f"{image_name}:{image_tag}",
-            name=container_name,
-            ports={'80/tcp': None},  # Expose port 80 dynamically
-            detach=True,
-            environment=env_vars or {}
+        
+        container = _retry_docker_operation(
+            lambda:
+                client.containers.run(
+                    image=f"{image_name}:{image_tag}",
+                    name=container_name,
+                    ports={'80/tcp': None},  # Expose port 80 dynamically
+                    detach=True,
+                    environment=env_vars or {}
+                )
         )
         container.reload()
         
@@ -203,8 +279,14 @@ def run_container(image_name: str, image_tag: str , container_name: str, env_var
                         "container_id": container.id
                     }
                 )
-                container.stop()
-                container.remove()
+                try:
+                    _retry_docker_operation(lambda: container.stop())
+                except Exception:
+                    pass  # Ignore stop failures in cleanup
+                try:
+                    _retry_docker_operation(lambda: container.remove())
+                except Exception:
+                    pass  # Ignore remove failures in cleanup
             except:
                 pass
             raise HTTPException(
@@ -222,8 +304,14 @@ def run_container(image_name: str, image_tag: str , container_name: str, env_var
                         "container_id": container.id
                     }
                 )
-                container.stop()
-                container.remove()
+                try:
+                    _retry_docker_operation(lambda: container.stop())
+                except Exception:
+                    pass  # Ignore stop failures in cleanup
+                try:
+                    _retry_docker_operation(lambda: container.remove())
+                except Exception:
+                    pass  # Ignore remove failures in cleanup
             except:
                 pass
             raise HTTPException(
@@ -251,7 +339,9 @@ def start_container(container_docker_id: str) -> tuple[Container, int, str]:
     try:
         client = docker.from_env()
         container = client.containers.get(container_docker_id)
-        container.start()
+        _retry_docker_operation(
+            lambda: container.start()
+        )
         container.reload()
         
         # Extract external port and IP using helper functions
@@ -292,7 +382,9 @@ def stop_container(container_docker_id: str)-> Container:
     try:
         client = docker.from_env()
         container = client.containers.get(container_docker_id)
-        container.stop()
+        _retry_docker_operation(
+            lambda: container.stop()
+        )
         return container
     except DockerException as e:
         raise HTTPException(status_code=500, detail=f"Failed to stop: {str(e)}")
@@ -307,7 +399,9 @@ def delete_container(container_docker_id: str) -> bool:
             container.stop()
         except:
             pass
-        container.remove()
+        _retry_docker_operation(
+            lambda: container.remove()
+        )
         return True
 
     except DockerException as e:

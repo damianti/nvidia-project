@@ -1,0 +1,5 @@
+# NOTE: The containers are created inside docker-dind, which has its own network context.
+        # The nvidia-network exists on the Docker Compose host, not inside docker-dind.
+        # Therefore, we cannot connect the containers directly to nvidia-network from here.
+        # Solution: Create the container WITHOUT specifying a network, and then expose port 80.
+        # The container will be accessible from docker-dind using the exposed port.

@@ -17,6 +17,17 @@ from app.setup import create_default_user_if_needed
 
 logger = setup_logger(SERVICE_NAME)
 
+# Tags metadata for Swagger organization
+tags_metadata = [
+    {
+        "name": "health",
+        "description": "Health check and diagnostic endpoints",
+    },
+    {
+        "name": "auth",
+        "description": "User authentication and authorization operations",
+    },
+]
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -58,7 +69,8 @@ app = FastAPI(
     title="NVIDIA auth-service",
     description="authentication service for cloud services",
     version="1.0.0",
-    lifespan=lifespan
+    lifespan=lifespan,
+    tags_metadata=tags_metadata
 )
 
 app.add_middleware(LoggingMiddleware)
@@ -71,7 +83,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.include_router(auth.router, prefix="/auth")
+app.include_router(auth.router, prefix="/auth", tags=["auth"])
 
 
 @app.get("/")

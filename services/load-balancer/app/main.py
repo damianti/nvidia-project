@@ -16,6 +16,17 @@ from app.utils.config import (
 )
 logger = setup_logger(SERVICE_NAME)
 
+# Tags metadata for Swagger organization
+tags_metadata = [
+    {
+        "name": "health",
+        "description": "Health check and diagnostic endpoints",
+    },
+    {
+        "name": "load_balancer",
+        "description": "Load balancing and request routing operations",
+    },
+]
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -55,7 +66,8 @@ app = FastAPI(
     title="NVIDIA Load Balancer",
     description="Load Balancer for cloud services",
     version="1.0.0",
-    lifespan=lifespan
+    lifespan=lifespan,
+    tags_metadata=tags_metadata
 )
 
 app.add_middleware(LoggingMiddleware)

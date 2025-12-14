@@ -16,6 +16,17 @@ from app.services.website_mapping import WebsiteMapping
 
 logger = setup_logger(SERVICE_NAME)
 
+# Tags metadata for Swagger organization
+tags_metadata = [
+    {
+        "name": "health",
+        "description": "Health check and diagnostic endpoints",
+    },
+    {
+        "name": "services",
+        "description": "Service discovery and health monitoring operations",
+    },
+]
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -72,7 +83,8 @@ app = FastAPI(
     title="NVIDIA service-discovery",
     description="Service discovery for user services",
     version="1.0.0",
-    lifespan=lifespan
+    lifespan=lifespan,
+    tags_metadata=tags_metadata
 )
 
 app.add_middleware(LoggingMiddleware)

@@ -35,20 +35,20 @@ async def login(
         
     
 
-@router.post("/signup", response_model=UserResponse)
+@router.post("/signup", response_model=UserResponse, summary="Register a new user")
 async def signup(user_data: UserCreate, db: Session = Depends(get_db)):
-    """Register a new user"""
+    """Create a new user account with email and password"""
     return auth_service.signup(user_data, db)
     
 
-@router.post("/logout")
+@router.post("/logout", summary="Logout user and invalidate session")
 async def logout(response: Response):
-    """Logout user and discard token"""
+    """Logout user by removing JWT token cookie"""
     response.delete_cookie("access_token", path="/")
     return {"message": "Successfully logged out"}
 
 
-@router.get("/me", response_model=UserResponse)
+@router.get("/me", response_model=UserResponse, summary="Get current authenticated user information")
 async def get_current_user_info(current_user: User = Depends(security.get_current_user)):
-    """Get current user information"""
+    """Retrieve information about the currently authenticated user"""
     return current_user

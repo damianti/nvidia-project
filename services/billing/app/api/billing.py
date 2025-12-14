@@ -14,7 +14,7 @@ logger = logging.getLogger(SERVICE_NAME)
 router = APIRouter(tags=["billing"])
 
 
-@router.get("/images", response_model=List[BillingSummaryResponse])
+@router.get("/images", response_model=List[BillingSummaryResponse], summary="Get billing summaries for all user images")
 async def get_user_billings(
     db: Session = Depends(get_db),
     user_id: int = Depends(get_user_id)
@@ -47,7 +47,7 @@ async def get_user_billings(
         raise HTTPException(status_code=500, detail="Failed to retrieve billing summaries")
 
 
-@router.get("/images/{image_id}", response_model=BillingDetailResponse)
+@router.get("/images/{image_id}", response_model=BillingDetailResponse, summary="Get detailed billing information for a specific image")
 async def get_image_billing(
     image_id: int,
     db: Session = Depends(get_db),

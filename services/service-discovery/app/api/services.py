@@ -9,7 +9,7 @@ from app.schemas.service_info import ServiceInfo
 logger = logging.getLogger(SERVICE_NAME)
 router = APIRouter(prefix="/services", tags=["services"])
 
-@router.get("/healthy", response_model=dict)
+@router.get("/healthy", response_model=dict, summary="Get healthy services from Consul cache")
 async def get_healthy_services(
     request: Request,
     website_url: str = Query(None, description="Filter by website URL")
@@ -36,10 +36,10 @@ async def get_healthy_services(
         }
     }
 
-@router.get("/cache/status")
+@router.get("/cache/status", summary="Get service cache status and statistics")
 async def get_cache_status(request: Request):
     """
-    Get cache status (for debugging)
+    Get cache status and statistics for debugging and monitoring purposes
     """
     service_cache : ServiceCache = request.app.state.service_cache
     return service_cache.get_cache_status()

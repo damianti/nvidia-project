@@ -25,6 +25,22 @@ from app.clients.auth_client import AuthClient
 
 logger = setup_logger("api-gateway")
 
+# Tags metadata for Swagger organization
+tags_metadata = [
+    {
+        "name": "health",
+        "description": "Health check and diagnostic endpoints",
+    },
+    {
+        "name": "auth",
+        "description": "User authentication and authorization operations (proxied to auth-service)",
+    },
+    {
+        "name": "proxy",
+        "description": "Request routing and API proxying operations",
+    },
+]
+
 # TODO put this function in corresponding file
 async def clear_cache(cached_memory: Cache):
     """Background task that periodically cleans expired entries from the cache"""
@@ -92,7 +108,8 @@ app = FastAPI(
     title="NVIDIA API gateway",
     description="API gateway for cloud services",
     version="1.0.0",
-    lifespan=lifespan
+    lifespan=lifespan,
+    tags_metadata=tags_metadata
 )
 
 app.add_middleware(LoggingMiddleware)

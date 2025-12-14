@@ -12,14 +12,14 @@ from app.services.orchestrator_service import handle_orchestrator_proxy
 from app.utils.dependencies import verify_token_and_get_user_id
 router = APIRouter(tags=["proxy"])
 
-@router.api_route("/route", methods=["GET", "POST", "DELETE", "PUT", "PATCH"])
+@router.api_route("/route", methods=["GET", "POST", "DELETE", "PUT", "PATCH"], summary="Route request to container via Load Balancer")
 async def post_route(
     request: Request,
     cached_memory: Cache = Depends(get_cached_memory),
     lb_client = Depends(get_lb_client),
     http_client = Depends(get_http_client)
 ):
-    """Route request to container based on Host header"""
+    """Route HTTP request to appropriate container based on Host header using Load Balancer"""
     try:
         return await handle_route_request(
             request=request,
@@ -31,14 +31,14 @@ async def post_route(
         return Response(content=e.message, status_code=e.status_code)
 
 
-@router.api_route("/api/{path:path}", methods=["GET", "POST", "DELETE", "PUT", "PATCH"])
+@router.api_route("/api/{path:path}", methods=["GET", "POST", "DELETE", "PUT", "PATCH"], summary="Proxy API requests to Orchestrator service")
 async def proxy_api(
     path: str,
     request: Request,
     user_id: int = Depends(verify_token_and_get_user_id),
     orchestrator_client = Depends(get_orchestrator_client)
 ):
-    """Proxy API requests to Orchestrator"""
+    """Proxy authenticated API requests to Orchestrator service for container and image management"""
     return await handle_orchestrator_proxy(
         request=request,
         path=path,

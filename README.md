@@ -6,30 +6,28 @@ _Last updated: **December 2024**_
 
 ## 🚀 Overview
 
-This platform provides a Kubernetes-alternative solution for deploying and managing containerized web applications. Users can upload Docker images, spawn multiple container instances, and have traffic automatically routed through an intelligent load balancing system. The platform includes real-time billing, service discovery, health monitoring, and a modern web dashboard.
+A cloud platform for deploying and managing containerized web applications. Users can upload Docker images, spawn multiple container instances, and have traffic automatically routed through an intelligent load balancing system.
 
-**Key Capabilities:**
-- 🐳 Container lifecycle management (create, start, stop, delete)
-- ⚖️ Intelligent load balancing with round-robin distribution
-- 🔍 Service discovery with Consul integration
+**Key Features:**
+- 🐳 Container lifecycle management
+- ⚖️ Load balancing with round-robin distribution
+- 🔍 Service discovery with Consul
 - 💰 Real-time billing and cost tracking
-- 🔐 JWT-based authentication and authorization
-- 📊 Health monitoring and auto-healing
+- 🔐 JWT-based authentication
 - 🚦 Circuit breaker pattern for resilience
-- 📈 Synthetic workload generation for testing
 
-## 🧩 Services & Status
+## 🧩 Services
 
-| Service | Description | Status |
-| --- | --- | --- |
-| `ui` | Next.js dashboard for images, containers, and auth flows | ✅ |
-| `api-gateway` | Public entrypoint, forwards requests to the Load Balancer | ✅ |
-| `auth-service` | FastAPI service with automatic default user seeding | ✅ |
-| `orchestrator` | Builds images, creates/stops containers, emits Kafka events | ✅ |
-| `service-discovery` | Consul watcher + cache, exposes `/services/healthy` | ✅ |
-| `load-balancer` | FastAPI service that routes by `website_url` using Service Discovery | ✅ |
-| `billing-service` | Cost calculation & reporting | ✅ |
-| `client-workload` | Synthetic traffic generator | ✅ |
+| Service | Description |
+| --- | --- |
+| `ui` | Next.js dashboard for images, containers, and auth flows |
+| `api-gateway` | Public entrypoint, forwards requests to the Load Balancer |
+| `auth-service` | FastAPI service with automatic default user seeding |
+| `orchestrator` | Builds images, creates/stops containers, emits Kafka events |
+| `service-discovery` | Consul watcher + cache, exposes `/services/healthy` |
+| `load-balancer` | FastAPI service that routes by `website_url` using Service Discovery |
+| `billing-service` | Cost calculation & reporting |
+| `client-workload` | Synthetic traffic generator |
 
 Supporting infrastructure: PostgreSQL, Kafka, Zookeeper, Consul, Docker-in-Docker.
 
@@ -106,77 +104,35 @@ graph TB
 
 ### Architecture Highlights
 
-- **Service Discovery as source of truth**: Consul Watch API feeds an in-memory cache (`ServiceCache`) that indexes healthy containers by `image_id` and `website_url`.
-- **Load Balancer integration**: Uses an async `ServiceDiscoveryClient`, Round Robin selector, and Circuit Breaker with fallback cache to keep routing even if Service Discovery is temporarily down.
-- **Event-driven orchestration**: Orchestrator publishes container lifecycle events to Kafka; Service Discovery and Billing consume them for real-time updates.
-- **Authentication**: `auth-service` seeds a default user (`example@gmail.com` / `example123`) on startup if the database is empty.
+- **Service Discovery**: Consul Watch API maintains an in-memory cache of healthy containers indexed by `image_id` and `website_url`
+- **Load Balancer**: Uses Round Robin selection with Circuit Breaker and fallback cache for resilience
+- **Event-driven**: Orchestrator publishes container lifecycle events to Kafka; Service Discovery and Billing consume them
+- **Authentication**: Default user auto-created on startup (`example@gmail.com` / `example123`)
 
 ## ✨ Key Features
 
-- URL-based routing with normalization (protocol stripping, lowercase, trailing slash removal).
-- Auto-healing registration: Service Discovery registers containers with Consul, including host TCP health checks through `docker-dind`.
-- Load Balancer resilience:
-  - Circuit Breaker opens after 3 consecutive Service Discovery failures.
-  - Half-open retry after 15s, auto-close on success.
-  - Fallback cache keeps the last successful response per `website_url` for 10s.
-- Structured logging with correlation IDs across services.
+- URL-based routing with normalization
+- Auto-healing: Service Discovery registers containers with Consul health checks
+- Circuit Breaker: Opens after 3 failures, retries after 15s, with 10s fallback cache
+- Structured logging with correlation IDs
 
-## 🧪 Manual Validation Recipes
 
-1. **Standard routing**
-   ```bash
-   docker exec nvidia-load-balancer curl -s -X POST http://localhost:3004/route \
-     -H "Content-Type: application/json" \
-     -d '{"website_url":"https://youtube.com"}'
-   ```
-
-2. **Circuit Breaker & fallback cache**
-   ```bash
-   # Warm the cache
-   docker exec nvidia-load-balancer curl -s -X POST http://localhost:3004/route \
-     -H "Content-Type: application/json" -d '{"website_url":"https://youtube.com"}'
-
-   # Stop Service Discovery and send multiple requests
-   docker-compose stop service-discovery
-   for i in {1..4}; do
-     docker exec nvidia-load-balancer curl -s -X POST http://localhost:3004/route \
-       -H "Content-Type: application/json" -d '{"website_url":"https://youtube.com"}'
-   done
-
-   # Restart Service Discovery to observe HALF_OPEN → CLOSED transition
-   docker-compose start service-discovery
-   ```
-
-3. **Service Discovery cache inspection**
-   ```bash
-   docker exec nvidia-service-discovery curl -s http://localhost:3006/services/cache/status | jq
-   docker exec nvidia-service-discovery curl -s \
-     "http://localhost:3006/services/healthy?website_url=https://youtube.com" | jq
-   ```
-
-## 🛠️ Development
+## 🛠️ Quick Start
 
 ### Prerequisites
-- Docker 24+
-- Docker Compose V2
-- Python 3.11 (for local service runs)
+- Docker 24+ and Docker Compose V2
 
-### Quick start
+### Installation
 ```bash
 git clone <repo>
 cd nvidia-project
-
 cp .env.example .env
 docker compose up -d --build
-
-docker compose ps            # verify services
-docker compose logs -f load-balancer
 ```
 
-### Default credentials
-- UI/Auth default user is auto-created if the `users` table is empty:
-  - Email: `example@gmail.com`
-  - Password: `example123`
+### Default Credentials
+- Email: `example@gmail.com`
+- Password: `example123`
 
 ### Service Endpoints
 | Service | URL | Description |
@@ -230,83 +186,18 @@ nvidia-project/
 └── docker-compose.yml         # Service orchestration
 ```
 
-## 🚀 Quick Start Guide
-
-### Prerequisites
-- Docker 24+ and Docker Compose V2
-- Git
-- 8GB+ RAM recommended
-
-### Installation
-
-1. **Clone the repository**
-   ```bash
-   git clone <repository-url>
-   cd nvidia-project
-   ```
-
-2. **Set up environment variables**
-   ```bash
-   cp .env.example .env
-   # Edit .env with your configuration (optional for development)
-   ```
-
-3. **Start all services**
-   ```bash
-   docker-compose up -d --build
-   ```
-
-4. **Verify services are running**
-   ```bash
-   docker-compose ps
-   # Or use the health check script
-   ./scripts/check-services.sh
-   ```
-
-5. **Access the UI**
-   - Open http://localhost:3000 in your browser
-   - Login with default credentials:
-     - Email: `example@gmail.com`
-     - Password: `example123`
-
-### Running the Demo
-
-Use the provided demo script to see the complete flow:
-
-```bash
-./scripts/demo.sh
-```
-
-This script will:
-- Start all services
-- Wait for services to be healthy
-- Display service URLs and credentials
-- Provide step-by-step demo instructions
+### Access the UI
+Open http://localhost:3000 and login with the default credentials above.
 
 ## 🧪 Testing
 
-### Manual Testing
-
-The project includes several manual validation recipes (see "Manual Validation Recipes" section above) for testing:
-- Standard routing functionality
-- Circuit Breaker and fallback cache behavior
-- Service Discovery cache inspection
-
-### Running Tests
-
 ```bash
 # Run tests for a specific service
-cd services/load-balancer
-pytest
+cd services/load-balancer && pytest
 
 # Run all tests
 find services -name "test_*.py" -exec pytest {} \;
 ```
-
-### Testing Roadmap
-- ✅ Unit tests for `CircuitBreaker`, `FallbackCache`, and service selection
-- ✅ Integration tests for Service Discovery cache updates + Load Balancer routing
-- 🔄 End-to-end tests for complete flows (auth → image → container → route)
 
 ## 📖 Documentation
 
@@ -315,85 +206,49 @@ find services -name "test_*.py" -exec pytest {} \;
 - [Deployment Guide](docs/deployment-guide.md) - Production deployment instructions
 - [Interview Preparation](INTERVIEW_PREPARATION.md) - Checklist for project presentation
 
-## 🤝 Contribution Guidelines
+## 🤝 Contribution
 
-- **Code Style**: Python services follow `ruff` + `black` formatting
-- **Architecture**: Prefer async FastAPI patterns (lifespan managers for background tasks)
-- **Language**: All documentation and comments must be in **English**
-- **Commits**: Use short commit messages (<72 chars) and favor single-purpose commits
-- **Testing**: Add tests for new features and ensure existing tests pass
+- Code style: `ruff` + `black` for Python
+- Architecture: Async FastAPI patterns with lifespan managers
+- Commits: Short messages (<72 chars), single-purpose commits
 
-## 🎯 Key Features Explained
+## 🎯 Key Features
 
 ### Load Balancing
-- **Round Robin**: Distributes requests evenly across healthy containers
-- **Circuit Breaker**: Prevents cascading failures when downstream services are unavailable
-- **Fallback Cache**: Maintains last known good routing information for 10 seconds
+- Round Robin distribution across healthy containers
+- Circuit Breaker with fallback cache for resilience
 
 ### Service Discovery
-- **Consul Integration**: Real-time service registration and health monitoring
-- **Watch API**: Long-polling for instant updates on container state changes
-- **Health Checks**: TCP health checks every 10 seconds via Docker-in-Docker
+- Consul integration with real-time health monitoring
+- Watch API for instant container state updates
 
 ### Billing System
-- **Real-time Calculation**: Estimates costs for active containers on-demand
-- **Event-driven**: Processes container lifecycle events from Kafka
-- **Per-container Granularity**: Tracks usage at individual container level
-- **Fixed Rate**: $0.01 per minute per container
+- Real-time cost calculation ($0.01 per minute per container)
+- Event-driven processing from Kafka
 
-### Event-Driven Architecture
-- **Kafka Topics**: `container-lifecycle` for all container events
-- **Event Types**: `container.created`, `container.started`, `container.stopped`, `container.deleted`
-- **Consumers**: Service Discovery and Billing services consume events asynchronously
+## 🔒 Security
 
-## 🔒 Security Considerations
+- JWT authentication with HttpOnly cookies
+- Password hashing with bcrypt
+- Input validation on all endpoints
+- CORS configuration
 
-- JWT tokens for authentication with configurable expiration
-- Password hashing using bcrypt
-- Input validation on all API endpoints
-- CORS configuration for cross-origin requests
-- Environment variables for sensitive configuration
+## 📊 Monitoring
 
-## 📊 Monitoring & Observability
-
-- Structured logging with correlation IDs across services
-- Health check endpoints on all services (`/health`)
-- Kafka UI for event monitoring (http://localhost:8081)
-- Consul UI for service discovery visualization (http://localhost:8500)
-- Metrics endpoints for service statistics
-- Persistent log storage in `./logs/<service>/app.log`
+- Structured logging with correlation IDs
+- Health check endpoints (`/health`) on all services
+- Kafka UI: http://localhost:8081
+- Consul UI: http://localhost:8500
+- Logs stored in `./logs/<service>/app.log`
 
 ### Viewing Logs
 
-Use the log viewer script for easy log access:
-
 ```bash
-# View logs from a specific service
+# Use the log viewer script
 ./scripts/view-logs.sh auth-service
 
-# Follow logs in real-time
-./scripts/view-logs.sh -f orchestrator
-
-# Show only errors from all services
-./scripts/view-logs.sh -e --all
-
-# Search for a pattern in logs
-./scripts/view-logs.sh -s 'error' api-gateway
-
-# List available services
-./scripts/view-logs.sh --list
-```
-
-Or use docker-compose directly:
-```bash
-# View logs from all services
-docker-compose logs -f
-
-# View logs from a specific service
-docker-compose logs -f auth-service
-
-# View logs from host filesystem
-tail -f logs/auth-service/app.log
+# Or use docker-compose
+docker-compose logs -f <service-name>
 ```
 
 ## 🐛 Troubleshooting

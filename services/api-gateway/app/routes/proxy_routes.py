@@ -21,14 +21,49 @@ async def post_route(
 ):
     """Route HTTP request to appropriate container based on Host header using Load Balancer"""
     try:
+        # Modo legacy: usamos el Host normalizado como app_hostname
+        # y no hay remaining_path específico (usamos "/").
+        host = request.headers.get("Host", "").split("/")[0]
+        app_hostname = host.split(":")[0] if host else ""
+        if not app_hostname:
+            return Response(content="Missing Host header", status_code=400)
         return await handle_route_request(
             request=request,
+            app_hostname=app_hostname,
+            remaining_path="/",
             http_client=http_client,
             cached_memory=cached_memory,
             lb_client=lb_client
         )
     except RouteValidationError as e:
         return Response(content=e.message, status_code=e.status_code)
+
+@router.api_route("/apps/{app_hostname}/{remaining_path:path}", methods=["GET", "POST", "DELETE", "PUT", "PATCH"], summary="Proxy HTTP requests to user apps via Load Balancer")
+async def apps_route(
+    request: Request,
+    app_hostname: str,
+    remaining_path: str,
+    cached_memory: Cache = Depends(get_cached_memory),
+    lb_client = Depends(get_lb_client),
+    http_client = Depends(get_http_client)
+):  
+    try:
+        # Validamos app_hostname por si viene vacío o solo espacios
+        app_hostname = app_hostname.strip()
+        if not app_hostname:
+            return Response(content="Invalid app hostname", status_code=400)
+
+        return await handle_route_request(
+            request=request,
+            app_hostname=app_hostname,
+            remaining_path=remaining_path,
+            http_client=http_client,
+            cached_memory=cached_memory,
+            lb_client=lb_client
+        )
+    except RouteValidationError as e:
+        return Response(content=e.message, status_code=e.status_code)
+
 
 
 @router.api_route("/api/{path:path}", methods=["GET", "POST", "DELETE", "PUT", "PATCH"], summary="Proxy API requests to Orchestrator service")

@@ -24,7 +24,7 @@ class LoadBalancerClient:
         corr_id = correlation_id_var.get()
         return {"X-Correlation-ID": corr_id} if corr_id else {}
 
-    def _handle_success(self, response: httpx.Response, website_url: str) -> RouteResult:
+    def _handle_success(self, response: httpx.Response, app_hostname: str) -> RouteResult:
         """Handler for status 200: parse JSON and create RoutingInfo"""
         try:
             data = response.json()
@@ -38,7 +38,7 @@ class LoadBalancerClient:
             logger.info(
                 "lb.route.success",
                 extra={
-                    "website_url": website_url,
+                    "app_hostname": app_hostname,
                     "image_id": routing_info.image_id,
                     "container_id": routing_info.container_id,
                     "target_host": routing_info.target_host,
@@ -50,7 +50,7 @@ class LoadBalancerClient:
             logger.error(
                 "lb.route.parse_error",
                 extra={
-                    "website_url": website_url,
+                    "app_hostname": app_hostname,
                     "error": str(e),
                     "error_type": type(e).__name__,
                     "response_body": response.text[:500]
@@ -63,11 +63,11 @@ class LoadBalancerClient:
                 message=f"Failed to parse response: {str(e)}"
             )
 
-    def _handle_not_found(self, response: httpx.Response, website_url: str) -> RouteResult:
+    def _handle_not_found(self, response: httpx.Response, app_hostname: str) -> RouteResult:
         """Handler for status 404: website not found"""
         logger.warning(
             "lb.route.not_found",
-            extra={"website_url": website_url, "status_code": 404}
+            extra={"app_hostname": app_hostname, "status_code": 404}
         )
         return RouteResult(
             ok=False,
@@ -76,11 +76,11 @@ class LoadBalancerClient:
             message="Website not found"
         )
 
-    def _handle_no_capacity(self, response: httpx.Response, website_url: str) -> RouteResult:
+    def _handle_no_capacity(self, response: httpx.Response, app_hostname: str) -> RouteResult:
         """Handler for status 503: no containers available"""
         logger.warning(
             "lb.route.no_capacity",
-            extra={"website_url": website_url, "status_code": 503}
+            extra={"app_hostname": app_hostname, "status_code": 503}
         )
         return RouteResult(
             ok=False,
@@ -89,12 +89,12 @@ class LoadBalancerClient:
             message="No containers available"
         )
 
-    def _handle_unknown_status(self, response: httpx.Response, website_url: str) -> RouteResult:
+    def _handle_unknown_status(self, response: httpx.Response, app_hostname: str) -> RouteResult:
         """Handler for unexpected status codes"""
         logger.error(
             "lb.route.unexpected_status",
             extra={
-                "website_url": website_url,
+                "app_hostname": app_hostname,
                 "status_code": response.status_code,
                 "response_body": response.text[:500]
             }
@@ -106,25 +106,29 @@ class LoadBalancerClient:
             message=f"Unexpected status code: {response.status_code}"
         )
 
-    async def route(self, website_url: str) -> RouteResult:
-        """Route request to Load Balancer and return RouteResult"""
+    async def route(self, app_hostname: str) -> RouteResult:
+        """Route request to Load Balancer and return RouteResult.
+
+        For ahora, usamos el contrato existente del LB:
+        POST {base_url} con body JSON {"website_url": app_hostname}
+        """
         headers = self._build_headers()
         try:
             response = await self.http_client.post(
-                url=f"{self.base_url}/route",
-                json={"website_url": website_url},
+                url=self.base_url,
+                json={"website_url": app_hostname},
                 headers=headers,
-                timeout=self.timeout_s
+                timeout=self.timeout_s,
             )
             
             # Use dispatch map to get handler for status code
             handler = self._status_handlers.get(response.status_code, self._handle_unknown_status)
-            return handler(response, website_url)
+            return handler(response, app_hostname)
 
         except httpx.TimeoutException:
             logger.error(
                 "lb.route.timeout",
-                extra={"website_url": website_url, "timeout_s": self.timeout_s}
+                extra={"app_hostname": app_hostname, "timeout_s": self.timeout_s}
             )
             return RouteResult(
                 ok=False,
@@ -135,7 +139,7 @@ class LoadBalancerClient:
             logger.error(
                 "lb.route.error",
                 extra={
-                    "website_url": website_url,
+                    "app_hostname": app_hostname,
                     "error": str(e),
                     "error_type": type(e).__name__
                 },

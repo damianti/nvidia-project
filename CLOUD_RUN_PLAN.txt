@@ -1,0 +1,69 @@
+Cloud Run style migration plan
+==============================
+
+Goal
+----
+Shift from the current website_url/nginx redirect model to a Cloud Run–like model where users upload their code/Dockerfile, we build a real image, deploy containers, and expose each app via its own hostname/path.
+
+Branch strategy
+---------------
+- Keep `main` for the new Cloud Run work.
+- `legacy-website-model` branch preserves the current redirect model.
+
+Phases and tasks
+----------------
+Phase 0 – Prep (0.5d)
+- Decide hostname scheme for local: subdomain (`<app>.localhost`) or path (`/app/<id>`). If subdomain, plan hosts/wildcard workaround.
+- Define new Image payload (no website_url; add app_hostname, source_type, build_status, build_logs).
+
+Phase 1 – Orchestrator data model & API (3-4d)
+- DB migration: remove website_url, add app_hostname (unique per user), source_path, build_status, build_logs.
+- Update schemas: ImageCreate, ImageResponse, ImageWithContainers.
+- Update API: POST /api/images to accept app_hostname + source_type; GET/DELETE updated to new model.
+- Add build status endpoints (e.g., GET /api/images/{id}/build-status, /build-logs).
+
+Phase 2 – Build pipeline from user code (4-5d)
+- Add upload endpoint: accept zip/tar (or direct Dockerfile + context).
+- Store source in temp folder per user/app.
+- Update build_image to use user context (no generated HTML/redirect).
+- Capture build logs and status (pending/running/success/fail).
+
+Phase 3 – Routing model update (4-5d)
+- Events Kafka: replace website_url with app_hostname in container lifecycle events.
+- Service Discovery: index/lookup by app_hostname; adjust schemas/events.
+- Load Balancer: /route expects app_hostname; selector uses app_hostname as key.
+- API Gateway: extract app_hostname from Host (subdomain) or header for local; pass to LB.
+
+Phase 4 – UI updates (4-5d)
+- New “Subir proyecto” flow: upload zip/tar or Dockerfile + context.
+- Show build status/logs; button “Deploy/Build”.
+- Apps list: show app_hostname/URL, containers, actions (create/start/stop/delete).
+- Update UI calls to new APIs (images/containers) with app_hostname.
+
+Phase 5 – Billing alignment (2-3d)
+- Events now include app_hostname and user_id (already).
+- (Optional) Add request-based billing later using LB metrics/events.
+- Update summaries to use app_hostname as display key.
+
+Phase 6 – Testing & migration (3-4d)
+- Tests: orchestrator image build, routing with app_hostname, end-to-end (upload→build→run→route).
+- Data migration script: mark legacy images or drop old records as needed.
+- Update docs/README with new flow.
+
+Nice-to-have / later
+--------------------
+- Request-based billing: LB emits request events or exposes per-container metrics; Billing updates request_count and cost_by_request.
+- CI/CD: build/test pipeline for the new flow.
+- Prometheus/Grafana integration for app metrics.
+
+Risks / decisions to lock early
+-------------------------------
+- Hostname scheme (subdomain vs path) and local DNS/hosts strategy.
+- Upload limits and validation (Dockerfile safety).
+- Build triggers: auto on upload vs manual “Build” button.
+- Storage location for source/context (local volume vs external).
+
+Minimal timeline estimate
+-------------------------
+- Core migration (Phases 1-4): ~4–6 weeks.
+- MVP faster (zip upload + manual build + subdomain in local + minimal UI): ~2–3 weeks.

@@ -91,8 +91,9 @@ async def proxy_to_container(
     headers: dict,
     body: bytes,
     cached_memory: Cache,
-    website_url: str,
-    client_ip: str
+    app_hostname: str,
+    client_ip: str,
+    remaining_path: str,
 ) -> Response:
     """
     Proxy request to a specific container.
@@ -105,13 +106,18 @@ async def proxy_to_container(
         headers: Headers to send
         body: Request body
         cached_memory: Cache instance for invalidation
-        website_url: Website URL for cache invalidation
+        app_hostname: Logical app identifier (used as cache key)
         client_ip: Client IP for cache invalidation
+        remaining_path: Path to forward to the container
         
     Returns:
         FastAPI Response
     """
-    target_url = f"http://{target_host}:{target_port}"
+    # Ensure remaining_path always has a leading slash
+    if not remaining_path.startswith("/"):
+        remaining_path = "/" + remaining_path
+
+    target_url = f"http://{target_host}:{target_port}{remaining_path}"
     
     response = await proxy_to_target(
         http_client=http_client,
@@ -126,11 +132,11 @@ async def proxy_to_container(
             "proxy.container_failed",
             extra={
                 "target_url": target_url,
-                "website_url": website_url,
+                "app_hostname": app_hostname,
                 "client_ip": client_ip,
                 "status_code": response.status_code
             }
         )
-        cached_memory.invalidate(website_url, client_ip)
+        cached_memory.invalidate(app_hostname, client_ip)
     
     return response

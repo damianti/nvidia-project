@@ -23,64 +23,64 @@ class FallbackCache:
             ttl_seconds: Time to live for cache entries (default: 10s)
         """
         self.ttl_seconds = ttl_seconds
-        # Key: website_url (normalized), Value: (services, timestamp)
+        # Key: app_hostname (normalized), Value: (services, timestamp)
         self._cache: Dict[str, tuple[List[ServiceInfo], datetime]] = {}
         self._lock = asyncio.Lock()
     
-    async def update(self, website_url: str, services: List[ServiceInfo]) -> None:
+    async def update(self, app_hostname: str, services: List[ServiceInfo]) -> None:
         """
-        Update cache with new services for a website_url.
+        Update cache with new services for an app_hostname.
         """
         async with self._lock:
-            normalized_url = self._normalize_url(website_url)
-            self._cache[normalized_url] = (services, datetime.now())
+            normalized_hostname = self._normalize_hostname(app_hostname)
+            self._cache[normalized_hostname] = (services, datetime.now())
             logger.debug(
                 "fallback_cache.updated",
                 extra={
-                    "website_url": normalized_url,
+                    "app_hostname": normalized_hostname,
                     "services_count": len(services)
                 }
             )
     
-    async def get(self, website_url: str) -> Optional[List[ServiceInfo]]:
+    async def get(self, app_hostname: str) -> Optional[List[ServiceInfo]]:
         """
-        Get cached services for website_url if not expired.
+        Get cached services for app_hostname if not expired.
         
         Returns:
             List of ServiceInfo if found and not expired, None otherwise
         """
         async with self._lock:
-            normalized_url = self._normalize_url(website_url)
+            normalized_hostname = self._normalize_hostname(app_hostname)
             
             logger.info(
                 "fallback_cache.get_attempt",
                 extra={
-                    "website_url": website_url,
-                    "normalized_url": normalized_url,
+                    "app_hostname": app_hostname,
+                    "normalized_hostname": normalized_hostname,
                     "cache_keys": list(self._cache.keys())
                 }
             )
             
-            if normalized_url not in self._cache:
+            if normalized_hostname not in self._cache:
                 logger.warning(
                     "fallback_cache.key_not_found",
                     extra={
-                        "normalized_url": normalized_url,
+                        "normalized_hostname": normalized_hostname,
                         "available_keys": list(self._cache.keys())
                     }
                 )
                 return None
             
-            services, timestamp = self._cache[normalized_url]
+            services, timestamp = self._cache[normalized_hostname]
             elapsed = (datetime.now() - timestamp).total_seconds()
             
             if elapsed > self.ttl_seconds:
                 # Expired, remove from cache
-                del self._cache[normalized_url]
+                del self._cache[normalized_hostname]
                 logger.debug(
                     "fallback_cache.expired",
                     extra={
-                        "website_url": normalized_url,
+                        "app_hostname": normalized_hostname,
                         "elapsed_seconds": elapsed
                     }
                 )
@@ -89,7 +89,7 @@ class FallbackCache:
             logger.debug(
                 "fallback_cache.hit",
                 extra={
-                    "website_url": normalized_url,
+                    "app_hostname": normalized_hostname,
                     "services_count": len(services),
                     "age_seconds": elapsed
                 }
@@ -102,19 +102,11 @@ class FallbackCache:
             self._cache.clear()
             logger.debug("fallback_cache.cleared")
     
-    def _normalize_url(self, website_url: str) -> str:
-        """Normalize website URL for consistent cache keys"""
-        if not website_url:
+    def _normalize_hostname(self, app_hostname: str) -> str:
+        """Normalize app hostname for consistent cache keys"""
+        if not app_hostname:
             return ""
-        normalized = website_url.strip().lower()
-        # Remove protocol
-        if normalized.startswith("https://"):
-            normalized = normalized[8:]
-        elif normalized.startswith("http://"):
-            normalized = normalized[7:]
-        # Remove trailing slash
-        normalized = normalized.rstrip("/")
-        return normalized
+        return app_hostname.strip().lower()
     
     def get_status(self) -> dict:
         """Get cache status for debugging"""

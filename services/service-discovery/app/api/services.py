@@ -12,7 +12,7 @@ router = APIRouter(prefix="/services", tags=["services"])
 @router.get("/healthy", response_model=dict, summary="Get healthy services from Consul cache")
 async def get_healthy_services(
     request: Request,
-    website_url: str = Query(None, description="Filter by website URL")
+    app_hostname: str = Query(None, description="Filter by app hostname")
 ):
     """
     Get healthy services from Consul.
@@ -27,12 +27,12 @@ async def get_healthy_services(
             status_code=503,
             detail="Service cache not yet initialized. Please wait a few seconds."
         )
-    services : List[ServiceInfo] = service_cache.get_services(website_url=website_url)
+    services : List[ServiceInfo] = service_cache.get_services(app_hostname=app_hostname)
     return {
         "services": [service.model_dump() for service in services],
         "count": len(services),
         "filters": {
-            "website_url": website_url
+            "app_hostname": app_hostname
         }
     }
 

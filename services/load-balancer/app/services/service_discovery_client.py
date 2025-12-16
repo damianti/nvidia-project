@@ -34,14 +34,14 @@ class ServiceDiscoveryClient:
     async def get_healthy_services(
         self,
         *,
-        website_url: Optional[str] = None,
+        app_hostname: Optional[str] = None,
     ) -> List[ServiceInfo]:
         """
-        Fetch healthy services filtered by image_id or website_url.
+        Fetch healthy services filtered by app_hostname.
         """
         params: Dict[str, Any] = {}
-        if website_url:
-            params["website_url"] = website_url
+        if app_hostname:
+            params["app_hostname"] = app_hostname
 
         logger.info(
             "discovery.fetch_services",
@@ -77,7 +77,7 @@ class ServiceDiscoveryClient:
             "discovery.services_received",
             extra={
                 "count": len(services),
-                "website_url": website_url,
+                "app_hostname": app_hostname,
             },
         )
         return services

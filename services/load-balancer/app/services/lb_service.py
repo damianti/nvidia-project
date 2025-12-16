@@ -18,7 +18,7 @@ logger = logging.getLogger(SERVICE_NAME)
 
 async def _pick_service(
     *,
-    website_url: str,
+    app_hostname: str,
     discovery_client: ServiceDiscoveryClient,
     selector: RoundRobinSelector,
     circuit_breaker: CircuitBreaker,
@@ -46,38 +46,37 @@ async def _pick_service(
         ServiceDiscoveryError: If Service Discovery fails and no fallback cache available
     """
     services = None
-    
-    # Try to get services from Service Discovery (protected by Circuit Breaker)
+
     try:
         services = await circuit_breaker.call(
             discovery_client.get_healthy_services,
-            website_url=website_url
+            app_hostname=app_hostname
         )
-        
+
         # Success - update fallback cache
         if services:
-            await fallback_cache.update(website_url, services)
+            await fallback_cache.update(app_hostname, services)
             logger.info(
                 "lb.route.discovery_success_cache_updated",
-                extra={"website_url": website_url, "services_count": len(services)}
+                extra={"app_hostname": app_hostname, "services_count": len(services)}
             )
     
     except CircuitBreakerOpenError:
         # Circuit is OPEN - try fallback cache
         logger.warning(
             "lb.route.circuit_open_using_fallback",
-            extra={"website_url": website_url}
+            extra={"app_hostname": app_hostname}
         )
-        services = await fallback_cache.get(website_url)
+        services = await fallback_cache.get(app_hostname)
         if services:
             logger.info(
                 "lb.route.fallback_cache_hit",
-                extra={"website_url": website_url, "services_count": len(services)}
+                extra={"app_hostname": app_hostname, "services_count": len(services)}
             )
         else:
             logger.error(
                 "lb.route.fallback_cache_miss",
-                extra={"website_url": website_url}
+                extra={"app_hostname": app_hostname}
             )
     
     except ServiceDiscoveryError as exc:
@@ -85,27 +84,27 @@ async def _pick_service(
         logger.warning(
             "lb.route.discovery_error_using_fallback",
             extra={
-                "website_url": website_url,
+                "app_hostname": app_hostname,
                 "error": str(exc)
             }
         )
-        services = await fallback_cache.get(website_url)
+        services = await fallback_cache.get(app_hostname)
         if services:
             logger.info(
                 "lb.route.fallback_cache_hit_after_error",
-                extra={"website_url": website_url, "services_count": len(services)}
+                extra={"app_hostname": app_hostname, "services_count": len(services)}
             )
         else:
             logger.error(
                 "lb.route.fallback_cache_miss_after_error",
-                extra={"website_url": website_url}
+                extra={"app_hostname": app_hostname}
             )
             raise  # Re-raise if no fallback available
     
     if not services:
         logger.warning(
             "lb.route.no_services_available",
-            extra={"website_url": website_url}
+            extra={"app_hostname": app_hostname}
         )
         return None
     
@@ -166,6 +165,7 @@ async def handle_request(
                 status_code=400,
                 detail="website_url cannot be empty"
             )
+        app_hostname = website_url
     except json.JSONDecodeError as e:
         raise HTTPException(
             status_code=400,
@@ -180,13 +180,13 @@ async def handle_request(
     logger.info(
         "lb.route.received",
         extra={
-            "website_url": website_url,
+            "app_hostname": app_hostname,
         },
     )
     
     try:
         service = await _pick_service(
-            website_url=website_url,
+            app_hostname=app_hostname,
             discovery_client=discovery_client,
             selector=selector,
             circuit_breaker=circuit_breaker,
@@ -196,7 +196,7 @@ async def handle_request(
         logger.error(
             "lb.route.service_unavailable",
             extra={
-                "website_url": website_url,
+                "app_hostname": app_hostname,
                 "error": str(exc),
                 "error_type": type(exc).__name__,
                 "circuit_state": circuit_breaker.get_state().value,
@@ -220,7 +220,7 @@ async def handle_request(
     logger.info(
         "lb.route.resolved",
         extra={
-            "website_url": website_url,
+            "app_hostname": app_hostname,
             "image_id": image_id,
             "container_id": container_id,
             "target_host": TARGET_HOST,

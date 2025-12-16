@@ -14,7 +14,8 @@ class ServiceInfo(BaseModel):
     status: str = Field(..., description="Health check status: passing/warning/critical")
     tags: List[str] = Field(default_factory=list, description="Service tags from Consul")
     image_id: Optional[int] = Field(None, description="Extracted from tags")
-    website_url: Optional[str] = Field(None, description="Extracted from tags")
+    website_url: Optional[str] = Field(None, description="Extracted from tags (legacy, use app_hostname)")
+    app_hostname: Optional[str] = Field(None, description="App hostname identifier extracted from tags")
     user_id: Optional[int] = Field(None, description="user id")
     timestamp: Optional[datetime] = Field(default=None,description="Timestamp in UTC")
     class Config:

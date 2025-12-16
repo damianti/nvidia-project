@@ -6,41 +6,33 @@ from app.utils.config import SERVICE_NAME
 logger = logging.getLogger(SERVICE_NAME)
 
 
-class WebsiteMapping:
+class AppHostnameMapping:
     def __init__(self) -> None:
         self.mp = {}
         self._lock = threading.RLock()
 
     @staticmethod
-    def _normalize_key(website_url: str) -> str:
-        """Normalize website_url: lowercase, strip, and drop protocol."""
-        if not website_url:
+    def _normalize_key(app_hostname: str) -> str:
+        """Normalize app_hostname: lowercase and strip."""
+        if not app_hostname:
             return ""
-        normalized = website_url.strip().lower()
+        return app_hostname.strip().lower()
 
-        if normalized.startswith("https://"):
-            normalized = normalized[8:]
-        elif normalized.startswith("http://"):
-            normalized = normalized[7:]
-
-        normalized = normalized.rstrip("/")
-        return normalized
-
-    def add(self, website_url: str, image_id: int) -> None:
-        key = self._normalize_key(website_url)
+    def add(self, app_hostname: str, image_id: int) -> None:
+        key = self._normalize_key(app_hostname)
         if not key:
             logger.warning(
-                "website_map.empty_after_normalization",
-                extra={"original": website_url},
+                "app_hostname_map.empty_after_normalization",
+                extra={"original": app_hostname},
             )
             return
         with self._lock:
             current = self.mp.get(key)
             if current is not None and current != image_id:
                 logger.warning(
-                    "website_map.conflict",
+                    "app_hostname_map.conflict",
                     extra={
-                        "website_url": website_url,
+                        "app_hostname": app_hostname,
                         "normalized": key,
                         "existing_image_id": current,
                         "new_image_id": image_id,
@@ -48,16 +40,16 @@ class WebsiteMapping:
                 )
             self.mp[key] = image_id
             logger.info(
-                "website_map.added",
+                "app_hostname_map.added",
                 extra={
-                    "website_url": website_url,
+                    "app_hostname": app_hostname,
                     "normalized": key,
                     "image_id": image_id,
                 },
             )
 
-    def remove_image(self, website_url: str, image_id: int) -> None:
-        key = self._normalize_key(website_url)
+    def remove_image(self, app_hostname: str, image_id: int) -> None:
+        key = self._normalize_key(app_hostname)
         if not key:
             return
         with self._lock:
@@ -65,30 +57,30 @@ class WebsiteMapping:
             if current == image_id:
                 del self.mp[key]
 
-    def get_image_id(self, website_url: str):
-        key = self._normalize_key(website_url)
+    def get_image_id(self, app_hostname: str):
+        key = self._normalize_key(app_hostname)
         if not key:
             logger.warning(
-                "website_map.empty_after_normalization",
-                extra={"original": website_url},
+                "app_hostname_map.empty_after_normalization",
+                extra={"original": app_hostname},
             )
             return None
         with self._lock:
             image_id = self.mp.get(key)
             if image_id:
                 logger.info(
-                    "website_map.found",
+                    "app_hostname_map.found",
                     extra={
-                        "website_url": website_url,
+                        "app_hostname": app_hostname,
                         "normalized": key,
                         "image_id": image_id,
                     },
                 )
             else:
                 logger.warning(
-                    "website_map.not_found",
+                    "app_hostname_map.not_found",
                     extra={
-                        "website_url": website_url,
+                        "app_hostname": app_hostname,
                         "normalized": key,
                         "available_keys": list(self.mp.keys()),
                     },

@@ -12,7 +12,7 @@ from app.utils.config import SERVICE_NAME, HOST, PORT
 from app.services.kafka_consumer import KafkaConsumerService
 from app.services.service_cache import ServiceCache
 from app.services.consul_watcher import ConsulWatcher
-from app.services.website_mapping import WebsiteMapping
+from app.services.website_mapping import AppHostnameMapping
 
 logger = setup_logger(SERVICE_NAME)
 
@@ -42,10 +42,10 @@ async def lifespan(app: FastAPI):
             "service_name": SERVICE_NAME,
         }
     )
-    website_map = WebsiteMapping()
-    service_cache = ServiceCache(website_map)
+    app_hostname_map = AppHostnameMapping()
+    service_cache = ServiceCache(app_hostname_map)
     app.state.service_cache = service_cache
-    app.state.website_map = website_map
+    app.state.app_hostname_map = app_hostname_map
     
     kafka_consumer = KafkaConsumerService()
     app.state.kafka_consumer = kafka_consumer

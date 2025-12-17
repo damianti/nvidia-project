@@ -38,6 +38,7 @@ class TestCreateContainers:
         mock_image.max_instances = 10
         mock_image.name = "nginx"
         mock_image.tag = "latest"
+        mock_image.container_port = 8080
         mock_images_repo.get_by_id.return_value = mock_image
 
         mock_containers_repo.get_containers_by_image_id.return_value = []
@@ -109,6 +110,7 @@ class TestStartContainer:
         mock_container.container_id = "docker-id-123"
         mock_container.status = ContainerStatus.STOPPED
         mock_container.image_id = 1
+        mock_container.internal_port = 8080
         mock_containers_repo.get_by_id_and_user.return_value = mock_container
         
         mock_image = Mock(spec=Image)
@@ -132,7 +134,7 @@ class TestStartContainer:
         
         # Assertions
         assert result.status == ContainerStatus.RUNNING
-        mock_docker.start_container.assert_called_once_with("docker-id-123")
+        mock_docker.start_container.assert_called_once_with("docker-id-123", internal_port=8080)
         db.commit.assert_called_once()
     
     @patch('app.application.services.container_service.containers_repository')

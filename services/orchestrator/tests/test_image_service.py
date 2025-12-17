@@ -11,76 +11,80 @@ import sys
 sys.modules['psycopg2'] = MagicMock()
 sys.modules['confluent_kafka'] = MagicMock()
 
-from app.application.services.image_service import create_image, get_image_by_id, delete_image
+from app.application.services.image_service import create_image_from_upload, get_image_by_id, delete_image
 from app.schemas.image import ImageCreate
 from app.database.models import Image, ContainerStatus
 
 
-class TestCreateImage:
-    """Tests for create_image function."""
-    
-    @patch('app.application.services.image_service.build_image')
-    @patch('app.application.services.image_service.images_repository')
-    def test_create_image_success(self, mock_repo, mock_build):
-        """Test successful image creation."""
-        # Setup mocks
-        mock_repo.get_by_app_hostname.return_value = None  # No duplicate
-        
-        # Mock create to set id on the image object and return it
+class TestCreateImageFromUpload:
+    """Tests for create_image_from_upload function."""
+
+    @patch("app.application.services.image_service.docker_service.build_image_from_context")
+    @patch("app.application.services.image_service.prepare_context")
+    @patch("app.application.services.image_service.images_repository")
+    def test_create_image_from_upload_success(self, mock_repo, mock_prepare, mock_build):
+        mock_repo.get_by_app_hostname.return_value = None
+
         def mock_create(db_session, image_obj):
             image_obj.id = 1
             return image_obj
+
         mock_repo.create.side_effect = mock_create
-        
+        mock_prepare.return_value = ("/tmp/root", "/tmp/root/context")
+
         db = Mock(spec=Session)
+        db.flush = Mock()
         db.commit = Mock()
         db.refresh = Mock()
-        
-        # Test
-        payload = ImageCreate(
-            name="nginx",
+
+        data = ImageCreate(
+            name="myapp",
             tag="latest",
             app_hostname="example.com",
+            container_port=8080,
             min_instances=1,
             max_instances=3,
             cpu_limit="0.5",
             memory_limit="512m",
-            user_id=1
+            user_id=1,
         )
-        
-        result = create_image(db, payload, user_id=1)
-        
-        # Assertions
-        mock_repo.get_by_app_hostname.assert_called_once()
-        mock_build.assert_called_once_with("nginx", "latest", "example.com", 1)
-        mock_repo.create.assert_called_once()
+        file = Mock()
+        file.filename = "app.zip"
+
+        result = create_image_from_upload(db=db, data=data, file=file)
+
+        assert result.id == 1
+        mock_prepare.assert_called_once()
+        mock_build.assert_called_once_with("/tmp/root/context", "nvidia-app-u1-i1", "latest")
         db.commit.assert_called_once()
-    
-    @patch('app.application.services.image_service.images_repository')
-    def test_create_image_duplicate_app_hostname(self, mock_repo):
-        """Test image creation with duplicate app_hostname."""
-        # Setup mocks
-        existing_image = Mock(spec=Image)
-        mock_repo.get_by_app_hostname.return_value = existing_image
-        
+
+    @patch("app.application.services.image_service.docker_service.build_image_from_context")
+    @patch("app.application.services.image_service.prepare_context")
+    @patch("app.application.services.image_service.images_repository")
+    def test_create_image_from_upload_duplicate_app_hostname(self, mock_repo, mock_prepare, mock_build):
+        mock_repo.get_by_app_hostname.return_value = Mock(spec=Image)
+
         db = Mock(spec=Session)
-        payload = ImageCreate(
-            name="nginx",
+        data = ImageCreate(
+            name="myapp",
             tag="latest",
             app_hostname="example.com",
+            container_port=8080,
             min_instances=1,
             max_instances=3,
             cpu_limit="0.5",
             memory_limit="512m",
-            user_id=1
+            user_id=1,
         )
-        
-        # Test
+        file = Mock()
+        file.filename = "app.zip"
+
         with pytest.raises(HTTPException) as exc_info:
-            create_image(db, payload, user_id=1)
-        
+            create_image_from_upload(db=db, data=data, file=file)
+
         assert exc_info.value.status_code == 400
-        assert "already exists" in str(exc_info.value.detail).lower()
+        mock_prepare.assert_not_called()
+        mock_build.assert_not_called()
 
 
 class TestGetImageById:

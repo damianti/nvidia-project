@@ -74,6 +74,9 @@ def create_containers(db: Session, image_id: int, user_id: int, container_data: 
             )
         
         app_hostname = image.app_hostname
+        docker_image_name = f"nvidia-app-u{user_id}-i{image.id}"
+        docker_image_tag = image.tag
+        internal_port = getattr(image, "container_port", 8080)
         created_containers = []
         for i in range(actual_count):
             
@@ -81,10 +84,12 @@ def create_containers(db: Session, image_id: int, user_id: int, container_data: 
             unique_container_name = f"{container_data.name}-{unique_suffix}"
 
             docker_container, external_port, container_ip = docker_service.run_container(
-                image_name = "nginx",
-                image_tag = "latest",
+                image_name=docker_image_name,
+                image_tag=docker_image_tag,
                 container_name = unique_container_name,
-                env_vars = {} )
+                env_vars={"PORT": str(internal_port)},
+                internal_port=internal_port,
+            )
             
             db_container = Container(
                 container_id = docker_container.id,
@@ -92,7 +97,7 @@ def create_containers(db: Session, image_id: int, user_id: int, container_data: 
                 status = ContainerStatus.RUNNING,
                 cpu_usage = "0.0",
                 memory_usage = "0m",
-                internal_port = 80,
+                internal_port = internal_port,
                 external_port = external_port,
                 container_ip = container_ip,
                 image_id = image_id,
@@ -190,7 +195,10 @@ def start_container(db: Session, user_id: int, container_id: int):
         )
     
     try:
-        docker_container, external_port, container_ip = docker_service.start_container(db_container.container_id)
+        docker_container, external_port, container_ip = docker_service.start_container(
+            db_container.container_id,
+            internal_port=db_container.internal_port,
+        )
         db_container.status = ContainerStatus.RUNNING
         # Update port and IP in case they changed after restart
         db_container.external_port = external_port

@@ -15,8 +15,8 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
 
-# Create non-root user (comando Debian)
 RUN useradd -m -u 1000 appuser && chown -R appuser:appuser /app
+RUN mkdir -p /var/lib/orchestrator/build-contexts && chown -R appuser:appuser /var/lib/orchestrator
 
 USER appuser
 

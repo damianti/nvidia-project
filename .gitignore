@@ -190,3 +190,6 @@ Thumbs.db
 # Project planning
 PLAN_TRABAJO.txt
 .cursor
+
+# Local build contexts / artifacts
+data/

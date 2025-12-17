@@ -1,72 +1,96 @@
 from sqlalchemy.orm import Session
-from fastapi import HTTPException
-from typing import Optional
+from fastapi import HTTPException, UploadFile
 
 from app.schemas.image import ImageCreate
 from app.database.models import Image, ContainerStatus
 from app.repositories import images_repository, containers_repository
-from app.services.docker_service import build_image
+from app.services.build_context import prepare_context
+from app.services import docker_service
+
+MAX_STORED_BUILD_LOG_CHARS = 8000
+
+def _assert_app_hostname_unique(db: Session, *, app_hostname: str, user_id: int) -> None:
+    existing = images_repository.get_by_app_hostname(db, app_hostname=app_hostname, user_id=user_id)
+    if existing:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Image with app_hostname '{app_hostname}' already exists for this user",
+        )
 
 
-def create_image(db: Session, payload: ImageCreate, user_id: int) -> Image:
-    """
-    Creates an Image: validates duplicates, builds in Docker, persists and confirms.
-    
-    Args:
-        db: Database session
-        payload: Image creation data
-        user_id: ID of the user creating the image
-    
-    Returns:
-        Created Image object
-    
-    Raises:
-        HTTPException: 400 if image with same app_hostname exists, 500 on build failure
-    """
+def _create_image_row_and_flush(db: Session, *, data: ImageCreate) -> Image:
+    image = Image(
+        name=data.name,
+        tag=data.tag,
+        app_hostname=data.app_hostname,
+        container_port=data.container_port,
+        min_instances=data.min_instances,
+        max_instances=data.max_instances,
+        cpu_limit=data.cpu_limit,
+        memory_limit=data.memory_limit,
+        user_id=data.user_id,
+        status="building",
+    )
+    images_repository.create(db, image)
+    db.flush()
+    return image
+
+
+def _mark_failed_and_commit(db: Session, image: Image, *, build_logs: str | None = None) -> None:
+    image.status = "build_failed"
+    if build_logs is not None:
+        image.build_logs = build_logs[-MAX_STORED_BUILD_LOG_CHARS:]
+    db.commit()
+
+
+def _mark_ready_and_commit(db: Session, image: Image) -> None:
+    image.status = "ready"
+    db.commit()
+
+
+def create_image_from_upload(
+    *,
+    db: Session,
+    data: ImageCreate,
+    file: UploadFile,
+) -> Image:
+    db_image: Image | None = None
+    build_logs: str | None = None
     try:
-        # Validate duplicate app_hostname for this user
-        existing = images_repository.get_by_app_hostname(
-            db,
-            app_hostname=payload.app_hostname,
-            user_id=user_id
-        )
-        if existing:
-            raise HTTPException(
-                status_code=400,
-                detail=f"Image with app_hostname '{payload.app_hostname}' already exists for this user"
-            )
+        _assert_app_hostname_unique(db, app_hostname=data.app_hostname, user_id=data.user_id)
+        db_image = _create_image_row_and_flush(db, data=data)
 
-        # Build Docker image
-        build_image(payload.name, payload.tag, payload.app_hostname, user_id)
+        repo = f"nvidia-app-u{db_image.user_id}-i{db_image.id}"
+        _, context_dir = prepare_context(db_image.user_id, db_image.id, file)
+        db_image.source_path = context_dir
 
-        # Create database record
-        db_image = Image(
-            name=payload.name,
-            tag=payload.tag,
-            app_hostname=payload.app_hostname,
-            min_instances=payload.min_instances,
-            max_instances=payload.max_instances,
-            cpu_limit=payload.cpu_limit,
-            memory_limit=payload.memory_limit,
-            user_id=user_id,
-        )
+        build_logs = docker_service.build_image_from_context(context_dir, repo, db_image.tag)
+        db_image.build_logs = build_logs[-MAX_STORED_BUILD_LOG_CHARS:]
 
-        images_repository.create(db, db_image)
-        db.commit()
+        _mark_ready_and_commit(db, db_image)
         db.refresh(db_image)
         return db_image
 
-    except HTTPException:
-        # Re-raise HTTP exceptions (like duplicate check)
-        db.rollback()
-        raise
+    except HTTPException as e:
+        if db_image is not None and db_image.id is not None:
+            try:
+                detail_text = str(getattr(e, "detail", "")) if getattr(e, "detail", None) is not None else None
+                _mark_failed_and_commit(db, db_image, build_logs=detail_text or build_logs)
+            except Exception:
+                db.rollback()
+        else:
+            db.rollback()
+        raise e
+
     except Exception as e:
-        # Rollback and return generic error (don't expose internal details)
-        db.rollback()
-        raise HTTPException(
-            status_code=500,
-            detail="Failed to create image. Please check image name and tag are valid."
-        ) from e 
+        if db_image is not None and db_image.id is not None:
+            try:
+                _mark_failed_and_commit(db, db_image, build_logs=str(e))
+            except Exception:
+                db.rollback()
+        else:
+            db.rollback()
+        raise HTTPException(status_code=500, detail="Failed to create image.") from e
 
 def get_all_images(db: Session, user_id: int):
     return images_repository.get_all_images(db, user_id)

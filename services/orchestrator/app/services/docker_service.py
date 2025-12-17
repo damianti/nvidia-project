@@ -1,10 +1,9 @@
 import docker
-import os
 from fastapi import HTTPException
 import logging
-from docker.errors import DockerException, APIError
+from docker.errors import APIError, BuildError, DockerException
 from docker.models.containers import Container
-from typing import Optional, TypeVar, Callable
+from typing import Iterable, Optional, TypeVar, Callable
 import time
 
 RETRYABLE_HTTP_STATUS_CODES = {
@@ -13,86 +12,61 @@ RETRYABLE_HTTP_STATUS_CODES = {
 }
 logger = logging.getLogger("orchestrator")
 
-def generate_html(folder: str, app_hostname: str) -> None:
-    html_content = f"""<!doctype html>
-<html>
-  <head>
-    <meta charset="utf-8" />
-    <title>{app_hostname}</title>
-  </head>
-  <body>
-    <h1>Deployed app: {app_hostname}</h1>
-    <p>This is a placeholder image. Next step: build from uploaded source.</p>
-  </body>
-</html>
-"""
-    with open (f"{folder}/index.html", "w", encoding="utf-8") as f:
-        f.write(html_content)
+MAX_BUILD_LOG_CHARS = 8000
 
-def generate_dockerfile(folder: str) -> None:
-    
-    base_image = "nginx:alpine"
-    port = 80
 
-    dockerfile_content = f"""
-    FROM {base_image}
-    COPY index.html /usr/share/nginx/html/
-    EXPOSE {port}
-    """
-    
-    with open (f"{folder}/Dockerfile", "w", encoding="utf-8") as f:
-        f.write(dockerfile_content)
+def _collect_build_logs(logs: Iterable[dict]) -> str:
+    lines: list[str] = []
+    for chunk in logs:
+        if not isinstance(chunk, dict):
+            continue
+        stream = chunk.get("stream")
+        if stream:
+            lines.append(str(stream).rstrip())
+        error = chunk.get("error")
+        if error:
+            lines.append(str(error).rstrip())
+    return "\n".join(lines)
 
-def build_image(image_name: str, image_tag: str, app_hostname: str, user_id: int) -> None:
-    
-    folder = f"./builds/{user_id}"
-    os.makedirs(folder, exist_ok=True)
+
+def build_image_from_context(
+    context_dir: str,
+    image_name: str,
+    image_tag: str,
+    dockerfile: str = "Dockerfile",
+) -> str:
     try:
-    
-        generate_html(folder, app_hostname)
-        generate_dockerfile(folder)
-        
-        try: 
-            client = docker.from_env()
-            client.ping()
-        except Exception as e:
-            raise HTTPException(
-                status_code=500,
-                detail=f"Cannot connect to docker DinD. Error: {str(e)}"
-            )
-        _retry_docker_operation(
-            lambda:
-                client.images.build(
-                    path=folder,
-                    tag=f"{image_name}:{image_tag}")
+        client = docker.from_env()
+        client.ping()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Cannot connect to Docker. Error: {str(e)}") from e
+
+    image_ref = f"{image_name}:{image_tag}"
+    try:
+        _, logs = client.images.build(
+            path=context_dir,
+            dockerfile=dockerfile,
+            tag=image_ref,
+            rm=True,
+            decode=True,
         )
-        cleanup_files(folder)
+        return _collect_build_logs(logs)
+
+    except BuildError as e:
+        build_log = getattr(e, "build_log", None)
+        logs_text = _collect_build_logs(build_log or [])
+        if logs_text:
+            logs_text = logs_text[-MAX_BUILD_LOG_CHARS:]
+        raise HTTPException(
+            status_code=500,
+            detail=f"Docker build failed for {image_ref}. {logs_text}".strip(),
+        ) from e
+
+    except APIError as e:
+        raise HTTPException(status_code=500, detail=f"Docker API error while building {image_ref}: {str(e)}") from e
 
     except DockerException as e:
-        cleanup_files(folder)
-        raise HTTPException(
-            status_code=500,
-            detail=f"Docker build failed: {str(e)}")
-    except OSError as e:
-        cleanup_files(folder)
-        raise HTTPException(
-            status_code=500,
-            detail=f"File system error: {str(e)}")
-
-    except Exception as e:
-        cleanup_files(folder)
-        raise HTTPException(
-            status_code=500,
-            detail=f"unexpected error: {str(e)}")
-            
-
-def cleanup_files(folder: str) -> None:
-    if os.path.exists(f"{folder}/index.html"):
-        os.remove(f"{folder}/index.html")
-    if os.path.exists(f"{folder}/Dockerfile"):
-        os.remove(f"{folder}/Dockerfile")
-    if os.path.exists(folder):
-        os.rmdir(folder)
+        raise HTTPException(status_code=500, detail=f"Docker error while building {image_ref}: {str(e)}") from e
     
 def _is_retryable_error(error) -> bool:
     if not isinstance(error, APIError):
@@ -166,12 +140,13 @@ def _retry_docker_operation(
 
 
 
-def get_external_port(container: Container) -> Optional[int]:
+def get_external_port(container: Container, internal_port: int) -> Optional[int]:
     """
     Extract the external port (HostPort) from a container's port bindings.
     
     Args:
         container: Docker Container object (should have reload() called before this)
+        internal_port: Internal TCP port exposed by the container
     
     Returns:
         External port number if found, None otherwise
@@ -180,10 +155,10 @@ def get_external_port(container: Container) -> Optional[int]:
         network_settings = container.attrs.get('NetworkSettings', {})
         port_bindings = network_settings.get('Ports', {})
         
-        # Look for port 80/tcp binding
-        port_80_binding = port_bindings.get('80/tcp')
-        if port_80_binding and len(port_80_binding) > 0:
-            host_port = port_80_binding[0].get('HostPort')
+        port_key = f"{internal_port}/tcp"
+        binding = port_bindings.get(port_key)
+        if binding and len(binding) > 0:
+            host_port = binding[0].get('HostPort')
             if host_port:
                 return int(host_port)
         
@@ -240,7 +215,13 @@ def get_container_ip_from_container(container: Container) -> Optional[str]:
         )
         return None
 
-def run_container(image_name: str, image_tag: str , container_name: str, env_vars: dict ) -> tuple[Container, int, str]:
+def run_container(
+    image_name: str,
+    image_tag: str,
+    container_name: str,
+    env_vars: dict,
+    internal_port: int = 8080,
+) -> tuple[Container, int, str]:
     """
     Creates and runs a container, connecting it directly to the nvidia-network.
     The containers do not expose ports publicly (they are only accessible from the Docker network).
@@ -263,7 +244,7 @@ def run_container(image_name: str, image_tag: str , container_name: str, env_var
                 client.containers.run(
                     image=f"{image_name}:{image_tag}",
                     name=container_name,
-                    ports={'80/tcp': None},  # Expose port 80 dynamically
+                    ports={f"{internal_port}/tcp": None},
                     detach=True,
                     environment=env_vars or {}
                 )
@@ -271,7 +252,7 @@ def run_container(image_name: str, image_tag: str , container_name: str, env_var
         container.reload()
         
         # Extract external port and IP using helper functions
-        external_port = get_external_port(container)
+        external_port = get_external_port(container, internal_port)
         if external_port is None:
             try:
                 logger.error(
@@ -328,7 +309,7 @@ def run_container(image_name: str, image_tag: str , container_name: str, env_var
             status_code=500,
             detail=f"Docker container run failed: {str(e)}") 
 
-def start_container(container_docker_id: str) -> tuple[Container, int, str]:
+def start_container(container_docker_id: str, internal_port: int = 8080) -> tuple[Container, int, str]:
     """
     Start an existing container and return updated port and IP information.
     
@@ -347,7 +328,7 @@ def start_container(container_docker_id: str) -> tuple[Container, int, str]:
         container.reload()
         
         # Extract external port and IP using helper functions
-        external_port = get_external_port(container)
+        external_port = get_external_port(container, internal_port)
         if external_port is None:
             logger.warning(
                 "docker.start.port_extraction.failed",

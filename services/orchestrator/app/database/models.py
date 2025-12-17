@@ -2,7 +2,7 @@ import os
 import psycopg2
 import enum
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
-from sqlalchemy import String, Integer, DateTime, ForeignKey, Float, Enum
+from sqlalchemy import String, Integer, DateTime, ForeignKey, Float, Enum, Text
 from datetime import datetime
 from typing import List, Optional
 
@@ -27,11 +27,14 @@ class Image(Base):
     name: Mapped[str] = mapped_column(String(255), nullable=False)
     tag: Mapped[str] = mapped_column(String(100), nullable=False)
     app_hostname: Mapped[str] = mapped_column(String(255), nullable=False)
+    container_port: Mapped[int] = mapped_column(Integer, default=8080)
     min_instances: Mapped[int] = mapped_column(Integer, default=1)
     max_instances: Mapped[int] = mapped_column(Integer, default=3)
     cpu_limit: Mapped[str] = mapped_column(String(50), default="0.5")
     memory_limit: Mapped[str] = mapped_column(String(50), default="512m")
     status: Mapped[str] = mapped_column(String(50), default="registered")
+    source_path: Mapped[Optional[str]] = mapped_column(String(1024), nullable=True)
+    build_logs: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
     user_id: Mapped[int] = mapped_column(Integer, nullable=False)
     
@@ -46,7 +49,7 @@ class Container(Base):
     container_id: Mapped[str] = mapped_column(String(255), nullable=False, unique=True)
     container_ip: Mapped[str] = mapped_column(String(255), nullable=False)
     name: Mapped[str] = mapped_column(String(255), nullable=False)
-    internal_port: Mapped[int] = mapped_column(Integer, nullable=False, default=80)
+    internal_port: Mapped[int] = mapped_column(Integer, nullable=False, default=8080)
     external_port: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
     status: Mapped[str] = mapped_column(Enum(ContainerStatus, name="container_status_enum"), default=ContainerStatus.RUNNING)
     cpu_usage: Mapped[str] = mapped_column(String(50), default="0.0")

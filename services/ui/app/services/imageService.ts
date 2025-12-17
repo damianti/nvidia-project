@@ -3,7 +3,7 @@ export interface Image {
   id: number
   name: string
   tag: string
-  website_url: string
+  app_hostname: string
   status: string
   created_at: string
   min_instances: number
@@ -15,7 +15,7 @@ export interface Image {
 export interface CreateImageRequest {
   name: string
   tag: string
-  website_url: string
+  app_hostname: string
   min_instances: number
   max_instances: number
   cpu_limit: string

@@ -451,9 +451,9 @@ function ContainersPageContent() {
                         <h4 className="text-xl font-bold text-gray-900">
                           {image.name}:{image.tag}
                         </h4>
-                        {image.website_url && (
+                        {image.app_hostname && (
                           <p className="text-sm text-blue-600 mt-1">
-                            {image.website_url}
+                            {image.app_hostname}
                           </p>
                         )}
                       </div>
@@ -517,9 +517,9 @@ function ContainersPageContent() {
                                 </span>
                               </div>
                               <div className="flex items-center space-x-3 text-xs text-gray-600 mt-1">
-                                {image.website_url && (
+                                {image.app_hostname && (
                                   <>
-                                    <span className="text-blue-600 font-medium">{image.website_url}</span>
+                                    <span className="text-blue-600 font-medium">{image.app_hostname}</span>
                                     <span>•</span>
                                   </>
                                 )}
@@ -630,7 +630,7 @@ function ContainersPageContent() {
                 Image:
               </label>
               <div className="p-3 bg-gray-100 rounded-lg">
-                {images.find(img => img.id.toString() === imageFilter)?.name}:{images.find(img => img.id.toString() === imageFilter)?.tag} → {images.find(img => img.id.toString() === imageFilter)?.website_url}
+                {images.find(img => img.id.toString() === imageFilter)?.name}:{images.find(img => img.id.toString() === imageFilter)?.tag} → {images.find(img => img.id.toString() === imageFilter)?.app_hostname}
               </div>
 
             </div>
@@ -647,7 +647,7 @@ function ContainersPageContent() {
                 <option value=""> Choose an image... </option>
                 {images.map((image)=> (
                   <option key={image.id} value={image.id}>
-                    {image.name}:{image.tag} → {image.website_url}
+                    {image.name}:{image.tag} → {image.app_hostname}
                   </option>
                 ))}
               </select>

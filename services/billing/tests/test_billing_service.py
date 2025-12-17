@@ -36,6 +36,7 @@ class TestProcessContainerStarted:
             image_id=1,
             internal_port=80,
             external_port=8080,
+            app_hostname="example.com",
             timestamp=datetime.now(timezone.utc)
         )
         
@@ -64,6 +65,7 @@ class TestProcessContainerStarted:
             image_id=1,
             internal_port=80,
             external_port=8080,
+            app_hostname="example.com",
             timestamp=datetime.now(timezone.utc)
         )
         
@@ -86,6 +88,7 @@ class TestProcessContainerStarted:
             image_id=1,
             internal_port=80,
             external_port=8080,
+            app_hostname="example.com",
             timestamp=datetime.now(timezone.utc)
         )
         
@@ -120,6 +123,7 @@ class TestProcessContainerStopped:
             image_id=1,
             internal_port=80,
             external_port=8080,
+            app_hostname="example.com",
             timestamp=datetime.now(timezone.utc)
         )
         
@@ -146,6 +150,7 @@ class TestProcessContainerStopped:
             image_id=1,
             internal_port=80,
             external_port=8080,
+            app_hostname="example.com",
             timestamp=datetime.now(timezone.utc)
         )
         

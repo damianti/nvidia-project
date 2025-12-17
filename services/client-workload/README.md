@@ -30,7 +30,7 @@ The Client Workload service generates synthetic HTTP traffic to test the platfor
 ```json
 POST /workload/start
 {
-  "website_url": "https://example.com",
+  "app_hostname": "example.com",
   "requests_per_second": 10,
   "duration_seconds": 60
 }

@@ -810,7 +810,7 @@
                         <ul>
                             <li>Cache of last successful response</li>
                             <li>10 second TTL</li>
-                            <li>Per website_url</li>
+                            <li>Per app_hostname</li>
                         </ul>
                         <p style="margin-top: 15px;"><strong>Benefits:</strong></p>
                         <ul>
@@ -942,7 +942,7 @@
             <div class="highlight-box">
                 <h3>4. Circuit Breaker & Fallback Cache</h3>
                 <p><strong>Problem:</strong> Prevent cascading failures if Service Discovery fails. Need to keep routing even when downstream services are temporarily unavailable.</p>
-                <p><strong>Solution:</strong> Circuit Breaker pattern - opens after 3 consecutive failures, retries after 15s (half-open state), auto-closes on success. Fallback cache maintains last successful response per website_url for 10 seconds, allowing graceful degradation.</p>
+                <p><strong>Solution:</strong> Circuit Breaker pattern - opens after 3 consecutive failures, retries after 15s (half-open state), auto-closes on success. Fallback cache maintains last successful response per app_hostname for 10 seconds, allowing graceful degradation.</p>
             </div>
             
             <div class="highlight-box">

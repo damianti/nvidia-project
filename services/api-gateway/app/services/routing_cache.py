@@ -20,25 +20,25 @@ class Cache:
         self.store: dict[tuple[str, str], CacheEntry] = {}
 
 
-    def get(self, website_url: str, client_ip: str)-> Optional[CacheEntry]:
+    def get(self, app_hostname: str, client_ip: str)-> Optional[CacheEntry]:
         with self._lock:
-            if (website_url, client_ip) not in self.store:
+            if (app_hostname, client_ip) not in self.store:
                 return None
 
             
-            if self.store[(website_url, client_ip)].expires_at <= datetime.now():
-                self.store.pop((website_url, client_ip))
+            if self.store[(app_hostname, client_ip)].expires_at <= datetime.now():
+                self.store.pop((app_hostname, client_ip))
                 return None
 
-            return self.store[(website_url, client_ip)]
+            return self.store[(app_hostname, client_ip)]
 
-    def set(self,  website_url: str, client_ip: str, entry: CacheEntry) -> None:
+    def set(self,  app_hostname: str, client_ip: str, entry: CacheEntry) -> None:
         with self._lock:
-            self.store[(website_url, client_ip)] = entry
+            self.store[(app_hostname, client_ip)] = entry
 
-    def invalidate(self, website_url: str, client_ip: str):
+    def invalidate(self, app_hostname: str, client_ip: str):
         with self._lock:
-            self.store.pop((website_url, client_ip))
+            self.store.pop((app_hostname, client_ip))
 
     def clear_expired(self)-> int:
         """ 

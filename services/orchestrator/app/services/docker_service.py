@@ -13,17 +13,19 @@ RETRYABLE_HTTP_STATUS_CODES = {
 }
 logger = logging.getLogger("orchestrator")
 
-def generate_html(folder: str, website_url: str) -> None:
-    html_content = f'''<!DOCTYPE html>
-                <html>
-                <head>
-                    <meta http-equiv="refresh" content="0; url={website_url}">
-                    <title>Redirecting...</title>
-                </head>
-                <body>
-                    <p>Redirecting to your website...</p>
-                </body>
-                </html>'''
+def generate_html(folder: str, app_hostname: str) -> None:
+    html_content = f"""<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>{app_hostname}</title>
+  </head>
+  <body>
+    <h1>Deployed app: {app_hostname}</h1>
+    <p>This is a placeholder image. Next step: build from uploaded source.</p>
+  </body>
+</html>
+"""
     with open (f"{folder}/index.html", "w", encoding="utf-8") as f:
         f.write(html_content)
 
@@ -41,13 +43,13 @@ def generate_dockerfile(folder: str) -> None:
     with open (f"{folder}/Dockerfile", "w", encoding="utf-8") as f:
         f.write(dockerfile_content)
 
-def build_image(image_name: str, image_tag: str, website_url: str, user_id: int) -> None:
+def build_image(image_name: str, image_tag: str, app_hostname: str, user_id: int) -> None:
     
     folder = f"./builds/{user_id}"
     os.makedirs(folder, exist_ok=True)
     try:
     
-        generate_html(folder, website_url)
+        generate_html(folder, app_hostname)
         generate_dockerfile(folder)
         
         try: 

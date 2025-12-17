@@ -68,8 +68,8 @@ export default function BillingDetailPage() {
     }
 
     const base = `${image.name}:${image.tag}`
-    if (image.website_url) {
-      return `${base} → ${image.website_url}`
+    if (image.app_hostname) {
+      return `${base} → ${image.app_hostname}`
     }
     return base
   }

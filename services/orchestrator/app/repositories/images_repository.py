@@ -29,10 +29,10 @@ def get_all_images_with_containers(db: Session, user_id: int):
         .all()
 
         
-def get_by_website_url(db: Session, website_url: str, user_id: int) -> Optional[Image]:
-    """Get image by website_url for a specific user"""
+def get_by_app_hostname(db: Session, app_hostname: str, user_id: int) -> Optional[Image]:
+    """Get image by app_hostname for a specific user"""
     return db.query(Image)\
-        .filter(Image.website_url == website_url)\
+        .filter(Image.app_hostname == app_hostname)\
         .filter(Image.user_id == user_id)\
         .first()
 

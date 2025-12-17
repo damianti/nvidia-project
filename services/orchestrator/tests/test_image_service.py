@@ -9,6 +9,7 @@ from sqlalchemy.orm import Session
 # Mock psycopg2 before importing models
 import sys
 sys.modules['psycopg2'] = MagicMock()
+sys.modules['confluent_kafka'] = MagicMock()
 
 from app.application.services.image_service import create_image, get_image_by_id, delete_image
 from app.schemas.image import ImageCreate
@@ -23,7 +24,7 @@ class TestCreateImage:
     def test_create_image_success(self, mock_repo, mock_build):
         """Test successful image creation."""
         # Setup mocks
-        mock_repo.get_by_website_url.return_value = None  # No duplicate
+        mock_repo.get_by_app_hostname.return_value = None  # No duplicate
         
         # Mock create to set id on the image object and return it
         def mock_create(db_session, image_obj):
@@ -39,7 +40,7 @@ class TestCreateImage:
         payload = ImageCreate(
             name="nginx",
             tag="latest",
-            website_url="example.com",
+            app_hostname="example.com",
             min_instances=1,
             max_instances=3,
             cpu_limit="0.5",
@@ -50,23 +51,23 @@ class TestCreateImage:
         result = create_image(db, payload, user_id=1)
         
         # Assertions
-        mock_repo.get_by_website_url.assert_called_once()
+        mock_repo.get_by_app_hostname.assert_called_once()
         mock_build.assert_called_once_with("nginx", "latest", "example.com", 1)
         mock_repo.create.assert_called_once()
         db.commit.assert_called_once()
     
     @patch('app.application.services.image_service.images_repository')
-    def test_create_image_duplicate_website_url(self, mock_repo):
-        """Test image creation with duplicate website_url."""
+    def test_create_image_duplicate_app_hostname(self, mock_repo):
+        """Test image creation with duplicate app_hostname."""
         # Setup mocks
         existing_image = Mock(spec=Image)
-        mock_repo.get_by_website_url.return_value = existing_image
+        mock_repo.get_by_app_hostname.return_value = existing_image
         
         db = Mock(spec=Session)
         payload = ImageCreate(
             name="nginx",
             tag="latest",
-            website_url="example.com",
+            app_hostname="example.com",
             min_instances=1,
             max_instances=3,
             cpu_limit="0.5",

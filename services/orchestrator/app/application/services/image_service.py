@@ -21,29 +21,29 @@ def create_image(db: Session, payload: ImageCreate, user_id: int) -> Image:
         Created Image object
     
     Raises:
-        HTTPException: 400 if image with same website_url exists, 500 on build failure
+        HTTPException: 400 if image with same app_hostname exists, 500 on build failure
     """
     try:
-        # Validate duplicate website_url for this user
-        existing = images_repository.get_by_website_url(
+        # Validate duplicate app_hostname for this user
+        existing = images_repository.get_by_app_hostname(
             db,
-            website_url=payload.website_url,
+            app_hostname=payload.app_hostname,
             user_id=user_id
         )
         if existing:
             raise HTTPException(
                 status_code=400,
-                detail=f"Image with website_url '{payload.website_url}' already exists for this user"
+                detail=f"Image with app_hostname '{payload.app_hostname}' already exists for this user"
             )
 
         # Build Docker image
-        build_image(payload.name, payload.tag, payload.website_url, user_id)
+        build_image(payload.name, payload.tag, payload.app_hostname, user_id)
 
         # Create database record
         db_image = Image(
             name=payload.name,
             tag=payload.tag,
-            website_url=payload.website_url,
+            app_hostname=payload.app_hostname,
             min_instances=payload.min_instances,
             max_instances=payload.max_instances,
             cpu_limit=payload.cpu_limit,

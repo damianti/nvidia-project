@@ -20,7 +20,7 @@ def create_containers(db: Session, image_id: int, user_id: int, container_data: 
     Create and start multiple container instances from a Docker image.
     
     This function:
-    1. Retrieves the image metadata (including website_url)
+    1. Retrieves the image metadata (including app_hostname)
     2. Creates the specified number of containers using Docker-in-Docker
     3. Persists container records to the database
     4. Publishes container.created events to Kafka for Service Discovery and Billing
@@ -73,7 +73,7 @@ def create_containers(db: Session, image_id: int, user_id: int, container_data: 
                 }
             )
         
-        website_url = image.website_url
+        app_hostname = image.app_hostname
         created_containers = []
         for i in range(actual_count):
             
@@ -120,7 +120,7 @@ def create_containers(db: Session, image_id: int, user_id: int, container_data: 
                         "image_id": db_container.image_id,
                         "internal_port": db_container.internal_port,
                         "external_port": db_container.external_port,
-                        "website_url": website_url,
+                        "app_hostname": app_hostname,
                         "timestamp": datetime.now(timezone.utc).isoformat()
                     }
                 )
@@ -213,7 +213,7 @@ def start_container(db: Session, user_id: int, container_id: int):
     db.refresh(db_container)
     try:
         image = images_repository.get_by_id(db, db_container.image_id, user_id)
-        website_url = image.website_url if image else None
+        app_hostname = image.app_hostname if image else None
         KafkaProducerSingleton.instance().produce_json(
             topic="container-lifecycle",
             key=str(db_container.image_id),
@@ -226,8 +226,8 @@ def start_container(db: Session, user_id: int, container_id: int):
                 "image_id": db_container.image_id,
                 "internal_port": db_container.internal_port,
                 "external_port": db_container.external_port,
-                "website_url": website_url,
-                "timestamp": datetime.now(timezone.utc)
+                "app_hostname": app_hostname,
+                "timestamp": datetime.now(timezone.utc).isoformat()
             }
         )
     except Exception as e:
@@ -295,7 +295,7 @@ def stop_container(db: Session, user_id: int, container_id: int):
     db.refresh(db_container)
     try:
         image = images_repository.get_by_id(db, db_container.image_id, user_id)
-        website_url = image.website_url if image else None
+        app_hostname = image.app_hostname if image else None
         KafkaProducerSingleton.instance().produce_json(
             topic="container-lifecycle",
             key=str(db_container.image_id),
@@ -308,8 +308,8 @@ def stop_container(db: Session, user_id: int, container_id: int):
                 "image_id": db_container.image_id,
                 "internal_port": db_container.internal_port,
                 "external_port": db_container.external_port,
-                "website_url": website_url,
-                "timestamp": datetime.now(timezone.utc)
+                "app_hostname": app_hostname,
+                "timestamp": datetime.now(timezone.utc).isoformat()
             }
         )
     except Exception as e:
@@ -355,7 +355,7 @@ def delete_container(db: Session, user_id: int, container_id: int) -> Dict[str, 
 
     # Capture data before deleting
     image = images_repository.get_by_id(db, db_container.image_id, user_id)
-    website_url = image.website_url if image else None
+    app_hostname = image.app_hostname if image else None
     container_data = {
         "user_id": db_container.user_id,
         "container_id": db_container.container_id,
@@ -364,8 +364,8 @@ def delete_container(db: Session, user_id: int, container_id: int) -> Dict[str, 
         "image_id": db_container.image_id,
         "internal_port": db_container.internal_port,
         "external_port": db_container.external_port,
-        "website_url": website_url,
-        "timestamp": datetime.now(timezone.utc)
+        "app_hostname": app_hostname,
+        "timestamp": datetime.now(timezone.utc).isoformat()
     }
 
     docker_service.delete_container(db_container.container_id)
@@ -384,7 +384,7 @@ def delete_container(db: Session, user_id: int, container_id: int) -> Dict[str, 
                 "image_id": container_data["image_id"],
                 "internal_port": container_data["internal_port"],
                 "external_port": container_data["external_port"],
-                "website_url": container_data["website_url"],
+                "app_hostname": container_data["app_hostname"],
                 "timestamp": container_data["timestamp"]
             }
         )

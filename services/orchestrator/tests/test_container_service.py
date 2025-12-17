@@ -5,10 +5,12 @@ import pytest
 from unittest.mock import Mock, patch, MagicMock
 from fastapi import HTTPException
 from sqlalchemy.orm import Session
+from pydantic import ValidationError
 
 # Mock psycopg2 before importing models
 import sys
 sys.modules['psycopg2'] = MagicMock()
+sys.modules['confluent_kafka'] = MagicMock()
 
 from app.application.services.container_service import (
     create_containers,
@@ -32,10 +34,13 @@ class TestCreateContainers:
         # Setup mocks
         mock_image = Mock(spec=Image)
         mock_image.id = 1
-        mock_image.website_url = "example.com"
+        mock_image.app_hostname = "example.com"
+        mock_image.max_instances = 10
         mock_image.name = "nginx"
         mock_image.tag = "latest"
         mock_images_repo.get_by_id.return_value = mock_image
+
+        mock_containers_repo.get_containers_by_image_id.return_value = []
         
         mock_docker_container = Mock()
         mock_docker_container.id = "docker-container-id-123"
@@ -79,32 +84,14 @@ class TestCreateContainers:
     @patch('app.application.services.container_service.images_repository')
     def test_create_containers_invalid_count_zero(self, mock_images_repo):
         """Test container creation with zero count."""
-        mock_image = Mock(spec=Image)
-        mock_images_repo.get_by_id.return_value = mock_image
-        
-        db = Mock(spec=Session)
-        container_data = ContainerCreate(name="test-container", count=0, image_id=1)
-        
-        with pytest.raises(HTTPException) as exc_info:
-            create_containers(db, image_id=1, user_id=1, container_data=container_data)
-        
-        assert exc_info.value.status_code == 400
-        assert "greater than 0" in str(exc_info.value.detail).lower()
+        with pytest.raises(ValidationError):
+            ContainerCreate(name="test-container", count=0, image_id=1)
     
     @patch('app.application.services.container_service.images_repository')
     def test_create_containers_invalid_count_too_many(self, mock_images_repo):
         """Test container creation with count exceeding limit."""
-        mock_image = Mock(spec=Image)
-        mock_images_repo.get_by_id.return_value = mock_image
-        
-        db = Mock(spec=Session)
-        container_data = ContainerCreate(name="test-container", count=11, image_id=1)
-        
-        with pytest.raises(HTTPException) as exc_info:
-            create_containers(db, image_id=1, user_id=1, container_data=container_data)
-        
-        assert exc_info.value.status_code == 400
-        assert "more than 10" in str(exc_info.value.detail).lower()
+        with pytest.raises(ValidationError):
+            ContainerCreate(name="test-container", count=11, image_id=1)
 
 
 class TestStartContainer:
@@ -125,8 +112,13 @@ class TestStartContainer:
         mock_containers_repo.get_by_id_and_user.return_value = mock_container
         
         mock_image = Mock(spec=Image)
-        mock_image.website_url = "example.com"
+        mock_image.app_hostname = "example.com"
         mock_images_repo.get_by_id.return_value = mock_image
+
+        mock_docker_container = Mock()
+        mock_docker_container.id = "docker-id-123"
+        mock_docker_container.name = "test-container"
+        mock_docker.start_container.return_value = (mock_docker_container, 8080, "172.17.0.2")
         
         mock_kafka_instance = Mock()
         mock_kafka.instance.return_value = mock_kafka_instance
@@ -190,7 +182,7 @@ class TestStopContainer:
         mock_containers_repo.get_by_id_and_user.return_value = mock_container
         
         mock_image = Mock(spec=Image)
-        mock_image.website_url = "example.com"
+        mock_image.app_hostname = "example.com"
         mock_images_repo.get_by_id.return_value = mock_image
         
         mock_kafka_instance = Mock()
@@ -259,7 +251,7 @@ class TestDeleteContainer:
         mock_containers_repo.get_by_id_and_user.return_value = mock_container
         
         mock_image = Mock(spec=Image)
-        mock_image.website_url = "example.com"
+        mock_image.app_hostname = "example.com"
         mock_images_repo.get_by_id.return_value = mock_image
         
         mock_kafka_instance = Mock()

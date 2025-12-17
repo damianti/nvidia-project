@@ -25,7 +25,7 @@ class ServiceInfo(BaseModel):
                 "internal_port": 80,
                 "external_port": 32768,
                 "status": "passing",
-                "tags": ["image-1", "website-example.com", "external-port-32768"],
+                "tags": ["image-1", "app-hostname-example.com", "external-port-32768"],
                 "image_id": 1,
                 "app_hostname": "example.com"
             }

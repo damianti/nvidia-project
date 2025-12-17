@@ -211,7 +211,7 @@ for item in items:
 - Log routing decisions
 - Log circuit breaker state changes
 - Log fallback cache hits/misses
-- Include website_url, target_service
+- Include app_hostname, target_service
 
 ### Service Discovery
 - Log service registration/deregistration

@@ -13,9 +13,9 @@ class WorkloadPattern(str, Enum):
 
 class WorkloadRequest(BaseModel):
     """Request to start a workload test"""
-    website_urls: Optional[List[str]] = Field(
+    app_hostnames: Optional[List[str]] = Field(
         None,
-        description="Specific website URLs to test. If None, uses all available services"
+        description="Specific app hostnames to test. If None, uses all available services"
     )
     rps: int = Field(
         default=10,
@@ -42,7 +42,7 @@ class WorkloadRequest(BaseModel):
 class RequestMetrics(BaseModel):
     """Metrics for a single request"""
     timestamp: float
-    website_url: str
+    app_hostname: str
     status_code: Optional[int]
     latency_ms: float
     error: Optional[str]
@@ -65,7 +65,7 @@ class WorkloadMetrics(BaseModel):
     start_time: float
     end_time: Optional[float]
     duration_seconds: float
-    website_urls: List[str]
+    app_hostnames: List[str]
     status_code_distribution: dict
 
 

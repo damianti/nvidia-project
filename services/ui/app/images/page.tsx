@@ -23,7 +23,7 @@ export default function ImagesPage() {
   const [uploadForm, setUploadForm] = useState<CreateImageRequest>({
     name: '',
     tag: 'latest',
-    website_url: '',
+    app_hostname: '',
     min_instances: 1,
     max_instances: 3,
     cpu_limit: '0.5',
@@ -70,15 +70,15 @@ export default function ImagesPage() {
       setError('Image tag is required')
       return
     }
-    if (!uploadForm.website_url.trim()) {
-      setError('Website URL is required')
+    if (!uploadForm.app_hostname.trim()) {
+      setError('App hostname is required')
       return
     }
-    // Basic URL validation
-    try {
-      new URL(uploadForm.website_url.startsWith('http') ? uploadForm.website_url : `https://${uploadForm.website_url}`)
-    } catch {
-      setError('Please enter a valid website URL (e.g., example.com or https://example.com)')
+    // Basic hostname validation (letters, numbers, dots, hyphens)
+    const hostname = uploadForm.app_hostname.trim().toLowerCase()
+    const hostnameRegex = /^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?(\.[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?)*$/
+    if (!hostnameRegex.test(hostname)) {
+      setError('Please enter a valid app hostname (e.g., myapp or myapp.example.com)')
       return
     }
     if (uploadForm.min_instances < 1 || uploadForm.max_instances < 1) {
@@ -109,7 +109,7 @@ export default function ImagesPage() {
       setUploadForm({
         name: '',
         tag: 'latest',
-        website_url: '',
+        app_hostname: '',
         min_instances: 1,
         max_instances: 3,
         cpu_limit: '0.5',
@@ -244,14 +244,14 @@ export default function ImagesPage() {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">Website URL</label>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">App hostname</label>
                   <input
-                    type="url"
+                    type="text"
                     required
                     className="modern-input w-full"
-                    placeholder="https://example.com"
-                    value={uploadForm.website_url}
-                    onChange={(e) => setUploadForm({...uploadForm, website_url: e.target.value})}
+                    placeholder="myapp.example.com"
+                    value={uploadForm.app_hostname}
+                    onChange={(e) => setUploadForm({...uploadForm, app_hostname: e.target.value})}
                   />
                 </div>
                 <div className="grid grid-cols-2 gap-4">
@@ -354,7 +354,7 @@ export default function ImagesPage() {
                       <div>
                         <div className="flex items-center space-x-3">
                           <h4 className="text-lg font-semibold text-gray-900">
-                          <span>{image.name}:{image.tag} → {image.website_url}</span>
+                          <span>{image.name}:{image.tag} → {image.app_hostname}</span>
                           </h4>
                           <span className="status-badge status-registered">
                             {image.status}

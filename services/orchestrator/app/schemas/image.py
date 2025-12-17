@@ -8,7 +8,7 @@ from app.schemas.container import ContainerResponse
 class ImageBase(BaseModel):
     name: str
     tag: str
-    website_url: str
+    app_hostname: str
     min_instances: int = 1
     max_instances: int = 3
     cpu_limit: str = "0.5"
@@ -22,7 +22,7 @@ class ImageResponse(ImageBase):
     status: str
     created_at: datetime
     user_id: int
-    website_url: str
+    app_hostname: str
     
     class Config:
         from_attributes = True

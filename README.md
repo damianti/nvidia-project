@@ -25,7 +25,7 @@ A cloud platform for deploying and managing containerized web applications. User
 | `auth-service` | FastAPI service with automatic default user seeding |
 | `orchestrator` | Builds images, creates/stops containers, emits Kafka events |
 | `service-discovery` | Consul watcher + cache, exposes `/services/healthy` |
-| `load-balancer` | FastAPI service that routes by `website_url` using Service Discovery |
+| `load-balancer` | FastAPI service that routes by `app_hostname` using Service Discovery |
 | `billing-service` | Cost calculation & reporting |
 | `client-workload` | Synthetic traffic generator |
 
@@ -104,14 +104,14 @@ graph TB
 
 ### Architecture Highlights
 
-- **Service Discovery**: Consul Watch API maintains an in-memory cache of healthy containers indexed by `image_id` and `website_url`
+- **Service Discovery**: Consul Watch API maintains an in-memory cache of healthy containers indexed by `image_id` and `app_hostname`
 - **Load Balancer**: Uses Round Robin selection with Circuit Breaker and fallback cache for resilience
 - **Event-driven**: Orchestrator publishes container lifecycle events to Kafka; Service Discovery and Billing consume them
 - **Authentication**: Default user auto-created on startup (`example@gmail.com` / `example123`)
 
 ## ✨ Key Features
 
-- URL-based routing with normalization
+- App hostname–based routing with normalization
 - Auto-healing: Service Discovery registers containers with Consul health checks
 - Circuit Breaker: Opens after 3 failures, retries after 15s, with 10s fallback cache
 - Structured logging with correlation IDs

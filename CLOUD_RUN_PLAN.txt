@@ -3,7 +3,7 @@ Cloud Run style migration plan
 
 Goal
 ----
-Shift from the current website_url/nginx redirect model to a Cloud Run–like model where users upload their code/Dockerfile, we build a real image, deploy containers, and expose each app via its own hostname/path.
+Shift from the legacy nginx redirect model to a Cloud Run–like model where users upload their code/Dockerfile, we build a real image, deploy containers, and expose each app via its own hostname/path.
 
 Branch strategy
 ---------------
@@ -14,10 +14,10 @@ Phases and tasks
 ----------------
 Phase 0 – Prep (0.5d)
 - Decide hostname scheme for local: subdomain (`<app>.localhost`) or path (`/app/<id>`). If subdomain, plan hosts/wildcard workaround.
-- Define new Image payload (no website_url; add app_hostname, source_type, build_status, build_logs).
+- Define new Image payload (app_hostname, source_type, build_status, build_logs).
 
 Phase 1 – Orchestrator data model & API (3-4d)
-- DB migration: remove website_url, add app_hostname (unique per user), source_path, build_status, build_logs.
+- DB migration: app_hostname (unique per user), source_path, build_status, build_logs.
 - Update schemas: ImageCreate, ImageResponse, ImageWithContainers.
 - Update API: POST /api/images to accept app_hostname + source_type; GET/DELETE updated to new model.
 - Add build status endpoints (e.g., GET /api/images/{id}/build-status, /build-logs).
@@ -29,7 +29,7 @@ Phase 2 – Build pipeline from user code (4-5d)
 - Capture build logs and status (pending/running/success/fail).
 
 Phase 3 – Routing model update (4-5d)
-- Events Kafka: replace website_url with app_hostname in container lifecycle events.
+- Events Kafka: use app_hostname in container lifecycle events.
 - Service Discovery: index/lookup by app_hostname; adjust schemas/events.
 - Load Balancer: /route expects app_hostname; selector uses app_hostname as key.
 - API Gateway: extract app_hostname from Host (subdomain) or header for local; pass to LB.

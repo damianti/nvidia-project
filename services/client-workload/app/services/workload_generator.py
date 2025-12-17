@@ -23,7 +23,7 @@ class WorkloadGenerator:
         self.test_start_times: Dict[str, float] = {}
     
     async def get_available_services(self) -> List[str]:
-        """Get list of available website URLs from Service Discovery"""
+        """Get list of available app hostnames from Service Discovery"""
         try:
             async with httpx.AsyncClient(timeout=5.0) as client:
                 response = await client.get(
@@ -32,12 +32,12 @@ class WorkloadGenerator:
                 if response.status_code == 200:
                     data = response.json()
                     services = data.get("services", [])
-                    # Extract unique website_urls
-                    website_urls = set()
+                    # Extract unique app_hostnames
+                    app_hostnames = set()
                     for service in services:
-                        if service.get("website_url"):
-                            website_urls.add(service["website_url"])
-                    return list(website_urls)
+                        if service.get("app_hostname"):
+                            app_hostnames.add(service["app_hostname"])
+                    return list(app_hostnames)
                 else:
                     logger.warning(
                         "workload.get_services.failed",
@@ -62,19 +62,19 @@ class WorkloadGenerator:
     async def _make_request_and_collect(
         self,
         test_id: str,
-        website_url: str,
+        app_hostname: str,
         use_load_balancer: bool
     ):
         """Make a request and collect metrics"""
         try:
-            metrics = await self.make_request(website_url, use_load_balancer)
+            metrics = await self.make_request(app_hostname, use_load_balancer)
             self.test_metrics[test_id].append(metrics)
         except Exception as e:
             logger.error(
                 "workload.request.error",
                 extra={
                     "test_id": test_id,
-                    "website_url": website_url,
+                    "app_hostname": app_hostname,
                     "error": str(e),
                     "error_type": type(e).__name__
                 },
@@ -83,7 +83,7 @@ class WorkloadGenerator:
             # Create error metrics
             error_metrics = RequestMetrics(
                 timestamp=time.time(),
-                website_url=website_url,
+                app_hostname=app_hostname,
                 status_code=None,
                 latency_ms=0,
                 error=str(e)
@@ -92,7 +92,7 @@ class WorkloadGenerator:
     
     async def make_request(
         self,
-        website_url: str,
+        app_hostname: str,
         use_load_balancer: bool = True
     ) -> RequestMetrics:
         """Make a single HTTP request"""
@@ -107,7 +107,7 @@ class WorkloadGenerator:
                     # First, get routing info from Load Balancer
                     route_response = await client.post(
                         f"{LOAD_BALANCER_URL}/route",
-                        json={"website_url": website_url}
+                        json={"app_hostname": app_hostname}
                     )
                     
                     if route_response.status_code == 200:
@@ -127,7 +127,7 @@ class WorkloadGenerator:
                 async with httpx.AsyncClient(timeout=10.0) as client:
                     route_response = await client.post(
                         f"{LOAD_BALANCER_URL}/route",
-                        json={"website_url": website_url}
+                        json={"app_hostname": app_hostname}
                     )
                     if route_response.status_code == 200:
                         route_data = route_response.json()
@@ -148,7 +148,7 @@ class WorkloadGenerator:
         
         return RequestMetrics(
             timestamp=start_time,
-            website_url=website_url,
+            app_hostname=app_hostname,
             status_code=status_code,
             latency_ms=latency_ms,
             error=error
@@ -186,12 +186,12 @@ class WorkloadGenerator:
         self.test_metrics[test_id] = []
         self.test_configs[test_id] = config
         
-        # Get website URLs to test
-        if config.website_urls:
-            website_urls = config.website_urls
+        # Get app hostnames to test
+        if config.app_hostnames:
+            app_hostnames = config.app_hostnames
         else:
-            website_urls = await self.get_available_services()
-            if not website_urls:
+            app_hostnames = await self.get_available_services()
+            if not app_hostnames:
                 logger.warning("No services available for testing")
                 self.test_status[test_id] = "failed"
                 return
@@ -200,7 +200,7 @@ class WorkloadGenerator:
             "workload.test.started",
             extra={
                 "test_id": test_id,
-                "url_count": len(website_urls),
+                "url_count": len(app_hostnames),
                 "rps": config.rps,
                 "duration_seconds": config.duration_seconds,
                 "pattern": config.pattern.value,
@@ -236,10 +236,10 @@ class WorkloadGenerator:
                     interval = 0.1
                 
                 # Make a single request
-                website_url = website_urls[request_count % len(website_urls)]
+                app_hostname = app_hostnames[request_count % len(app_hostnames)]
                 await self._make_request_and_collect(
                     test_id,
-                    website_url,
+                    app_hostname,
                     config.use_load_balancer
                 )
                 request_count += 1
@@ -269,7 +269,7 @@ class WorkloadGenerator:
         finally:
             if self.test_status[test_id] == "running":
                 self.test_status[test_id] = "completed"
-    
+
     def get_metrics(self, test_id: str) -> Optional[WorkloadMetrics]:
         """Calculate aggregated metrics for a test"""
         if test_id not in self.test_metrics:
@@ -295,8 +295,8 @@ class WorkloadGenerator:
             if m.status_code:
                 status_codes[m.status_code] += 1
         
-        # Website URLs used
-        website_urls = list(set(m.website_url for m in metrics_list))
+        # App hostnames used
+        app_hostnames = list(set(m.app_hostname for m in metrics_list))
         
         duration = end_time - start_time
         rps = len(metrics_list) / duration if duration > 0 else 0
@@ -317,7 +317,7 @@ class WorkloadGenerator:
             start_time=start_time,
             end_time=end_time if self.test_status[test_id] != "running" else None,
             duration_seconds=duration,
-            website_urls=website_urls,
+            app_hostnames=app_hostnames,
             status_code_distribution=dict(status_codes)
         )
     

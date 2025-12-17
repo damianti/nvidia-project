@@ -12,24 +12,6 @@ def extract_client_ip(request: Request) -> str:
     return request.client.host if request.client.host is not None else ""
 
 
-def normalize_website_url(url: str) -> str:
-    """Normalizes website_url: lowercase, strip, removes protocol and port"""
-    if not url:
-        return ""
-    normalized = url.strip().lower()
-    # Remove protocol if exists
-    if normalized.startswith("https://"):
-        normalized = normalized[8:]  # len("https://") = 8
-    elif normalized.startswith("http://"):
-        normalized = normalized[7:]  # len("http://") = 7
-    # Remove port if exists (e.g., localhost:8080 -> localhost)
-    if ":" in normalized:
-        normalized = normalized.split(":")[0]
-    # Remove trailing slash optional
-    normalized = normalized.rstrip("/")
-    return normalized
-
-
 def prepare_proxy_headers(request: Request) -> dict:
     """Prepares headers for proxy, removing host and content-length, adding correlation ID"""
     headers = dict(request.headers)

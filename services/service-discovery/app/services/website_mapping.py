@@ -13,10 +13,28 @@ class AppHostnameMapping:
 
     @staticmethod
     def _normalize_key(app_hostname: str) -> str:
-        """Normalize app_hostname: lowercase and strip."""
+        """Normalize app_hostname (hostname-like) for consistent lookups."""
         if not app_hostname:
             return ""
-        return app_hostname.strip().lower()
+        normalized = app_hostname.strip().lower()
+
+        # Tolerate URL-like legacy inputs (scheme/path/query/fragment/port).
+        if normalized.startswith("https://"):
+            normalized = normalized[8:]
+        elif normalized.startswith("http://"):
+            normalized = normalized[7:]
+
+        # Keep only the host part
+        for sep in ("/", "?", "#"):
+            normalized = normalized.split(sep, 1)[0]
+
+        # Drop :port if present (common when user copies from browser/Host header).
+        if normalized.count(":") == 1:
+            host, port = normalized.rsplit(":", 1)
+            if port.isdigit():
+                normalized = host
+
+        return normalized.rstrip("/")
 
     def add(self, app_hostname: str, image_id: int) -> None:
         key = self._normalize_key(app_hostname)

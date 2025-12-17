@@ -28,7 +28,7 @@ def sample_service_info():
             external_port=32768,
             status="passing",
             image_id=1,
-            website_url="example.com"
+            app_hostname="example.com"
         ),
         ServiceInfo(
             container_id="test-container-2",
@@ -37,6 +37,6 @@ def sample_service_info():
             external_port=32769,
             status="passing",
             image_id=1,
-            website_url="example.com"
+            app_hostname="example.com"
         )
     ]

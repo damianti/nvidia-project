@@ -106,7 +106,23 @@ class FallbackCache:
         """Normalize app hostname for consistent cache keys"""
         if not app_hostname:
             return ""
-        return app_hostname.strip().lower()
+        normalized = app_hostname.strip().lower()
+
+        # Tolerate legacy URL-like inputs (scheme/path/query/fragment/port).
+        if normalized.startswith("https://"):
+            normalized = normalized[8:]
+        elif normalized.startswith("http://"):
+            normalized = normalized[7:]
+
+        for sep in ("/", "?", "#"):
+            normalized = normalized.split(sep, 1)[0]
+
+        if normalized.count(":") == 1:
+            host, port = normalized.rsplit(":", 1)
+            if port.isdigit():
+                normalized = host
+
+        return normalized.rstrip("/")
     
     def get_status(self) -> dict:
         """Get cache status for debugging"""
@@ -121,4 +137,3 @@ class FallbackCache:
                 for url, (services, timestamp) in self._cache.items()
             }
         }
-

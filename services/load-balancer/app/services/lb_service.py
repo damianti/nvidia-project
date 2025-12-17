@@ -15,6 +15,25 @@ from app.utils.config import TARGET_HOST, SERVICE_NAME
 
 logger = logging.getLogger(SERVICE_NAME)
 
+def normalize_app_hostname(value: str) -> str:
+    if not value:
+        return ""
+    normalized = value.strip().lower()
+
+    if normalized.startswith("https://"):
+        normalized = normalized[8:]
+    elif normalized.startswith("http://"):
+        normalized = normalized[7:]
+
+    for sep in ("/", "?", "#"):
+        normalized = normalized.split(sep, 1)[0]
+
+    if normalized.count(":") == 1:
+        host, port = normalized.rsplit(":", 1)
+        if port.isdigit():
+            normalized = host
+
+    return normalized.rstrip("/")
 
 async def _pick_service(
     *,
@@ -25,7 +44,7 @@ async def _pick_service(
     fallback_cache: FallbackCache,
 ) -> Optional[ServiceInfo]:
     """
-    Select a healthy service instance for the given website URL.
+    Select a healthy service instance for the given app hostname.
     
     This function implements a resilient service selection pattern:
     1. Attempts to get services from Service Discovery (protected by Circuit Breaker)
@@ -33,7 +52,7 @@ async def _pick_service(
     3. Uses Round Robin selector to distribute load evenly
     
     Args:
-        website_url: Normalized website URL to route
+        app_hostname: Normalized app hostname to route
         discovery_client: Service Discovery client for querying healthy services
         selector: Round Robin selector for load distribution
         circuit_breaker: Circuit Breaker to protect against cascading failures
@@ -122,11 +141,11 @@ async def handle_request(
     """
     Handle a routing request from the API Gateway.
     
-    Processes the request to find an available container for the given website URL.
+    Processes the request to find an available container for the given app hostname.
     Returns routing information (host, port) that the API Gateway can use to proxy requests.
     
     Args:
-        request: FastAPI request object containing website_url in JSON body
+        request: FastAPI request object containing app_hostname in JSON body
         discovery_client: Service Discovery client
         selector: Round Robin selector
         circuit_breaker: Circuit Breaker instance
@@ -153,19 +172,17 @@ async def handle_request(
             )
         
         data = json.loads(body)
-        if "website_url" not in data:
+        if "app_hostname" not in data:
             raise HTTPException(
                 status_code=400,
-                detail="Missing required field: website_url"
+                detail="Missing required field: app_hostname"
             )
         
-        website_url = data["website_url"].strip().lower()
-        if not website_url:
-            raise HTTPException(
-                status_code=400,
-                detail="website_url cannot be empty"
-            )
-        app_hostname = website_url
+        raw_app_hostname = data["app_hostname"]
+        app_hostname = normalize_app_hostname(raw_app_hostname)
+        if not app_hostname:
+            raise HTTPException(status_code=400, detail="app_hostname cannot be empty")
+
     except json.JSONDecodeError as e:
         raise HTTPException(
             status_code=400,

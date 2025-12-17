@@ -89,7 +89,7 @@ async def root():
         "message": "NVIDIA Load Balancer",
         "version": "1.0.0",
         "endpoints": {
-            "POST /route": "Route request to container by website_url"
+            "POST /route": "Route request to container by app_hostname"
         }
     }
 

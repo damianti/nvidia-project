@@ -108,15 +108,12 @@ class LoadBalancerClient:
 
     async def route(self, app_hostname: str) -> RouteResult:
         """Route request to Load Balancer and return RouteResult.
-
-        For ahora, usamos el contrato existente del LB:
-        POST {base_url} con body JSON {"website_url": app_hostname}
         """
         headers = self._build_headers()
         try:
             response = await self.http_client.post(
                 url=self.base_url,
-                json={"website_url": app_hostname},
+                json={"app_hostname": app_hostname},
                 headers=headers,
                 timeout=self.timeout_s,
             )

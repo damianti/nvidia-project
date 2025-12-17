@@ -6,7 +6,7 @@ Service discovery and health monitoring service that maintains a real-time cache
 
 The Service Discovery service provides:
 - Real-time container health monitoring via Consul Watch API
-- In-memory cache of healthy containers indexed by `image_id` and `website_url`
+- In-memory cache of healthy containers indexed by `image_id` and `app_hostname`
 - Kafka event consumption for container lifecycle updates
 - Fast lookup API for Load Balancer integration
 
@@ -16,11 +16,11 @@ The Service Discovery service provides:
 - **In-Memory Cache**: Fast lookup of healthy containers
 - **Kafka Consumer**: Listens to container lifecycle events
 - **Health Monitoring**: Tracks container health status via Consul
-- **URL Indexing**: Indexes containers by `website_url` for fast routing
+- **App Indexing**: Indexes containers by `app_hostname` for fast routing
 
 ## Endpoints
 
-- `GET /services/healthy` - Get healthy services from cache (supports `website_url` filter)
+- `GET /services/healthy` - Get healthy services from cache (supports `app_hostname` filter)
 - `GET /services/cache/status` - Get cache status and statistics
 - `GET /health` - Health check endpoint
 - `GET /metrics` - Service metrics (messages processed, success/failure counts)

@@ -124,7 +124,6 @@ class ConsulWatcher:
             
             # Extract metadata from tags
             image_id = self._extract_image_id(tags)
-            website_url = self._extract_website_url(tags)
             app_hostname = self._extract_app_hostname(tags)
             external_port = self._extract_external_port(tags)
             
@@ -141,7 +140,6 @@ class ConsulWatcher:
                 status=status,
                 tags=tags,
                 image_id=image_id,
-                website_url=website_url,
                 app_hostname=app_hostname
             )
             
@@ -159,23 +157,11 @@ class ConsulWatcher:
                     continue
         return None
     
-    def _extract_website_url(self, tags: List[str]) -> str | None:
-        """Extracts website_url from tags (format: 'website-{url}')"""
-        for tag in tags:
-            if tag.startswith("website-"):
-                return tag.replace("website-", "", 1)
-        return None
-    
     def _extract_app_hostname(self, tags: List[str]) -> str | None:
-        """Extracts app_hostname from tags (format: 'app-hostname-{hostname}' or 'website-{url}' for compatibility)"""
-        # First try app-hostname tag
+        """Extracts app_hostname from tags (format: 'app-hostname-{hostname}')"""
         for tag in tags:
             if tag.startswith("app-hostname-"):
                 return tag.replace("app-hostname-", "", 1)
-        # Fallback to website tag for backward compatibility
-        for tag in tags:
-            if tag.startswith("website-"):
-                return tag.replace("website-", "", 1)
         return None
     
     def _extract_external_port(self, tags: List[str]) -> int | None:

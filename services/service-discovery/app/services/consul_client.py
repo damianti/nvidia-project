@@ -19,7 +19,7 @@ async def register_service(container_info: ContainerEventData) -> bool:
             - image_id: Image ID for tagging
             - internal_port: Port exposed by the container (usually 80)
             - external_port: Port mapped on docker-dind host
-            - website_url: Website URL for tagging (optional)
+            - app_hostname: App hostname for tagging
     
     Returns:
         bool: True if registration successful, False otherwise
@@ -48,9 +48,7 @@ async def register_service(container_info: ContainerEventData) -> bool:
             }
         }
         
-        # Add website_url tag if present
-        if container_info.website_url:
-            service_data["Tags"].append(f"website-{container_info.website_url}")
+        service_data["Tags"].append(f"app-hostname-{container_info.app_hostname}")
         
         async with httpx.AsyncClient(timeout=5.0) as client:
             response = await client.put(

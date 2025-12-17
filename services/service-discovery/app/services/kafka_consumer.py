@@ -135,7 +135,7 @@ class KafkaConsumerService:
                 "container_id": data.container_id,
                 "container_name": data.container_name,
                 "image_id": data.image_id,
-                "website_url": data.website_url,
+                "app_hostname": data.app_hostname,
             }
         )
         success = await consul_client.register_service(data)
@@ -168,7 +168,7 @@ class KafkaConsumerService:
                 "container_id": data.container_id,
                 "container_name": data.container_name,
                 "image_id": data.image_id,
-                "website_url": data.website_url,
+                "app_hostname": data.app_hostname,
             }
         )
         success = await consul_client.deregister_service(data.container_id)

@@ -13,5 +13,5 @@ class ServiceInfo(BaseModel):
     status: str = Field(..., description="Health check status")
     tags: List[str] = Field(default_factory=list, description="Service tags")
     image_id: Optional[int] = Field(None, description="Image identifier")
-    website_url: Optional[str] = Field(None, description="Website URL tag")
+    app_hostname: Optional[str] = Field(None, description="App hostname tag")
 

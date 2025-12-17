@@ -25,7 +25,7 @@ The Load Balancer distributes incoming requests across multiple healthy containe
 
 ## How It Works
 
-1. Receives HTTP request with `website_url` in body or Host header
+1. Receives HTTP request with `app_hostname` in body or Host header
 2. Queries Service Discovery for healthy containers matching the URL
 3. Selects a container using Round Robin algorithm
 4. Checks Circuit Breaker state (CLOSED, OPEN, HALF_OPEN)

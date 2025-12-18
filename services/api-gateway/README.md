@@ -13,7 +13,8 @@ The API Gateway serves as the public-facing entry point for the platform, provid
 ## Features
 
 - **Authentication**: Proxies login, signup, logout, and user info requests to auth-service
-- **Container Routing**: Routes HTTP requests to containers based on Host header
+- **Container Routing**: Routes HTTP requests to containers via path-based routing (`/apps/{app_hostname}/...`) or Host header
+- **Image Upload**: Handles multipart/form-data uploads for Docker images with Dockerfiles
 - **Orchestrator Proxy**: Proxies authenticated API requests for container and image management
 - **Caching**: Maintains routing cache with automatic cleanup of expired entries
 - **CORS**: Configured for frontend origin
@@ -26,10 +27,14 @@ The API Gateway serves as the public-facing entry point for the platform, provid
 - `POST /auth/signup` - Register a new user
 - `GET /auth/me` - Get current authenticated user information
 
-### Routing
-- `POST /route` - Route HTTP request to container via Load Balancer
+### Container Routing
+- `GET /apps/{app_hostname}/{remaining_path:path}` - **Path-based routing** (recommended). Routes requests to user applications via Load Balancer
+- `POST /route` - Legacy routing via Host header. Extracts `app_hostname` from Host header and routes to Load Balancer
+
+### Orchestrator API Proxy
+- `POST /api/images` - **Upload Docker image** with multipart/form-data (Dockerfile + context). Requires authentication.
 - `GET /api/{path:path}` - Proxy API requests to Orchestrator service
-- `POST /api/{path:path}` - Proxy API requests to Orchestrator service
+- `POST /api/{path:path}` - Proxy API requests to Orchestrator service (except `/api/images` which has dedicated endpoint)
 - `DELETE /api/{path:path}` - Proxy API requests to Orchestrator service
 - `PUT /api/{path:path}` - Proxy API requests to Orchestrator service
 - `PATCH /api/{path:path}` - Proxy API requests to Orchestrator service

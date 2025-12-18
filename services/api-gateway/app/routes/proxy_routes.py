@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Request, Response, Depends
+from fastapi import APIRouter, Request, Response, Depends, UploadFile, File, Form
 
 from app.utils.dependencies import (
     get_cached_memory, 
@@ -8,7 +8,7 @@ from app.utils.dependencies import (
 )
 from app.services.routing_cache import Cache
 from app.services.gateway_service import handle_route_request, RouteValidationError
-from app.services.orchestrator_service import handle_orchestrator_proxy
+from app.services.orchestrator_service import handle_orchestrator_proxy, handle_image_upload
 from app.utils.dependencies import verify_token_and_get_user_id
 router = APIRouter(tags=["proxy"])
 
@@ -65,6 +65,35 @@ async def apps_route(
         return Response(content=e.message, status_code=e.status_code)
 
 
+
+@router.post("/api/images", summary="Upload image with multipart/form-data")
+async def upload_image(
+    name: str = Form(...),
+    tag: str = Form(...),
+    app_hostname: str = Form(...),
+    container_port: int = Form(8080),
+    min_instances: int = Form(1),
+    max_instances: int = Form(3),
+    cpu_limit: str = Form("0.5"),
+    memory_limit: str = Form("512m"),
+    file: UploadFile = File(...),
+    user_id: int = Depends(verify_token_and_get_user_id),
+    orchestrator_client = Depends(get_orchestrator_client)
+):
+    """Upload image with Dockerfile (multipart/form-data)"""
+    return await handle_image_upload(
+        name=name,
+        tag=tag,
+        app_hostname=app_hostname,
+        container_port=container_port,
+        min_instances=min_instances,
+        max_instances=max_instances,
+        cpu_limit=cpu_limit,
+        memory_limit=memory_limit,
+        file=file,
+        user_id=user_id,
+        orchestrator_client=orchestrator_client
+    )
 
 @router.api_route("/api/{path:path}", methods=["GET", "POST", "DELETE", "PUT", "PATCH"], summary="Proxy API requests to Orchestrator service")
 async def proxy_api(

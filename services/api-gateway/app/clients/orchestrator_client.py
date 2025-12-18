@@ -41,11 +41,13 @@ class OrchestratorClient:
             base_headers.update(headers)
         
         try:
+            # For multipart/form-data, we need to use content=body to preserve the raw encoding
+            # httpx will use the Content-Type header we provide
             response = await self.http_client.request(
                 method=method,
                 url=url,
                 headers=base_headers,
-                content=body,
+                content=body if body else None,
                 timeout=self.timeout_s
             )
             

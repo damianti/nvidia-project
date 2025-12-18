@@ -1,16 +1,16 @@
-from fastapi import APIRouter
-from app.database.config import get_db
-from sqlalchemy.orm import Session
-from fastapi import Depends
+import logging
 from typing import List
-from fastapi import UploadFile, File, Form
 
+from fastapi import APIRouter, Depends, UploadFile, File, Form
+from sqlalchemy.orm import Session
 
+from app.database.config import get_db
 from app.utils.dependencies import get_user_id
 from app.schemas.image import ImageCreate, ImageResponse, ImageWithContainers
 from app.schemas.container import ContainerResponse
 from app.application.services import image_service, container_service
 
+logger = logging.getLogger("orchestrator")
 router = APIRouter(tags=["images"])
 
 @router.post("/", response_model=ImageResponse)
@@ -27,6 +27,27 @@ async def create_image(
     db: Session = Depends(get_db),
     user_id: int = Depends(get_user_id),
 ):
+    """Create a new Docker image from uploaded build context.
+    
+    Accepts a multipart/form-data upload containing:
+    - file: Archive (.tar.gz or .zip) with Dockerfile and build context
+    - Metadata: name, tag, app_hostname, resource limits, etc.
+    
+    Returns:
+        ImageResponse with creation status and details
+    """
+    logger.info(
+        "api.images.create.request",
+        extra={
+            "image_name": name,
+            "image_tag": tag,
+            "app_hostname": app_hostname,
+            "upload_filename": file.filename,
+            "content_type": file.content_type,
+            "user_id": user_id,
+        }
+    )
+    
     data = ImageCreate(
         user_id=user_id,
         name=name,
@@ -39,7 +60,7 @@ async def create_image(
         memory_limit=memory_limit,
     )
 
-    return image_service.create_image_from_upload(
+    return await image_service.create_image_from_upload(
         db=db,
         data=data,
         file=file,

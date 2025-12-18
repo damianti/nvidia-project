@@ -88,7 +88,7 @@ if [ ! -f "$ARCHIVE_PATH" ]; then
   exit 1
 fi
 
-UPLOAD_RESPONSE=$(curl -s -X POST "$API_GATEWAY_URL/api/images" \
+UPLOAD_RESPONSE=$(curl -s -L -X POST "$API_GATEWAY_URL/api/images" \
   -b /tmp/test_cookies.txt \
   -F "name=test-app" \
   -F "tag=latest" \

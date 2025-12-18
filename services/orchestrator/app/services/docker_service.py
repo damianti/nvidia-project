@@ -1,6 +1,7 @@
 import docker
 from fastapi import HTTPException
 import logging
+import json
 from docker.errors import APIError, BuildError, DockerException
 from docker.models.containers import Container
 from typing import Iterable, Optional, TypeVar, Callable
@@ -15,17 +16,53 @@ logger = logging.getLogger("orchestrator")
 MAX_BUILD_LOG_CHARS = 8000
 
 
-def _collect_build_logs(logs: Iterable[dict]) -> str:
+def _collect_build_logs(logs: Iterable) -> str:
+    """Collect and parse Docker build logs.
+    
+    Args:
+        logs: Iterator of log chunks (bytes or already-decoded dicts)
+    
+    Returns:
+        Combined log string
+    """
     lines: list[str] = []
-    for chunk in logs:
-        if not isinstance(chunk, dict):
-            continue
-        stream = chunk.get("stream")
-        if stream:
-            lines.append(str(stream).rstrip())
-        error = chunk.get("error")
-        if error:
-            lines.append(str(error).rstrip())
+    try:
+        for chunk in logs:
+            # If chunk is bytes, decode it first
+            if isinstance(chunk, bytes):
+                try:
+                    chunk = json.loads(chunk.decode('utf-8', errors='replace'))
+                except (json.JSONDecodeError, UnicodeDecodeError):
+                    lines.append(chunk.decode('utf-8', errors='replace').rstrip())
+                    continue
+            
+            # Now chunk should be a dict (or string in edge cases)
+            if isinstance(chunk, dict):
+                # Check for stream field (normal build output)
+                stream = chunk.get("stream")
+                if stream:
+                    lines.append(str(stream).rstrip())
+                
+                # Check for error field
+                error = chunk.get("error")
+                if error:
+                    lines.append(f"ERROR: {str(error)}".rstrip())
+                
+                # Check for aux field (metadata like image ID)
+                aux = chunk.get("aux")
+                if aux and isinstance(aux, dict):
+                    img_id = aux.get("ID")
+                    if img_id:
+                        lines.append(f"Successfully built {img_id}")
+            elif isinstance(chunk, str):
+                lines.append(chunk.rstrip())
+            else:
+                lines.append(str(chunk).rstrip())
+                
+    except Exception as e:
+        logger.error(f"Error collecting build logs: {str(e)}", exc_info=True)
+        return f"Error processing build logs: {str(e)}"
+    
     return "\n".join(lines)
 
 
@@ -43,16 +80,24 @@ def build_image_from_context(
 
     image_ref = f"{image_name}:{image_tag}"
     try:
-        _, logs = client.images.build(
+        logger.info(f"Starting Docker build for {image_ref} from {context_dir}")
+        
+        # Use decode=False to get raw bytes which we'll decode ourselves
+        image, logs = client.images.build(
             path=context_dir,
             dockerfile=dockerfile,
             tag=image_ref,
             rm=True,
-            decode=True,
+            decode=False,  # Get raw bytes, we'll decode them ourselves
         )
-        return _collect_build_logs(logs)
+        
+        logger.info(f"Docker build() returned successfully for {image_ref}")
+        logs_text = _collect_build_logs(logs)
+        logger.info(f"Build logs collected successfully for {image_ref}")
+        return logs_text
 
     except BuildError as e:
+        logger.error(f"BuildError for {image_ref}: {str(e)}")
         build_log = getattr(e, "build_log", None)
         logs_text = _collect_build_logs(build_log or [])
         if logs_text:
@@ -63,9 +108,11 @@ def build_image_from_context(
         ) from e
 
     except APIError as e:
+        logger.error(f"APIError for {image_ref}: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Docker API error while building {image_ref}: {str(e)}") from e
 
     except DockerException as e:
+        logger.error(f"DockerException for {image_ref}: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Docker error while building {image_ref}: {str(e)}") from e
     
 def _is_retryable_error(error) -> bool:

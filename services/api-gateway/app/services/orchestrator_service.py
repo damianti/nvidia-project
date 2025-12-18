@@ -39,10 +39,12 @@ async def handle_image_upload(
     }
     
     # Send to Orchestrator
-    url = f"{orchestrator_client.base_url}/api/images"
+    url = f"{orchestrator_client.base_url}/api/images/"
     headers = {"X-User-Id": str(user_id)}
     
-    async with httpx.AsyncClient() as client:
+    # Use the orchestrator_client's http_client which has follow_redirects=True
+    # or create a new one with follow_redirects enabled
+    async with httpx.AsyncClient(follow_redirects=True) as client:
         response = await client.post(
             url=url,
             headers=headers,

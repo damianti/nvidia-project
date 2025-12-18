@@ -1,0 +1,140 @@
+CONTEXTO DEL PROYECTO Y ERROR ACTUAL
+=====================================
+
+PROYECTO:
+---------
+Plataforma estilo "Cloud Run" donde los usuarios suben Dockerfiles (en zip/tar) y la plataforma:
+1. Construye las imágenes Docker automáticamente
+2. Crea y gestiona contenedores
+3. Enruta el tráfico HTTP a las aplicaciones de los usuarios
+
+ARQUITECTURA:
+-------------
+- API Gateway (FastAPI): Punto de entrada, maneja autenticación y proxy
+- Orchestrator (FastAPI): Construye imágenes Docker, gestiona contenedores
+- Load Balancer: Balancea carga entre instancias de contenedores
+- Service Discovery: Registra rutas de aplicaciones
+- Base de datos PostgreSQL: Almacena metadatos de imágenes y contenedores
+- Docker-in-Docker (DinD): Para construir y ejecutar contenedores
+
+FLUJO ACTUAL:
+-------------
+1. Usuario sube zip/tar con Dockerfile via POST /api/images (multipart/form-data)
+2. API Gateway recibe el upload y lo reenvía al Orchestrator
+3. Orchestrator:
+   - Valida que app_hostname sea único para el usuario
+   - Crea registro en BD con status="building"
+   - Extrae el archivo a directorio persistente
+   - Construye imagen Docker usando docker.images.build()
+   - Captura logs del build
+   - Actualiza status a "ready" o "build_failed"
+
+CAMBIOS RECIENTES REALIZADOS:
+------------------------------
+1. Migración de "website_url" a "app_hostname" en toda la plataforma
+2. Implementación de upload + build automático (Cloud Run-style)
+3. Agregadas columnas a BD: app_hostname, container_port, source_path, build_logs
+4. Eliminada columna obsoleta: website_url
+5. Corregido redirect 307: agregado trailing slash (/api/images/) y follow_redirects=True
+6. Mejorado logging para debugging
+
+ERROR ACTUAL:
+-------------
+Al ejecutar el test end-to-end, el upload de imagen falla con:
+
+Error: "'dict' object has no attribute 'decode'"
+
+El error ocurre durante el proceso de build de la imagen Docker, específicamente 
+en la función _collect_build_logs() que procesa los logs del build de Docker.
+
+UBICACIÓN DEL ERROR:
+--------------------
+Archivo: services/orchestrator/app/services/docker_service.py
+Función: _collect_build_logs(logs: Iterable[dict]) -> str
+
+Esta función procesa los logs que devuelve docker.images.build(decode=True).
+Los logs vienen como un iterable de diccionarios, donde cada chunk puede tener:
+- "stream": texto de salida (puede ser bytes, string, o dict)
+- "error": mensaje de error (puede ser bytes, string, o dict)
+- "aux": información auxiliar
+
+CÓDIGO ACTUAL:
+--------------
+def _collect_build_logs(logs: Iterable[dict]) -> str:
+    lines: list[str] = []
+    try:
+        for chunk in logs:
+            if not isinstance(chunk, dict):
+                lines.append(str(chunk).rstrip())
+                continue
+            stream = chunk.get("stream")
+            if stream:
+                if isinstance(stream, bytes):
+                    lines.append(stream.decode('utf-8', errors='replace').rstrip())
+                elif isinstance(stream, dict):
+                    lines.append(f"STREAM_DICT: {str(stream)}".rstrip())
+                else:
+                    lines.append(str(stream).rstrip())
+            error = chunk.get("error")
+            if error:
+                if isinstance(error, bytes):
+                    lines.append(error.decode('utf-8', errors='replace').rstrip())
+                elif isinstance(error, dict):
+                    lines.append(f"ERROR_DICT: {str(error)}".rstrip())
+                else:
+                    lines.append(str(error).rstrip())
+            aux = chunk.get("aux")
+            if aux:
+                lines.append(f"AUX: {str(aux)}".rstrip())
+    except Exception as e:
+        logger.error(f"Error collecting build logs: {str(e)}", exc_info=True)
+        return f"Error processing build logs: {str(e)}"
+    return "\n".join(lines)
+
+PROBLEMA:
+---------
+A pesar de las mejoras, el error persiste. El mensaje "'dict' object has no 
+attribute 'decode'" sugiere que en algún lugar del código se está intentando 
+llamar .decode() directamente en un objeto dict, sin verificar primero su tipo.
+
+POSIBLES CAUSAS:
+----------------
+1. El error puede estar ocurriendo en otro lugar del código, no en _collect_build_logs
+2. Puede haber un problema con cómo docker.images.build() devuelve los logs
+3. Puede ser que el error ocurra antes de llegar a _collect_build_logs, durante 
+   el proceso de build mismo
+4. Puede haber un problema con cómo se maneja el UploadFile cuando llega desde 
+   el API Gateway al Orchestrator
+
+LOGS DEL ERROR:
+---------------
+En los logs del orchestrator se ve:
+- La imagen se crea en BD correctamente (status="building")
+- El source_path se guarda correctamente
+- El error ocurre y se guarda como build_logs: "'dict' object has no attribute 'decode'"
+- Status se actualiza a "build_failed"
+
+ESTADO ACTUAL:
+--------------
+- El código ha sido mejorado para manejar bytes, strings y dicts
+- Se agregó try/except para capturar errores
+- El contenedor ha sido reconstruido con los cambios
+- El error persiste después de la reconstrucción
+
+PRÓXIMOS PASOS SUGERIDOS:
+--------------------------
+1. Agregar más logging detallado en build_image_from_context() para ver exactamente 
+   dónde falla
+2. Verificar si el error ocurre antes de llamar a _collect_build_logs()
+3. Revisar si hay algún otro lugar en el código donde se llame .decode() sin verificar tipo
+4. Verificar la versión de docker-py y su comportamiento con decode=True
+5. Probar con un build manual dentro del contenedor para ver si el problema es con 
+   docker.images.build() o con el procesamiento de logs
+
+ARCHIVOS RELEVANTES:
+--------------------
+- services/orchestrator/app/services/docker_service.py (función _collect_build_logs y build_image_from_context)
+- services/orchestrator/app/application/services/image_service.py (función create_image_from_upload)
+- services/orchestrator/app/services/build_context.py (función prepare_context)
+- services/api-gateway/app/services/orchestrator_service.py (función handle_image_upload)
+- tests/e2e/test-e2e.sh (script de test end-to-end)

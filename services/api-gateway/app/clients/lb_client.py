@@ -112,7 +112,7 @@ class LoadBalancerClient:
         headers = self._build_headers()
         try:
             response = await self.http_client.post(
-                url=self.base_url,
+                url=f"{self.base_url}/route",
                 json={"app_hostname": app_hostname},
                 headers=headers,
                 timeout=self.timeout_s,

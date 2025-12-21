@@ -18,8 +18,14 @@ class LbError(Enum):
 
 
 class RouteResult:
-    def __init__(self, ok, data: Optional[RoutingInfo], error: Optional[LbError], 
-            status_code: Optional[int], message: Optional[str]) -> None:
+    def __init__(
+        self, 
+        ok: bool, 
+        data: Optional[RoutingInfo] = None, 
+        error: Optional[LbError] = None, 
+        status_code: Optional[int] = None, 
+        message: Optional[str] = None
+    ) -> None:
         self.ok = ok
         self.data = data
         self.error = error

@@ -171,9 +171,9 @@ fi
 
 echo -e "${GREEN}✓ Container created. ID: $CONTAINER_ID${NC}"
 
-# Wait a bit for container to be fully started
-echo "Waiting for container to start..."
-sleep 5
+# Wait for container to be fully started and registered in Service Discovery
+echo "Waiting for container to start and register..."
+sleep 15
 
 echo ""
 

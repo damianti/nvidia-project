@@ -44,6 +44,58 @@ export async function GET(
   }
 }
 
+// POST /api/containers/[id] - Create containers from an image
+export async function POST(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { id } = await params
+    const cookieHeader = request.headers.get('cookie') || ''
+    const body = await request.json()
+
+    const response = await fetch(`${config.apiGatewayUrl}/api/containers/${id}`, {
+      method: 'POST',
+      headers: {
+        'Cookie': cookieHeader,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(body),
+    })
+
+    if (!response.ok) {
+      let errorData
+      try {
+        errorData = await response.json()
+      } catch {
+        errorData = { detail: `HTTP ${response.status}: ${response.statusText}` }
+      }
+      return NextResponse.json(
+        { error: errorData.detail || errorData.error || 'Failed to create container' },
+        { status: response.status }
+      )
+    }
+
+    const data = await response.json()
+
+    const responseToClient = NextResponse.json(data, { status: 201 })
+    response.headers.forEach((value, key) => {
+      if (key.toLowerCase() === 'set-cookie') {
+        responseToClient.headers.append('Set-Cookie', value)
+      }
+    })
+
+    return responseToClient
+
+  } catch (error) {
+    console.error('Create container API error:', error)
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    )
+  }
+}
+
 // PUT /api/containers/[id] - Update container
 export async function PUT(
   request: NextRequest,

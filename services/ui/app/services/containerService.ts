@@ -86,8 +86,15 @@ class ContainerService {
                 if (response.status == 401){
                     throw new Error ('Authentication required');
                 }
-                const error = await response.json();
-                throw new Error (error.detail || error.error || 'Failed to create container')
+                let errorMessage = 'Failed to create container'
+                try {
+                    const error = await response.json();
+                    errorMessage = error.detail || error.error || errorMessage
+                } catch {
+                    // If response is not JSON, use status text
+                    errorMessage = `HTTP ${response.status}: ${response.statusText || errorMessage}`
+                }
+                throw new Error(errorMessage)
             }
             return response.json()
         }

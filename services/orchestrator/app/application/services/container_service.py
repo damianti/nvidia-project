@@ -4,6 +4,7 @@ from typing import List, Dict
 from datetime import datetime, timezone
 import logging
 import uuid
+import re
 
 
 from app.database.models import Container, ContainerStatus
@@ -14,6 +15,50 @@ from app.repositories import containers_repository, images_repository
 
 
 logger = logging.getLogger("orchestrator")
+
+def _sanitize_container_name(name: str) -> str:
+    """
+    Sanitize container name to comply with Docker naming restrictions.
+    
+    Docker container names must:
+    - Only contain [a-z0-9][a-z0-9_.-]*
+    - Not start with a dash or dot
+    - Not have consecutive dashes
+    - Be max 63 characters
+    
+    Args:
+        name: Original container name
+    
+    Returns:
+        Sanitized container name that complies with Docker restrictions
+    """
+    if not name:
+        return "container"
+    
+    # Convert to lowercase
+    sanitized = name.lower()
+    
+    # Replace invalid characters with dashes
+    # Keep only alphanumeric, underscores, dashes, and dots
+    sanitized = re.sub(r'[^a-z0-9_.-]', '-', sanitized)
+    
+    # Remove consecutive dashes
+    sanitized = re.sub(r'-+', '-', sanitized)
+    
+    # Remove leading/trailing dashes and dots
+    sanitized = sanitized.strip('.-')
+    
+    # If empty after sanitization, use default
+    if not sanitized:
+        sanitized = "container"
+    
+    # Limit to 63 characters (Docker's limit)
+    # Reserve space for suffix (8 chars) and dash (1 char) = 9 chars
+    max_base_length = 63 - 9
+    if len(sanitized) > max_base_length:
+        sanitized = sanitized[:max_base_length].rstrip('.-')
+    
+    return sanitized
 
 def create_containers(db: Session, image_id: int, user_id: int, container_data: ContainerCreate) -> List[Container]:
     """
@@ -81,7 +126,8 @@ def create_containers(db: Session, image_id: int, user_id: int, container_data: 
         for i in range(actual_count):
             
             unique_suffix = uuid.uuid4().hex[:8]
-            unique_container_name = f"{container_data.name}-{unique_suffix}"
+            sanitized_name = _sanitize_container_name(container_data.name)
+            unique_container_name = f"{sanitized_name}-{unique_suffix}"
 
             docker_container, external_port, container_ip = docker_service.run_container(
                 image_name=docker_image_name,

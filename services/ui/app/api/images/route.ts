@@ -45,16 +45,15 @@ export async function POST(request: NextRequest) {
   try {
     const cookieHeader = request.headers.get('cookie') || '';
 
-    const body = await request.json()
+    const formData = await request.formData()
 
     const response = await fetch(`${config.apiGatewayUrl}/api/images`, {
       method: 'POST',
       headers: {
         'Cookie': cookieHeader,
-        'Content-Type': 'application/json',
       },
       credentials: 'include',
-      body: JSON.stringify(body),
+      body: formData,
     })
 
     const data = await response.json()

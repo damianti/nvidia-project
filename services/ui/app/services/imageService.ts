@@ -10,17 +10,22 @@ export interface Image {
   max_instances: number
   cpu_limit: string
   memory_limit: string
+  container_port?: number
+  build_logs_?: string
+  source_path?: string
 }
 
 export interface CreateImageRequest {
   name: string
   tag: string
   app_hostname: string
+  container_port?: number
   min_instances: number
   max_instances: number
   cpu_limit: string
   memory_limit: string
   user_id: number
+  file: File
 }
 
 export interface UpdateImageRequest extends Partial<CreateImageRequest> {}
@@ -84,14 +89,52 @@ class ImageService {
     }
   }
 
+  async getBuildLogs(id: number): Promise<string>{
+
+    try {
+      const response = await fetch (`${this.baseUrl}/${id}/build-logs`,{
+        method: 'GET',
+        headers: this.getHeaders(),
+        credentials: 'include',
+      })
+      if (!response.ok){
+        if (response.status == 401){
+          throw new Error('Authentication required')
+        }
+        const error = await response.json()
+        throw new Error(error.detail || error.error || 'Failed to fetch build logs')
+      }
+
+      const data = await response.json()
+      return data.build_logs || ''
+    } catch (error){
+      console.error('Error fetching build logs:', error)
+      throw error
+    }
+    
+
+
+  }
+
   // Create new image
   async createImage(imageData: CreateImageRequest): Promise<Image> {
     try {
+      const formData = new FormData()
+
+      formData.append('name', imageData.name)
+      formData.append('tag', imageData.tag)
+      formData.append('app_hostname', imageData.app_hostname)
+      formData.append('container_port', String(imageData.container_port))
+      formData.append('min_instances', String(imageData.min_instances))
+      formData.append('max_instances', String(imageData.max_instances))
+      formData.append('cpu_limit', imageData.cpu_limit)
+      formData.append('memory_limit', imageData.memory_limit)
+      formData.append('file', imageData.file)
+
       const response = await fetch(this.baseUrl, {
         method: 'POST',
-        headers: this.getHeaders(),
         credentials: 'include',
-        body: JSON.stringify(imageData),
+        body: formData,
       })
 
       if (!response.ok) {

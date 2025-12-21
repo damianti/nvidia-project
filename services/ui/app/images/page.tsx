@@ -24,12 +24,15 @@ export default function ImagesPage() {
     name: '',
     tag: 'latest',
     app_hostname: '',
+    container_port: 8080,
     min_instances: 1,
     max_instances: 3,
     cpu_limit: '0.5',
     memory_limit: '512m',
-    user_id: 0
+    user_id: 0,
+    file: null as any
   })
+  const [selectedFile, setSelectedFile] = useState<File | null>(null)
 
   
   useEffect(() => {
@@ -38,6 +41,19 @@ export default function ImagesPage() {
     }
     fetchImages()
   }, [authLoading, user, router])
+
+  useEffect(() => {
+    if (!user || images.length === 0) return
+    
+    const buildingImages = images.filter(img => img.status === 'building')
+    if (buildingImages.length === 0) return
+
+    const interval = setInterval(() => {
+      fetchImages()
+    }, 2000)
+    
+    return () => clearInterval(interval)
+  }, [images, user])
 
   const fetchImages = async () => {
     try {
@@ -74,7 +90,17 @@ export default function ImagesPage() {
       setError('App hostname is required')
       return
     }
-    // Basic hostname validation (letters, numbers, dots, hyphens)
+
+    if (!selectedFile){
+      setError('Please select a file to upload (zip or tar.gz')
+      return
+    }
+
+    const fileName = selectedFile.name.toLowerCase()
+    if (!fileName.endsWith('.zip') && !fileName.endsWith('.tar.gz') && !fileName.endsWith('.tgz') && !fileName.endsWith('.tar')) {
+      setError('File must be a .zip, .tar, .tar.gz, or .tgz archive')
+      return
+    }
     const hostname = uploadForm.app_hostname.trim().toLowerCase()
     const hostnameRegex = /^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?(\.[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?)*$/
     if (!hostnameRegex.test(hostname)) {
@@ -98,7 +124,9 @@ export default function ImagesPage() {
       // Create the image using the service with user_id
       const imageData = {
         ...uploadForm,
-        user_id: user.id
+        user_id: user.id,
+        container_port: uploadForm.container_port || 8080,
+        file: selectedFile
       }
       const newImage = await imageService.createImage(imageData)
       
@@ -110,12 +138,15 @@ export default function ImagesPage() {
         name: '',
         tag: 'latest',
         app_hostname: '',
+        container_port: 8080,
         min_instances: 1,
         max_instances: 3,
         cpu_limit: '0.5',
         memory_limit: '512m',
-        user_id: 0
+        user_id: 0,
+        file: null as any
       })
+      setSelectedFile(null)
       setShowUploadForm(false)
       setSuccess(`Image "${newImage.name}:${newImage.tag}" created successfully`)
       setTimeout(() => setSuccess(""), 3000)
@@ -170,6 +201,21 @@ export default function ImagesPage() {
           <div className="text-xl text-gray-700">Loading images...</div>
         </div>
       </div>
+    )
+  }
+  const getStatusBadge = (status: string) => {
+    const statusColors: Record<string, {bg: string, text: string, label: string }> = {
+      building: { bg: 'bg-yellow-100', text: 'text-yellow-800', label: 'Building' },
+      ready: { bg: 'bg-green-100', text: 'text-green-800', label: 'Ready' },
+      build_failed: { bg: 'bg-red-100', text: 'text-red-800', label: 'Build Failed' },
+      registered: { bg: 'bg-gray-100', text: 'text-gray-800', label: 'Registered' },
+    }
+    const colors = statusColors[status] || statusColors.registered
+
+    return (
+      <span className={`px-3 py-1 rounded-full text-xs font-semibold ${colors.bg} ${colors.text}`}>
+        {colors.label}
+      </span>
     )
   }
 
@@ -244,7 +290,9 @@ export default function ImagesPage() {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">App hostname</label>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    App hostname
+                  </label>
                   <input
                     type="text"
                     required
@@ -253,6 +301,41 @@ export default function ImagesPage() {
                     value={uploadForm.app_hostname}
                     onChange={(e) => setUploadForm({...uploadForm, app_hostname: e.target.value})}
                   />
+                </div>
+                <div>
+                  <label className='block text-sm font-semibold text-gray-700 mb-2'>
+                    Container Port
+                  </label>
+                  <input
+                    type='number'
+                    min="1"
+                    max="65535"
+                    className='modern-input w-full'
+                    placeholder='8080'
+                    value={uploadForm.container_port || 8080} 
+                    onChange={(e) => setUploadForm({...uploadForm, container_port: parseInt(e.target.value) || 8080})}
+                  />
+                  <p className='text-xs text-gray-500 mt-1'>
+                    Internarl port your applications listens on (default: 8080)
+                  </p>
+                </div>
+                <div>
+                  <label className='block text-sm font-semibold text-gray-700 mb-2'>
+                    Build Context File <span className='text-red-500'>*</span>
+                  </label>
+                  <input
+                    type="file"
+                    required
+                    accept=".zip, .tar, .tar.gz, .tgz"
+                    className='modern-input w-full'
+                    onChange={(e) => {
+                      const file = e.target.files?.[0] || null
+                      setSelectedFile(file)
+                    }}
+                  />
+                  <p className='text-xs text-gray-500 mt-1'>
+                    Upload a zip or tar.gz archive containing your Dockerfile and source code
+                  </p>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
@@ -298,6 +381,7 @@ export default function ImagesPage() {
                     />
                   </div>
                 </div>
+                
                 <div className="flex justify-end space-x-3 pt-4">
                   <button
                     type="button"
@@ -356,9 +440,7 @@ export default function ImagesPage() {
                           <h4 className="text-lg font-semibold text-gray-900">
                           <span>{image.name}:{image.tag} → {image.app_hostname}</span>
                           </h4>
-                          <span className="status-badge status-registered">
-                            {image.status}
-                          </span>
+                          {getStatusBadge(image.status)}
                         </div>
                         <div className="mt-2 flex items-center space-x-4 text-sm text-gray-600">
                           <span>Created: {new Date(image.created_at).toLocaleDateString()}</span>
@@ -369,6 +451,35 @@ export default function ImagesPage() {
                           <span>•</span>
                           <span>Memory: {image.memory_limit}</span>
                         </div>
+                        {(image.status === 'ready' || image.status === 'registered') && (
+                          <div className="mt-3 pt-3 border-t border-gray-200">
+                            <div className="flex items-center space-x-2">
+                              <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                              </svg>
+                              <span className="text-sm font-medium text-gray-700">App URL:</span>
+                              <code className="text-sm bg-gray-100 px-2 py-1 rounded text-gray-800">
+                                /apps/{image.app_hostname}/
+                              </code>
+                              <button
+                                onClick={async () => {
+                                  const url = `/apps/${image.app_hostname}/`
+                                  try {
+                                    await navigator.clipboard.writeText(url)
+                                    setSuccess(`URL copied to clipboard: ${url}`)
+                                    setTimeout(() => setSuccess(""), 2000)
+                                  } catch (error) {
+                                    setError('Failed to copy URL to clipboard')
+                                  }
+                                }}
+                                className="text-xs text-blue-600 hover:text-blue-800 font-medium"
+                                title="Copy URL to clipboard"
+                              >
+                                Copy
+                              </button>
+                            </div>
+                          </div>
+                        )}
                       </div>
                     </div>
                     <div className="flex space-x-3">
@@ -392,6 +503,21 @@ export default function ImagesPage() {
                           'Delete'
                         )}
                       </button>
+                      {image.status === 'build_failed' && (
+                        <button
+                          onClick={async () => {
+                            try {
+                              const logs = await imageService.getBuildLogs(image.id)
+                              alert(`Build logs:\n\n${logs}`)
+                            } catch (error) {
+                              setError(error instanceof Error ? error.message : 'Failed to fetch build logs')
+                            }
+                          }}
+                          className='btn-modern bg-yellow-600 hover:bg-yellow-700'
+                        >
+                          View Build Logs
+                        </button>
+                      )}
                     </div>
                   </div>
                 </div>

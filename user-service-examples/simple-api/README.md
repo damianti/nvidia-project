@@ -1,79 +1,79 @@
 # Example Cloud Run Service
 
-Este es un servicio de ejemplo completo que puedes subir a la plataforma NVIDIA Cloud usando el modelo Cloud Run-style.
+This is a complete example service that you can upload to the NVIDIA Cloud platform using the Cloud Run-style model.
 
-## 📋 Descripción
+## 📋 Description
 
-Este servicio es una API REST simple construida con Flask que:
-- Escucha en el puerto 8080 (puerto estándar)
-- Proporciona endpoints para gestionar items
-- Incluye health checks
-- Demuestra routing basado en paths
+This service is a simple REST API built with Flask that:
+- Listens on port 8080 (standard port)
+- Provides endpoints for managing items
+- Includes health checks
+- Demonstrates path-based routing
 
-## 🚀 Cómo usar este ejemplo
+## 🚀 How to Use This Example
 
-### 1. Crear el archivo ZIP
+### 1. Create the ZIP file
 
-Desde la carpeta del servicio:
+From the service folder:
 
 ```bash
 cd simple-api
 ./create-zip.sh
 ```
 
-O manualmente:
+Or manually:
 
 ```bash
 cd simple-api
 zip -r example-service.zip . -x "*.git*" -x "*.zip" -x "*.tar.gz" -x "create-zip.sh" -x "README.md"
 ```
 
-O si prefieres tar.gz:
+Or if you prefer tar.gz:
 
 ```bash
-cd temp
+cd simple-api
 tar -czf example-service.tar.gz .
 ```
 
-### 2. Subir a la plataforma
+### 2. Upload to the platform
 
-1. Ve a la UI en `http://localhost:3000`
-2. Inicia sesión o regístrate
-3. Ve a la página de "Images"
-4. Haz clic en "Upload New Image"
-5. Completa el formulario:
+1. Go to the UI at `http://localhost:3000`
+2. Log in or register
+3. Go to the "Images" page
+4. Click "Upload New Image"
+5. Fill out the form:
    - **Image Name**: `example-service`
    - **Tag**: `latest`
-   - **App Hostname**: `example.localhost` (o el que prefieras)
+   - **App Hostname**: `example.localhost` (or your preferred name)
    - **Container Port**: `8080`
-   - **Build Context File**: Selecciona el archivo `example-service.zip` o `example-service.tar.gz`
+   - **Build Context File**: Select the `example-service.zip` or `example-service.tar.gz` file
    - **Min Instances**: `1`
    - **Max Instances**: `2`
    - **CPU Limit**: `0.5`
    - **Memory Limit**: `512m`
-6. Haz clic en "Upload"
+6. Click "Upload"
 
-### 3. Esperar el build
+### 3. Wait for the build
 
-- El estado cambiará de "Building" a "Ready" cuando el build termine
-- Si falla, puedes ver los logs haciendo clic en "View Build Logs"
+- The status will change from "Building" to "Ready" when the build completes
+- If it fails, you can view the logs by clicking "View Build Logs"
 
-### 4. Crear contenedores
+### 4. Create containers
 
-1. Una vez que la imagen esté "Ready", haz clic en "View Containers"
-2. Haz clic en "Create Container"
-3. Selecciona la imagen y crea 1 contenedor
-4. Inicia el contenedor si no se inicia automáticamente
+1. Once the image is "Ready", click "View Containers"
+2. Click "Create Container"
+3. Select the image and create 1 container
+4. Start the container if it doesn't start automatically
 
-### 5. Probar el servicio
+### 5. Test the service
 
-Una vez que el contenedor esté corriendo, puedes acceder al servicio en:
+Once the container is running, you can access the service at:
 
 ```
 http://localhost:8080/apps/example.localhost/
 ```
 
-O usando curl:
+Or using curl:
 
 ```bash
 # Health check
@@ -82,44 +82,44 @@ curl http://localhost:8080/apps/example.localhost/health
 # Root endpoint
 curl http://localhost:8080/apps/example.localhost/
 
-# Crear un item
+# Create an item
 curl -X POST http://localhost:8080/apps/example.localhost/items \
   -H "Content-Type: application/json" \
   -d '{"name": "Test Item", "description": "This is a test"}'
 
-# Listar items
+# List items
 curl http://localhost:8080/apps/example.localhost/items
 
-# Obtener información del servicio
+# Get service information
 curl http://localhost:8080/apps/example.localhost/info
 ```
 
-## 📡 Endpoints disponibles
+## 📡 Available Endpoints
 
-- `GET /` - Información del servicio
+- `GET /` - Service information
 - `GET /health` - Health check
-- `GET /info` - Información detallada
-- `GET /items` - Listar todos los items
-- `POST /items` - Crear un nuevo item
-- `GET /items/<id>` - Obtener un item específico
-- `DELETE /items/<id>` - Eliminar un item
-- `GET /test/<path>` - Endpoint de prueba para routing
+- `GET /info` - Detailed information
+- `GET /items` - List all items
+- `POST /items` - Create a new item
+- `GET /items/<id>` - Get a specific item
+- `DELETE /items/<id>` - Delete an item
+- `GET /test/<path>` - Test endpoint for routing
 
-## 🔧 Personalización
+## 🔧 Customization
 
-Puedes modificar `app.py` para agregar más funcionalidad:
-- Agregar más endpoints
-- Conectar a una base de datos
-- Agregar autenticación
-- Implementar lógica de negocio específica
+You can modify `app.py` to add more functionality:
+- Add more endpoints
+- Connect to a database
+- Add authentication
+- Implement specific business logic
 
-Solo asegúrate de:
-- Mantener el puerto 8080 (o actualizar `container_port` en el formulario)
-- Incluir un endpoint `/health` para health checks
-- Escuchar en `0.0.0.0` (no `localhost`)
+Just make sure to:
+- Keep port 8080 (or update `container_port` in the form)
+- Include a `/health` endpoint for health checks
+- Listen on `0.0.0.0` (not `localhost`)
 
-## 📝 Notas
+## 📝 Notes
 
-- Este servicio usa almacenamiento en memoria, así que los datos se pierden al reiniciar
-- Para producción, deberías usar una base de datos persistente
-- El servicio está diseñado para ser stateless y escalable
+- This service uses in-memory storage, so data is lost on restart
+- For production, you should use a persistent database
+- The service is designed to be stateless and scalable

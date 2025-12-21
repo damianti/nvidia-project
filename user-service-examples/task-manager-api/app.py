@@ -21,6 +21,11 @@ app = Flask(__name__)
 app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'dev-secret-key-change-in-production')
 app.config['JWT_SECRET_KEY'] = os.getenv('JWT_SECRET_KEY', 'jwt-secret-key-change-in-production')
 app.config['JWT_ACCESS_TOKEN_EXPIRES'] = timedelta(seconds=int(os.getenv('JWT_ACCESS_TOKEN_EXPIRES', 86400)))
+# Database configuration
+# IMPORTANT: For multiple containers, use PostgreSQL/MySQL instead of SQLite
+# SQLite doesn't work well with multiple concurrent writers from different containers
+# Example PostgreSQL: postgresql://user:password@host:5432/dbname
+# Example MySQL: mysql://user:password@host:3306/dbname
 app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL', 'sqlite:///data/tasks.db')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 

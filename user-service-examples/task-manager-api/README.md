@@ -1,201 +1,239 @@
 # Task Manager API
 
-Un servicio REST completo y listo para producción con autenticación JWT, base de datos SQLite, y operaciones CRUD completas.
+A complete production-ready REST service with JWT authentication, SQLite database, and full CRUD operations.
 
-## 🎯 Características
+## 🎯 Features
 
-- ✅ **Autenticación JWT**: Registro y login de usuarios
-- ✅ **Base de datos persistente**: SQLite con SQLAlchemy ORM
-- ✅ **CRUD completo**: Crear, leer, actualizar y eliminar tareas
-- ✅ **Filtros y búsqueda**: Filtrar por estado, prioridad, y buscar por texto
-- ✅ **Paginación**: Para listas grandes de tareas
-- ✅ **Validación de datos**: Validación robusta de inputs
-- ✅ **CORS habilitado**: Para uso desde frontend
-- ✅ **Manejo de errores**: Respuestas de error claras y consistentes
+- ✅ **JWT Authentication**: User registration and login
+- ✅ **Persistent database**: SQLite with SQLAlchemy ORM
+- ✅ **Full CRUD**: Create, read, update, and delete tasks
+- ✅ **Filters and search**: Filter by status, priority, and text search
+- ✅ **Pagination**: For large task lists
+- ✅ **Data validation**: Robust input validation
+- ✅ **CORS enabled**: For frontend usage
+- ✅ **Error handling**: Clear and consistent error responses
 
-## 📋 Modelo de Datos
+## 📋 Data Model
 
-### Usuario (User)
-- `id`: ID único
-- `username`: Nombre de usuario (único)
-- `email`: Email (único)
-- `password_hash`: Hash de la contraseña
-- `created_at`: Fecha de creación
+### User
+- `id`: Unique ID
+- `username`: Username (unique)
+- `email`: Email (unique)
+- `password_hash`: Password hash
+- `created_at`: Creation date
 
-### Tarea (Task)
-- `id`: ID único
-- `title`: Título de la tarea (requerido)
-- `description`: Descripción opcional
-- `completed`: Estado de completado (boolean)
-- `priority`: Prioridad (`low`, `medium`, `high`)
-- `due_date`: Fecha límite opcional
-- `created_at`: Fecha de creación
-- `updated_at`: Fecha de última actualización
-- `user_id`: ID del usuario propietario
+### Task
+- `id`: Unique ID
+- `title`: Task title (required)
+- `description`: Optional description
+- `completed`: Completion status (boolean)
+- `priority`: Priority (`low`, `medium`, `high`)
+- `due_date`: Optional due date
+- `created_at`: Creation date
+- `updated_at`: Last update date
+- `user_id`: Owner user ID
 
-## 🚀 Cómo usar
+## 🚀 How to Use
 
-### 1. Crear el archivo ZIP
+### 1. Create the ZIP file
 
 ```bash
 cd task-manager-api
 zip -r task-manager-api.zip . -x "*.git*" -x "*.zip" -x "*.db" -x "*.sqlite*" -x "README.md" -x ".env*"
 ```
 
-### 2. Subir a la plataforma
+### 2. Upload to the platform
 
-1. Ve a la UI en `http://localhost:3000`
-2. Inicia sesión o regístrate
-3. Ve a "Images" → "Upload New Image"
-4. Completa el formulario:
+1. Go to the UI at `http://localhost:3000`
+2. Log in or register
+3. Go to "Images" → "Upload New Image"
+4. Fill out the form:
    - **Image Name**: `task-manager-api`
    - **Tag**: `latest`
-   - **App Hostname**: `tasks.localhost` (o el que prefieras)
+   - **App Hostname**: `tasks.localhost` (or your preferred name)
    - **Container Port**: `8080`
-   - **Build Context File**: Selecciona `task-manager-api.zip`
+   - **Build Context File**: Select `task-manager-api.zip`
    - **Min Instances**: `1`
    - **Max Instances**: `2`
    - **CPU Limit**: `0.5`
    - **Memory Limit**: `512m`
-5. Haz clic en "Upload"
+5. Click "Upload"
 
-### 3. Crear y iniciar contenedor
+### 3. Create and start container
 
-1. Espera a que el build termine (estado "Ready")
-2. Ve a "View Containers"
-3. Crea e inicia un contenedor
+1. Wait for the build to finish (status "Ready")
+2. Go to "View Containers"
+3. Create and start a container
 
-### 4. Probar el servicio
+### 4. Test the service
 
-La API estará disponible en:
+The API will be available at:
 ```
 http://localhost:8080/apps/tasks.localhost/
 ```
 
-## 📡 Endpoints de la API
+## 📡 API Endpoints
 
-### Autenticación
+### Authentication
 
-#### POST `/auth/register` - Registrar usuario
+#### POST `/auth/register` - Register user
 ```json
 {
-  "username": "usuario",
-  "email": "usuario@example.com",
+  "username": "user",
+  "email": "user@example.com",
   "password": "password123"
 }
 ```
 
-**Respuesta:**
+**Response:**
 ```json
 {
   "message": "User registered successfully",
   "user": {
     "id": 1,
-    "username": "usuario",
-    "email": "usuario@example.com",
+    "username": "user",
+    "email": "user@example.com",
     "created_at": "2025-12-21T..."
   },
   "access_token": "eyJ0eXAiOiJKV1QiLCJhbGc..."
 }
 ```
 
-#### POST `/auth/login` - Iniciar sesión
+#### POST `/auth/login` - Login
 ```json
 {
-  "username": "usuario",
+  "username": "user",
   "password": "password123"
 }
 ```
 
-**Respuesta:** Misma estructura que register
+**Response:** Same structure as register
 
-#### GET `/auth/me` - Obtener usuario actual
+#### GET `/auth/me` - Get current user
 **Headers:** `Authorization: Bearer <access_token>`
 
-### Tareas
+### Tasks
 
-#### GET `/tasks` - Listar tareas
+#### GET `/tasks` - List tasks
 **Headers:** `Authorization: Bearer <access_token>`
 
 **Query Parameters:**
-- `completed`: `true` o `false` (filtrar por estado)
-- `priority`: `low`, `medium`, o `high`
-- `search`: Texto para buscar en título/descripción
-- `page`: Número de página (default: 1)
-- `per_page`: Items por página (default: 20)
+- `completed`: `true` or `false` (filter by status)
+- `priority`: `low`, `medium`, or `high`
+- `search`: Text to search in title/description
+- `page`: Page number (default: 1)
+- `per_page`: Items per page (default: 20)
 
-**Ejemplo:**
+**Example:**
 ```bash
 curl -H "Authorization: Bearer <token>" \
   "http://localhost:8080/apps/tasks.localhost/tasks?completed=false&priority=high&page=1"
 ```
 
-#### POST `/tasks` - Crear tarea
+#### POST `/tasks` - Create task
 **Headers:** `Authorization: Bearer <access_token>`
 
 ```json
 {
-  "title": "Completar proyecto",
-  "description": "Terminar la implementación del API",
+  "title": "Complete project",
+  "description": "Finish API implementation",
   "priority": "high",
   "due_date": "2025-12-31T23:59:59Z"
 }
 ```
 
-#### GET `/tasks/<id>` - Obtener tarea específica
+#### GET `/tasks/<id>` - Get specific task
 **Headers:** `Authorization: Bearer <access_token>`
 
-#### PUT `/tasks/<id>` - Actualizar tarea
+#### PUT `/tasks/<id>` - Update task
 **Headers:** `Authorization: Bearer <access_token>`
 
 ```json
 {
-  "title": "Título actualizado",
+  "title": "Updated title",
   "completed": true,
   "priority": "low"
 }
 ```
 
-#### DELETE `/tasks/<id>` - Eliminar tarea
+#### DELETE `/tasks/<id>` - Delete task
 **Headers:** `Authorization: Bearer <access_token>`
 
-### Otros
+### Others
 
-#### GET `/` - Información de la API
+#### GET `/` - API information
 #### GET `/health` - Health check
 
-## 🔐 Autenticación
+## 🔐 Authentication
 
-Todas las rutas de tareas requieren autenticación JWT. Incluye el token en el header:
+All task routes require JWT authentication. Include the token in the header:
 
 ```
 Authorization: Bearer <access_token>
 ```
 
-El token expira después de 24 horas por defecto (configurable vía `JWT_ACCESS_TOKEN_EXPIRES`).
+The token expires after 24 hours by default (configurable via `JWT_ACCESS_TOKEN_EXPIRES`).
 
-## 💾 Base de Datos
+## 💾 Database
 
-El servicio usa SQLite por defecto. La base de datos se guarda en `/app/data/tasks.db` dentro del contenedor.
+### ⚠️ Multiple Containers Problem
 
-**Nota:** Los datos persisten mientras el contenedor exista. Si eliminas el contenedor, los datos se pierden. Para producción, considera usar un volumen persistente o una base de datos externa (PostgreSQL, MySQL, etc.).
+**IMPORTANT:** The service uses SQLite by default, which **is NOT suitable for multiple containers**.
 
-## 🔧 Configuración
+**The problem:**
+- Each container has its own SQLite database at `/app/data/tasks.db`
+- If you have 2+ containers running, each has different data
+- The Load Balancer uses Round Robin, so requests go to different containers
+- A user can create a task in container A, but when listing tasks it may go to container B (which doesn't have that task)
 
-El servicio usa variables de entorno (con valores por defecto):
+**Production Solution:**
 
-- `PORT`: Puerto del servidor (default: 8080)
-- `SECRET_KEY`: Clave secreta para Flask (cambiar en producción)
-- `JWT_SECRET_KEY`: Clave secreta para JWT (cambiar en producción)
-- `JWT_ACCESS_TOKEN_EXPIRES`: Expiración del token en segundos (default: 86400 = 24h)
-- `DATABASE_URL`: URL de la base de datos (default: sqlite:///data/tasks.db)
-- `SERVICE_NAME`: Nombre del servicio
-- `VERSION`: Versión del servicio
+To use multiple containers, **you must use a shared external database**:
 
-## 📝 Ejemplo de Uso Completo
+1. **PostgreSQL** (recommended):
+   ```bash
+   # In docker-compose.yml or as external service
+   DATABASE_URL=postgresql://user:password@postgres-host:5432/tasksdb
+   ```
+
+2. **MySQL**:
+   ```bash
+   DATABASE_URL=mysql://user:password@mysql-host:3306/tasksdb
+   ```
+
+3. **Shared volume** (NOT recommended for SQLite):
+   - Even if you share the `.db` file, SQLite doesn't handle concurrent writes from multiple processes well
+   - Can cause data corruption or "database is locked" errors
+
+**For development/testing with a single container:**
+- SQLite works fine if you only have 1 container
+- Data persists while the container exists
+- If you delete the container, data is lost
+
+### Authentication (JWT) ✅
+
+Authentication **DOES work** with multiple containers because:
+- JWT is **stateless** (no state)
+- The token contains all necessary information (`user_id`)
+- All containers share the same `JWT_SECRET_KEY`
+- Any container can validate the token without needing shared session
+
+## 🔧 Configuration
+
+The service uses environment variables (with default values):
+
+- `PORT`: Server port (default: 8080)
+- `SECRET_KEY`: Secret key for Flask (change in production)
+- `JWT_SECRET_KEY`: Secret key for JWT (change in production)
+- `JWT_ACCESS_TOKEN_EXPIRES`: Token expiration in seconds (default: 86400 = 24h)
+- `DATABASE_URL`: Database URL (default: sqlite:///data/tasks.db)
+- `SERVICE_NAME`: Service name
+- `VERSION`: Service version
+
+## 📝 Complete Usage Example
 
 ```bash
-# 1. Registrar usuario
+# 1. Register user
 curl -X POST http://localhost:8080/apps/tasks.localhost/auth/register \
   -H "Content-Type: application/json" \
   -d '{
@@ -204,23 +242,23 @@ curl -X POST http://localhost:8080/apps/tasks.localhost/auth/register \
     "password": "password123"
   }'
 
-# Guarda el access_token de la respuesta
+# Save the access_token from the response
 
-# 2. Crear una tarea
+# 2. Create a task
 curl -X POST http://localhost:8080/apps/tasks.localhost/tasks \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer <access_token>" \
   -d '{
-    "title": "Mi primera tarea",
-    "description": "Esta es una tarea de prueba",
+    "title": "My first task",
+    "description": "This is a test task",
     "priority": "high"
   }'
 
-# 3. Listar tareas
+# 3. List tasks
 curl -H "Authorization: Bearer <access_token>" \
   http://localhost:8080/apps/tasks.localhost/tasks
 
-# 4. Actualizar tarea (ID 1)
+# 4. Update task (ID 1)
 curl -X PUT http://localhost:8080/apps/tasks.localhost/tasks/1 \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer <access_token>" \
@@ -228,38 +266,73 @@ curl -X PUT http://localhost:8080/apps/tasks.localhost/tasks/1 \
     "completed": true
   }'
 
-# 5. Eliminar tarea (ID 1)
+# 5. Delete task (ID 1)
 curl -X DELETE http://localhost:8080/apps/tasks.localhost/tasks/1 \
   -H "Authorization: Bearer <access_token>"
 ```
 
-## 🎓 Casos de Uso Reales
+## 🎓 Real-World Use Cases
 
-Este servicio demuestra:
-- ✅ API REST completa y profesional
-- ✅ Autenticación segura con JWT
-- ✅ Base de datos persistente
-- ✅ Validación de datos
-- ✅ Filtros y búsqueda
-- ✅ Paginación
-- ✅ Manejo de errores robusto
-- ✅ Listo para producción (con configuración adecuada)
+This service demonstrates:
+- ✅ Complete and professional REST API
+- ✅ Secure authentication with JWT
+- ✅ Persistent database
+- ✅ Data validation
+- ✅ Filters and search
+- ✅ Pagination
+- ✅ Robust error handling
+- ✅ Production-ready (with proper configuration)
 
-## 🔒 Seguridad
+## 🔒 Security
 
-**Importante para producción:**
-- Cambiar `SECRET_KEY` y `JWT_SECRET_KEY` por valores aleatorios seguros
-- Usar HTTPS en producción
-- Considerar rate limiting
-- Validar y sanitizar todos los inputs
-- Usar base de datos externa con backups
-- Implementar logging de seguridad
+**Important for production:**
+- Change `SECRET_KEY` and `JWT_SECRET_KEY` to secure random values
+- Use HTTPS in production
+- Consider rate limiting
+- Validate and sanitize all inputs
+- **Use shared external database** (PostgreSQL/MySQL) for multiple containers
+- Implement database backups
+- Implement security logging
+- Use environment variables for secrets (never hardcode)
 
-## 📦 Dependencias
+## 🏗️ Architecture for Multiple Containers
 
-- `flask`: Framework web
-- `flask-sqlalchemy`: ORM para base de datos
-- `flask-jwt-extended`: Autenticación JWT
-- `flask-cors`: Soporte CORS
-- `werkzeug`: Utilidades (hashing de passwords)
-- `python-dotenv`: Manejo de variables de entorno
+```
+┌─────────────┐
+│   Client    │
+└──────┬──────┘
+       │
+       ▼
+┌─────────────────┐
+│  API Gateway    │
+│  (Round Robin)  │
+└──────┬──────────┘
+       │
+       ├─────────┬─────────┐
+       ▼         ▼         ▼
+┌──────────┐ ┌──────────┐ ┌──────────┐
+│Container │ │Container │ │Container │
+│    A     │ │    B     │ │    C     │
+└────┬─────┘ └────┬─────┘ └────┬─────┘
+     │           │           │
+     └───────────┴───────────┘
+                 │
+                 ▼
+        ┌─────────────────┐
+        │  PostgreSQL DB  │  ← Shared database
+        │  (Shared)       │     (all containers)
+        └─────────────────┘
+
+✅ JWT: Works (stateless, all validate with same key)
+❌ SQLite: Does NOT work (each container has its own DB)
+✅ PostgreSQL: Works (all share the same DB)
+```
+
+## 📦 Dependencies
+
+- `flask`: Web framework
+- `flask-sqlalchemy`: Database ORM
+- `flask-jwt-extended`: JWT authentication
+- `flask-cors`: CORS support
+- `werkzeug`: Utilities (password hashing)
+- `python-dotenv`: Environment variable management

@@ -1,110 +1,125 @@
 # User Service Examples
 
-Ejemplos de servicios listos para desplegar en la plataforma NVIDIA Cloud. Estos servicios demuestran diferentes niveles de complejidad y casos de uso.
+Ready-to-deploy service examples for the NVIDIA Cloud platform. These services demonstrate different complexity levels and use cases.
 
-## 📁 Servicios Disponibles
+## 📁 Available Services
 
 ### 1. Simple API (`simple-api/`)
 
-Un servicio básico de ejemplo con endpoints REST simples. Ideal para:
-- Aprender el flujo de deployment
-- Probar el sistema
-- Servicios simples sin base de datos
+A basic example service with simple REST endpoints. Ideal for:
+- Learning the deployment flow
+- Testing the system
+- Simple services without a database
 
-**Características:**
-- API REST básica
+**Features:**
+- Basic REST API
 - Health checks
-- Gestión de items en memoria
-- Sin autenticación
+- In-memory item management
+- No authentication
 
-**Ver:** [README de Simple API](simple-api/README.md)
+**See:** [Simple API README](simple-api/README.md)
 
 ### 2. Task Manager API (`task-manager-api/`)
 
-Un servicio completo y listo para producción con autenticación, base de datos y CRUD completo. Ideal para:
-- Demostrar capacidades reales de la plataforma
-- Servicios que requieren persistencia
-- APIs con autenticación
+A complete production-ready service with authentication, database, and full CRUD operations. Ideal for:
+- Demonstrating real platform capabilities
+- Services that require persistence
+- APIs with authentication
 
-**Características:**
-- ✅ Autenticación JWT
-- ✅ Base de datos SQLite persistente
-- ✅ CRUD completo de tareas
-- ✅ Filtros, búsqueda y paginación
-- ✅ Validación de datos
-- ✅ Manejo de errores robusto
+**Features:**
+- ✅ JWT Authentication
+- ✅ Persistent SQLite database
+- ✅ Full CRUD for tasks
+- ✅ Filters, search, and pagination
+- ✅ Data validation
+- ✅ Robust error handling
 
-**Ver:** [README de Task Manager API](task-manager-api/README.md)
+**See:** [Task Manager API README](task-manager-api/README.md)
 
-## 🚀 Cómo Usar Estos Ejemplos
+## 🚀 How to Use These Examples
 
-### Paso 1: Elegir un servicio
+### Step 1: Choose a service
 
-Navega a la carpeta del servicio que quieres usar:
-- `simple-api/` - Para servicios básicos
-- `task-manager-api/` - Para servicios completos
+Navigate to the folder of the service you want to use:
+- `simple-api/` - For basic services
+- `task-manager-api/` - For complete services
 
-### Paso 2: Crear el archivo ZIP
+### Step 2: Create the ZIP file
 
-Desde la carpeta del servicio:
+From the service folder:
 
 ```bash
-cd simple-api  # o task-manager-api
+cd simple-api  # or task-manager-api
 zip -r service-name.zip . -x "*.git*" -x "*.zip" -x "*.db" -x "*.sqlite*" -x "README.md" -x ".env*"
 ```
 
-### Paso 3: Subir a la plataforma
+### Step 3: Upload to the platform
 
-1. Ve a `http://localhost:3000`
-2. Inicia sesión
-3. Ve a "Images" → "Upload New Image"
-4. Completa el formulario y selecciona el archivo ZIP
-5. Espera a que el build termine
+1. Go to `http://localhost:3000`
+2. Log in
+3. Go to "Images" → "Upload New Image"
+4. Fill out the form and select the ZIP file
+5. Wait for the build to complete
 
-### Paso 4: Crear contenedor
+### Step 4: Create container
 
-1. Ve a "View Containers"
-2. Crea e inicia un contenedor
-3. Accede al servicio usando la URL proporcionada
+1. Go to "View Containers"
+2. Create and start a container
+3. Access the service using the provided URL
 
-## 📝 Estructura de un Servicio
+## 📝 Service Structure
 
-Cada servicio debe incluir:
+Each service should include:
 
 ```
 service-name/
-├── app.py              # Código principal de la aplicación
-├── Dockerfile          # Configuración de Docker
-├── requirements.txt    # Dependencias de Python
-├── .dockerignore      # Archivos a excluir del build
-└── README.md          # Documentación del servicio
+├── app.py              # Main application code
+├── Dockerfile          # Docker configuration
+├── requirements.txt    # Python dependencies
+├── .dockerignore      # Files to exclude from build
+└── README.md          # Service documentation
 ```
 
-## 🔧 Requisitos
+## 🔧 Requirements
 
-Todos los servicios deben:
-- ✅ Escuchar en el puerto **8080** (o configurable vía `PORT`)
-- ✅ Escuchar en `0.0.0.0` (no `localhost`)
-- ✅ Incluir un endpoint `/health` para health checks
-- ✅ Ser stateless (o usar almacenamiento externo)
-- ✅ Manejar errores apropiadamente
+All services must:
+- ✅ Listen on port **8080** (or configurable via `PORT`)
+- ✅ Listen on `0.0.0.0` (not `localhost`)
+- ✅ Include a `/health` endpoint for health checks
+- ✅ Be stateless (or use external storage)
+- ✅ Handle errors appropriately
 
-## 📚 Documentación
+## 📚 Documentation
 
-Cada servicio tiene su propio README con:
-- Descripción de características
-- Instrucciones de uso
-- Ejemplos de endpoints
-- Casos de uso
+Each service has its own README with:
+- Feature description
+- Usage instructions
+- Endpoint examples
+- Use cases
 
-## 🎯 Próximos Ejemplos
+## 🎯 Future Examples
 
-Posibles servicios futuros:
-- E-commerce API (productos, carrito, órdenes)
-- Blog API (posts, comentarios, categorías)
-- Chat API (mensajes, salas, usuarios)
-- Analytics API (métricas, eventos, reportes)
+Possible future services:
+- E-commerce API (products, cart, orders)
+- Blog API (posts, comments, categories)
+- Chat API (messages, rooms, users)
+- Analytics API (metrics, events, reports)
+- Games with shared state (chess, checkers, etc.)
 
-## 📄 Licencia
+## ⚠️ Important Considerations
 
-Estos ejemplos son para uso educativo y demostración.
+### Services with Shared State
+
+If your service needs **shared state** across multiple containers (like a game, real-time chat, etc.), read:
+
+📄 **[Architecture for Stateful Games](chess-game-architecture.md)**
+
+This document explains:
+- The Round Robin problem with stateful services
+- Possible solutions (shared state, sticky sessions, WebSockets)
+- Implementation examples
+- Recommendations based on use case
+
+## 📄 License
+
+These examples are for educational and demonstration purposes.

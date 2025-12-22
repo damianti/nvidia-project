@@ -18,7 +18,7 @@ def get_authorization_header(
     cookie_token = request.cookies.get("access_token")
     if cookie_token:
         return f"Bearer {cookie_token}"
-    elif authorization:
+    elif authorization and isinstance(authorization, str):
         if not authorization.startswith("Bearer "):
             raise HTTPException(status_code=401, detail="Invalid authorization header format")
         return authorization

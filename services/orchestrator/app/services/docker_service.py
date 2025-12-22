@@ -88,7 +88,7 @@ def build_image_from_context(
             dockerfile=dockerfile,
             tag=image_ref,
             rm=True,
-            decode=False,  # Get raw bytes, we'll decode them ourselves
+            decode=False,
         )
         
         logger.info(f"Docker build() returned successfully for {image_ref}")

@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, Field, model_validator, ConfigDict
 from datetime import datetime
 from typing import List
 
@@ -30,15 +30,12 @@ class ImageResponse(ImageBase):
     created_at: datetime
     user_id: int
     app_hostname: str
-    
-    class Config:
-        from_attributes = True
-    
+
+    model_config = ConfigDict(from_attributes=True)
 
 class ImageWithContainers(ImageResponse):
     """ Image with its containers nested"""
     
     containers: List[ContainerResponse] = []  
-    
-    class Config:
-        from_attributes = True
+
+    model_config = ConfigDict(from_attributes=True)

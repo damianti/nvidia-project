@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 from typing import Optional, Literal
 from datetime import datetime
 
@@ -20,9 +20,8 @@ class ContainerEventData(BaseModel):
     user_id: Optional[int] = Field(None, description="User ID who owns the container")
     timestamp: Optional[datetime] = Field(None, description="Event timestamp in UTC")
 
-    class Config:
-
-        json_schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "event": "container.created",
                 "container_id": "abc123def456",
@@ -34,3 +33,4 @@ class ContainerEventData(BaseModel):
                 "app_hostname": "myapp.nvidia.com"
             }
         }
+    )

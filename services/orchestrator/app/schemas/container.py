@@ -1,4 +1,4 @@
-from pydantic import  BaseModel, Field
+from pydantic import  BaseModel, Field, ConfigDict
 from typing import Annotated
 from datetime import datetime
 from typing import Optional
@@ -26,6 +26,5 @@ class ContainerResponse(ContainerBase):
     created_at: datetime
     image_id: int
     user_id: int
-    
-    class Config:
-        from_attributes = True 
+
+    model_config = ConfigDict(from_attributes=True)

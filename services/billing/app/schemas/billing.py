@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 from datetime import datetime
 from typing import List, Literal, Optional
 
@@ -19,8 +19,8 @@ class ContainerEventData(BaseModel):
     user_id: Optional[int] = Field(None, description="User ID who owns the container")
     timestamp: Optional[datetime] = Field(None, description="Event timestamp in UTC")
 
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "event": "container.created",
                 "container_id": "abc123def456",
@@ -34,6 +34,7 @@ class ContainerEventData(BaseModel):
                 "timestamp": "2024-01-15T10:30:00Z"
             }
         }
+    )
 
 
 class UsageRecordResponse(BaseModel):
@@ -49,8 +50,7 @@ class UsageRecordResponse(BaseModel):
     cost: Optional[float] = None
     status: str  # "Active" or "Completed"
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class BillingSummaryResponse(BaseModel):
@@ -65,8 +65,8 @@ class BillingSummaryResponse(BaseModel):
     active_containers: int = Field(..., description="Number of currently active containers")
     last_activity: Optional[datetime] = Field(None, description="Last container start/stop time")
 
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "image_id": 456,
                 "total_containers": 5,
@@ -76,6 +76,7 @@ class BillingSummaryResponse(BaseModel):
                 "last_activity": "2024-01-15T11:45:00Z"
             }
         }
+    )
 
 
 
@@ -88,8 +89,8 @@ class BillingDetailResponse(BaseModel):
     summary: BillingSummaryResponse = Field(..., description="Aggregated summary")
     containers: List[UsageRecordResponse] = Field(..., description="List of all container usage records")
 
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "image_id": 456,
                 "summary": {
@@ -113,3 +114,4 @@ class BillingDetailResponse(BaseModel):
                 ]
             }
         }
+    )

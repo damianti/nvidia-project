@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 from typing import List, Optional
 from datetime import datetime 
 
@@ -17,8 +17,9 @@ class ServiceInfo(BaseModel):
     app_hostname: Optional[str] = Field(None, description="App hostname identifier extracted from tags")
     user_id: Optional[int] = Field(None, description="user id")
     timestamp: Optional[datetime] = Field(default=None,description="Timestamp in UTC")
-    class Config:
-        json_schema_extra = {
+
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "container_id": "abc123def456",
                 "container_ip": "172.18.0.10",
@@ -30,3 +31,4 @@ class ServiceInfo(BaseModel):
                 "app_hostname": "example.com"
             }
         }
+    )

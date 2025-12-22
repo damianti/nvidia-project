@@ -7,11 +7,6 @@ from fastapi import HTTPException
 from sqlalchemy.orm import Session
 from pydantic import ValidationError
 
-# Mock psycopg2 before importing models
-import sys
-sys.modules['psycopg2'] = MagicMock()
-sys.modules['confluent_kafka'] = MagicMock()
-
 from app.application.services.container_service import (
     create_containers,
     start_container,
@@ -95,6 +90,7 @@ class TestCreateContainers:
             ContainerCreate(name="test-container", count=11, image_id=1)
 
 
+@pytest.mark.unit
 class TestStartContainer:
     """Tests for start_container function."""
     
@@ -166,6 +162,7 @@ class TestStartContainer:
         assert "already running" in str(exc_info.value.detail).lower()
 
 
+@pytest.mark.unit
 class TestStopContainer:
     """Tests for stop_container function."""
     
@@ -231,6 +228,7 @@ class TestStopContainer:
         assert "already stopped" in str(exc_info.value.detail).lower()
 
 
+@pytest.mark.unit
 class TestDeleteContainer:
     """Tests for delete_container function."""
     

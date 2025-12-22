@@ -5,12 +5,15 @@ import pytest
 from unittest.mock import Mock, patch
 from fastapi import HTTPException
 from sqlalchemy.orm import Session
+from pydantic import ValidationError
 
 
 from app.application.services.image_service import (
     create_image_from_upload,
     get_image_by_id,
-    delete_image
+    delete_image,
+    get_all_images,
+    get_all_images_with_containers
 )
 from tests.fixtures.image_fixtures import image_create_factory
 from tests.helpers.mocks import make_docker_build_fail
@@ -168,6 +171,33 @@ class TestDeleteImage:
         
         assert exc_info.value.status_code == 400
         assert "running" in str(exc_info.value.detail).lower()
+    
+    @patch('app.application.services.image_service.get_image_by_id')
+    @patch('app.application.services.image_service.containers_repository')
+    def test_delete_image_with_stopped_containers(self, mock_containers_repo, mock_get_image):
+        """Test image deletion succeeds when containers are stopped."""
+        # Setup mocks
+        mock_image = Mock(spec=Image)
+        mock_image.id = 1
+        mock_image.app_hostname = "example.com"
+        mock_get_image.return_value = mock_image
+        
+        # Containers exist but are stopped
+        mock_container = Mock()
+        mock_container.status = ContainerStatus.STOPPED
+        mock_containers_repo.get_containers_by_image_id.return_value = [mock_container]
+        
+        db = Mock(spec=Session)
+        db.delete = Mock()
+        db.commit = Mock()
+        
+        # Test - should succeed because containers are stopped
+        delete_image(db, image_id=1, user_id=1)
+        
+        # Assertions
+        mock_get_image.assert_called_once_with(db, 1, 1)
+        db.delete.assert_called_once_with(mock_image)
+        db.commit.assert_called_once()
 
 
 @pytest.mark.unit
@@ -195,7 +225,6 @@ class TestCreateImageFromUploadBuildFailure:
         assert "failed to create image" in str(exc_info.value.detail).lower()
         assert "docker build failed" in str(exc_info.value.detail).lower()
 
-        # 8) Afirmaciones sobre el flujo
         mock_prepare.assert_called_once()
         mock_build.assert_called_once_with("/tmp/root/context", "nvidia-app-u1-i1", "latest")
         
@@ -203,3 +232,120 @@ class TestCreateImageFromUploadBuildFailure:
 
 
 
+@pytest.mark.unit
+class TestGetAllImages:
+    """Tests for get_all_images function."""
+    
+    @patch('app.application.services.image_service.images_repository')
+    def test_get_all_images_success(self, mock_repo):
+        """Test successful retrieval of all images for a user."""
+        # Setup: mock repository returns a list of images
+        mock_images = [
+            Mock(spec=Image, id=1, name="app1", app_hostname="app1.com"),
+            Mock(spec=Image, id=2, name="app2", app_hostname="app2.com"),
+        ]
+        mock_repo.get_all_images.return_value = mock_images
+        
+        db = Mock(spec=Session)
+        result = get_all_images(db, user_id=1)
+        
+        # Assertions
+        assert result == mock_images
+        assert len(result) == 2
+        mock_repo.get_all_images.assert_called_once_with(db, 1)
+    
+    @patch('app.application.services.image_service.images_repository')
+    def test_get_all_images_empty(self, mock_repo):
+        """Test when user has no images."""
+        mock_repo.get_all_images.return_value = []
+        
+        db = Mock(spec=Session)
+        result = get_all_images(db, user_id=1)
+        
+        assert result == []
+        assert len(result) == 0
+        mock_repo.get_all_images.assert_called_once_with(db, 1)
+
+
+@pytest.mark.unit
+class TestGetAllImagesWithContainers:
+    """Tests for get_all_images_with_containers function."""
+    
+    @patch('app.application.services.image_service.images_repository')
+    def test_get_all_images_with_containers_success(self, mock_repo):
+        """Test successful retrieval of images with containers."""
+        mock_image1 = Mock(spec=Image, id=1, name="app1", app_hostname="app1.com")
+        mock_image1.containers = [Mock(id=1), Mock(id=2)]
+        mock_image2 = Mock(spec=Image, id=2, name="app2", app_hostname="app2.com")
+        mock_image2.containers = []
+        
+        mock_images = [mock_image1, mock_image2]
+        mock_repo.get_all_images_with_containers.return_value = mock_images
+        
+        db = Mock(spec=Session)
+        result = get_all_images_with_containers(db, user_id=1)
+        
+        assert result == mock_images
+        assert len(result) == 2
+        mock_repo.get_all_images_with_containers.assert_called_once_with(db, 1)
+    
+    @patch('app.application.services.image_service.images_repository')
+    def test_get_all_images_with_containers_empty(self, mock_repo):
+        """Test when user has no images."""
+        mock_repo.get_all_images_with_containers.return_value = []
+        
+        db = Mock(spec=Session)
+        result = get_all_images_with_containers(db, user_id=1)
+        
+        assert result == []
+        assert len(result) == 0
+        mock_repo.get_all_images_with_containers.assert_called_once_with(db, 1)
+
+
+@pytest.mark.unit
+class TestImageCreateValidation:
+    """Tests for ImageCreate schema validation."""
+    
+    def test_container_port_valid_range(self):
+        """Test that valid container ports (1-65535) are accepted."""
+        # Valid ports
+        valid_data = image_create_factory(container_port=8080)
+        assert valid_data.container_port == 8080
+        
+        valid_data = image_create_factory(container_port=1)
+        assert valid_data.container_port == 1
+        
+        valid_data = image_create_factory(container_port=65535)
+        assert valid_data.container_port == 65535
+    
+    def test_container_port_invalid_too_low(self):
+        """Test that container_port < 1 is rejected."""
+        with pytest.raises(ValidationError) as exc_info:
+            image_create_factory(container_port=0)
+        
+        errors = exc_info.value.errors()
+        assert any(error['loc'] == ('container_port',) for error in errors)
+    
+    def test_container_port_invalid_too_high(self):
+        """Test that container_port > 65535 is rejected."""
+        with pytest.raises(ValidationError) as exc_info:
+            image_create_factory(container_port=65536)
+        
+        errors = exc_info.value.errors()
+        assert any(error['loc'] == ('container_port',) for error in errors)
+    
+    def test_min_instances_greater_than_max_instances(self):
+        """Test that min_instances > max_instances is rejected."""
+        with pytest.raises(ValidationError) as exc_info:
+            image_create_factory(min_instances=5, max_instances=3)
+        
+        errors = exc_info.value.errors()
+        # The validator raises ValueError, which Pydantic converts to ValidationError
+        assert len(errors) > 0
+        assert "min_instances must be <= max_instances" in str(exc_info.value)
+    
+    def test_min_instances_equal_to_max_instances(self):
+        """Test that min_instances == max_instances is valid."""
+        valid_data = image_create_factory(min_instances=3, max_instances=3)
+        assert valid_data.min_instances == 3
+        assert valid_data.max_instances == 3

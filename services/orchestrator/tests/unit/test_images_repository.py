@@ -2,7 +2,7 @@
 Unit tests for images_repository.
 """
 import pytest
-from unittest.mock import Mock, MagicMock
+from unittest.mock import Mock
 from sqlalchemy.orm import Session
 
 from app.repositories import images_repository

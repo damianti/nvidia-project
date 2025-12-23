@@ -3,7 +3,7 @@ Unit tests for kafka_producer service.
 """
 import pytest
 import os
-from unittest.mock import Mock, patch, MagicMock
+from unittest.mock import Mock, patch
 
 from app.services.kafka_producer import KafkaProducerSingleton
 
@@ -29,7 +29,7 @@ class TestKafkaProducerSingleton:
         """Test that __init__ configures producer correctly."""
         KafkaProducerSingleton._instance = None
         
-        instance = KafkaProducerSingleton.instance()
+        KafkaProducerSingleton.instance()
         
         # Verify Producer was called with correct config
         mock_producer_class.assert_called_once()
@@ -47,7 +47,7 @@ class TestKafkaProducerSingleton:
         """Test that __init__ uses default config when env vars not set."""
         KafkaProducerSingleton._instance = None
         
-        instance = KafkaProducerSingleton.instance()
+        KafkaProducerSingleton.instance()
         
         call_args = mock_producer_class.call_args[0][0]
         assert call_args["bootstrap.servers"] == "kafka:9092"

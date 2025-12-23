@@ -7,7 +7,7 @@ import os
 import tarfile
 import zipfile
 from pathlib import Path
-from unittest.mock import Mock, AsyncMock, patch, MagicMock
+from unittest.mock import AsyncMock, patch
 from fastapi import HTTPException, UploadFile
 
 from app.services.build_context import (

@@ -4,7 +4,7 @@ Unit tests for database configuration.
 import pytest
 import os
 import sys
-from unittest.mock import patch, Mock
+from unittest.mock import patch
 
 
 @pytest.mark.unit

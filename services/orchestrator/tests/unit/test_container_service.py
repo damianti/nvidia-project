@@ -2,7 +2,7 @@
 Unit tests for container service.
 """
 import pytest
-from unittest.mock import Mock, patch, MagicMock
+from unittest.mock import Mock, patch
 from fastapi import HTTPException
 from sqlalchemy.orm import Session
 from pydantic import ValidationError

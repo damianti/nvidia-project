@@ -3,7 +3,7 @@ Unit tests for docker_service.
 """
 import pytest
 import json
-from unittest.mock import Mock, patch, MagicMock
+from unittest.mock import Mock, patch
 from fastapi import HTTPException
 from docker.errors import APIError, BuildError, DockerException
 from docker.models.containers import Container

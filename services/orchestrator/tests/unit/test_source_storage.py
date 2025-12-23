@@ -6,7 +6,6 @@ import tempfile
 import os
 import tarfile
 import zipfile
-from pathlib import Path
 from fastapi import HTTPException
 
 from app.services.source_storage import safe_extract_tar, safe_extract_zip, _is_within_directory

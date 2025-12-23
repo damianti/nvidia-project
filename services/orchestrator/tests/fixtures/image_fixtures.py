@@ -1,5 +1,6 @@
 from app.schemas.image import ImageCreate
 
+
 def image_create_factory(**overrides):
     """Factory para crear objetos ImageCreate de prueba."""
     base = dict(
@@ -16,6 +17,7 @@ def image_create_factory(**overrides):
     base.update(overrides)
     return ImageCreate(**base)
 
+
 def image_model_factory(**overrides):
     """
     Factory para crear objetos Image (SQLAlchemy) de prueba.
@@ -23,7 +25,7 @@ def image_model_factory(**overrides):
     """
     # Import lazy: solo cuando se necesita, después de que el mock esté activo
     from app.database.models import Image
-    
+
     base = dict(
         id=1,
         name="myapp",
@@ -41,4 +43,3 @@ def image_model_factory(**overrides):
     # Image es SQLAlchemy; crea una instancia cruda
     img = Image(**{k: v for k, v in base.items() if hasattr(Image, k)})
     return img
-

@@ -13,6 +13,7 @@ from app.application.services import image_service, container_service
 logger = logging.getLogger("orchestrator")
 router = APIRouter(tags=["images"])
 
+
 @router.post("/", response_model=ImageResponse)
 async def create_image(
     name: str = Form(...),
@@ -28,11 +29,11 @@ async def create_image(
     user_id: int = Depends(get_user_id),
 ):
     """Create a new Docker image from uploaded build context.
-    
+
     Accepts a multipart/form-data upload containing:
     - file: Archive (.tar.gz or .zip) with Dockerfile and build context
     - Metadata: name, tag, app_hostname, resource limits, etc.
-    
+
     Returns:
         ImageResponse with creation status and details
     """
@@ -45,9 +46,9 @@ async def create_image(
             "upload_filename": file.filename,
             "content_type": file.content_type,
             "user_id": user_id,
-        }
+        },
     )
-    
+
     data = ImageCreate(
         user_id=user_id,
         name=name,
@@ -69,29 +70,27 @@ async def create_image(
 
 @router.get("/", response_model=List[ImageResponse], summary="List all images")
 async def list_images(
-    db: Session = Depends(get_db),
-    user_id: int = Depends(get_user_id)
+    db: Session = Depends(get_db), user_id: int = Depends(get_user_id)
 ):
     """List all registered images"""
     return image_service.get_all_images(db, user_id)
 
 
-
-@router.get("/with-containers", response_model=List[ImageWithContainers], summary="List images with their containers")
+@router.get(
+    "/with-containers",
+    response_model=List[ImageWithContainers],
+    summary="List images with their containers",
+)
 async def list_images_with_containers(
-    db: Session = Depends(get_db),
-    user_id: int = Depends(get_user_id)
+    db: Session = Depends(get_db), user_id: int = Depends(get_user_id)
 ):
     """List all images with their containers for the current user"""
     return image_service.get_all_images_with_containers(db, user_id)
-    
 
 
 @router.get("/{image_id}", response_model=ImageResponse, summary="Get image details")
 async def get_image(
-    image_id: int,
-    db: Session = Depends(get_db),
-    user_id: int = Depends(get_user_id)
+    image_id: int, db: Session = Depends(get_db), user_id: int = Depends(get_user_id)
 ):
     """Get a specific image"""
     return image_service.get_image_by_id(db, image_id, user_id)
@@ -107,22 +106,22 @@ async def get_image_build_logs(
     return {"build_logs": image.build_logs or ""}
 
 
-@router.get("/{image_id}/containers", response_model=List[ContainerResponse], summary="Get containers for an image")
+@router.get(
+    "/{image_id}/containers",
+    response_model=List[ContainerResponse],
+    summary="Get containers for an image",
+)
 async def list_image_containers(
-    image_id: int,
-    db: Session = Depends(get_db),
-    user_id: int = Depends(get_user_id)
+    image_id: int, db: Session = Depends(get_db), user_id: int = Depends(get_user_id)
 ):
     """List containers for a specific image"""
     return container_service.get_containers_of_image(db, user_id, image_id)
-    
+
 
 @router.delete("/{image_id}", summary="Delete an image")
-async def delete_image(image_id: int,
-    db: Session = Depends(get_db),
-    user_id: int = Depends(get_user_id)
+async def delete_image(
+    image_id: int, db: Session = Depends(get_db), user_id: int = Depends(get_user_id)
 ):
     """Delete an image"""
     image_service.delete_image(db, image_id, user_id)
     return {"message": f"Image {image_id} deleted successfully"}
-

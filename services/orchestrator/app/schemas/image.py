@@ -4,6 +4,7 @@ from typing import List
 
 from app.schemas.container import ContainerResponse
 
+
 # Image schemas
 class ImageBase(BaseModel):
     name: str
@@ -21,8 +22,10 @@ class ImageBase(BaseModel):
             raise ValueError("min_instances must be <= max_instances")
         return self
 
+
 class ImageCreate(ImageBase):
     user_id: int
+
 
 class ImageResponse(ImageBase):
     id: int
@@ -33,9 +36,10 @@ class ImageResponse(ImageBase):
 
     model_config = ConfigDict(from_attributes=True)
 
+
 class ImageWithContainers(ImageResponse):
-    """ Image with its containers nested"""
-    
-    containers: List[ContainerResponse] = []  
+    """Image with its containers nested"""
+
+    containers: List[ContainerResponse] = []
 
     model_config = ConfigDict(from_attributes=True)

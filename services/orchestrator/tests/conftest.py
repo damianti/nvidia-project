@@ -7,6 +7,7 @@ This module provides:
 - Application setup fixtures
 - Common test utilities
 """
+
 import sys
 import os
 from typing import Dict, Any
@@ -14,12 +15,12 @@ from unittest.mock import MagicMock, Mock
 import pytest
 
 # Set DATABASE_URL before any imports that might need it
-os.environ.setdefault('DATABASE_URL', 'postgresql://test:test@localhost:5432/testdb')
+os.environ.setdefault("DATABASE_URL", "postgresql://test:test@localhost:5432/testdb")
 
 
 def pytest_configure(config):
     """Hook that runs before test modules are imported.
-    
+
     Args:
         config: Pytest configuration object
     """
@@ -31,7 +32,7 @@ def pytest_configure(config):
 @pytest.fixture
 def db_session_mock() -> Mock:
     """Fixture providing a mock SQLAlchemy database session.
-    
+
     Returns:
         Mock: A mock database session with common methods (commit, rollback, etc.)
     """
@@ -49,7 +50,7 @@ def db_session_mock() -> Mock:
 @pytest.fixture
 def test_user_id() -> int:
     """Fixture providing a test user ID.
-    
+
     Returns:
         int: Test user ID (1)
     """
@@ -59,7 +60,7 @@ def test_user_id() -> int:
 @pytest.fixture
 def sample_image_data() -> Dict[str, Any]:
     """Fixture providing sample image creation data.
-    
+
     Returns:
         Dict[str, Any]: Dictionary with image creation parameters
     """
@@ -78,7 +79,7 @@ def sample_image_data() -> Dict[str, Any]:
 @pytest.fixture
 def sample_image_file() -> tuple:
     """Fixture providing a sample image file for upload.
-    
+
     Returns:
         tuple: (filename, content, content_type) for multipart upload
     """
@@ -88,7 +89,7 @@ def sample_image_file() -> tuple:
 @pytest.fixture
 def sample_container_data() -> Dict[str, Any]:
     """Fixture providing sample container creation data.
-    
+
     Returns:
         Dict[str, Any]: Dictionary with container creation parameters
     """
@@ -102,7 +103,7 @@ def sample_container_data() -> Dict[str, Any]:
 @pytest.fixture
 def invalid_image_data() -> Dict[str, Any]:
     """Fixture providing invalid image creation data for error testing.
-    
+
     Returns:
         Dict[str, Any]: Dictionary with invalid parameters (negative port, invalid limits)
     """

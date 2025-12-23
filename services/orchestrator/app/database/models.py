@@ -10,6 +10,7 @@ class PortStatus(enum.Enum):
     ASSIGNED = "assigned"
     RESERVED = "reserved"
 
+
 class ContainerStatus(enum.Enum):
     RUNNING = "running"
     STOPPED = "stopped"
@@ -17,6 +18,7 @@ class ContainerStatus(enum.Enum):
 
 class Base(DeclarativeBase):
     pass
+
 
 class Image(Base):
     __tablename__ = "images"
@@ -35,10 +37,10 @@ class Image(Base):
     build_logs: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
     user_id: Mapped[int] = mapped_column(Integer, nullable=False)
-    
+
     # Relationship with containers
     containers: Mapped[List["Container"]] = relationship(back_populates="image")
-    
+
 
 class Container(Base):
     __tablename__ = "containers"
@@ -49,16 +51,18 @@ class Container(Base):
     name: Mapped[str] = mapped_column(String(255), nullable=False)
     internal_port: Mapped[int] = mapped_column(Integer, nullable=False, default=8080)
     external_port: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
-    status: Mapped[str] = mapped_column(Enum(ContainerStatus, name="container_status_enum"), default=ContainerStatus.RUNNING)
+    status: Mapped[str] = mapped_column(
+        Enum(ContainerStatus, name="container_status_enum"),
+        default=ContainerStatus.RUNNING,
+    )
     cpu_usage: Mapped[str] = mapped_column(String(50), default="0.0")
     memory_usage: Mapped[str] = mapped_column(String(50), default="0m")
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
     user_id: Mapped[int] = mapped_column(Integer, nullable=False)
-    
+
     # Relationship with images
     image_id: Mapped[int] = mapped_column(Integer, ForeignKey("images.id"))
     image: Mapped["Image"] = relationship(back_populates="containers")
-
 
 
 class Billing(Base):

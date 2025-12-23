@@ -3,10 +3,12 @@ import tarfile
 import zipfile
 from fastapi import HTTPException
 
+
 def _is_within_directory(directory: str, target: str) -> bool:
     directory = os.path.realpath(directory)
     target = os.path.realpath(target)
     return os.path.commonpath([directory]) == os.path.commonpath([directory, target])
+
 
 def safe_extract_tar(tar_path: str, dest_dir: str) -> None:
     with tarfile.open(tar_path, "r:*") as tar:
@@ -15,6 +17,7 @@ def safe_extract_tar(tar_path: str, dest_dir: str) -> None:
             if not _is_within_directory(dest_dir, target_path):
                 raise HTTPException(status_code=400, detail="Invalid tar: unsafe path")
         tar.extractall(dest_dir)
+
 
 def safe_extract_zip(zip_path: str, dest_dir: str) -> None:
     with zipfile.ZipFile(zip_path) as z:

@@ -1,5 +1,6 @@
 from app.schemas.container import ContainerCreate
 
+
 def container_create_factory(**overrides):
     """Factory para crear objetos ContainerCreate de prueba."""
     base = dict(
@@ -10,6 +11,7 @@ def container_create_factory(**overrides):
     base.update(overrides)
     return ContainerCreate(**base)
 
+
 def container_model_factory(**overrides):
     """
     Factory para crear objetos Container (SQLAlchemy) de prueba.
@@ -17,7 +19,7 @@ def container_model_factory(**overrides):
     """
     # Import lazy: solo cuando se necesita, después de que el mock esté activo
     from app.database.models import Container, ContainerStatus
-    
+
     base = dict(
         id=1,
         container_id="docker-id-123",

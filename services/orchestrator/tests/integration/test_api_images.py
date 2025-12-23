@@ -167,7 +167,6 @@ class TestImagesEndpoints:
             sample_image_file: Fixture with test file
         """
         # Arrange
-        from fastapi import HTTPException
         mock_create.side_effect = HTTPException(
             status_code=500,
             detail="Database connection failed"
@@ -308,7 +307,6 @@ class TestImagesEndpoints:
             mock_get_image: Mocked image service get_by_id function
         """
         # Arrange
-        from fastapi import HTTPException
         mock_get_image.side_effect = HTTPException(
             status_code=404,
             detail="Image not found"
@@ -409,7 +407,6 @@ class TestImagesEndpoints:
             mock_delete: Mocked image service delete function
         """
         # Arrange
-        from fastapi import HTTPException
         mock_delete.side_effect = HTTPException(
             status_code=404,
             detail="Image not found"

@@ -3,7 +3,6 @@ Integration tests for main application.
 """
 import pytest
 import os
-from unittest.mock import Mock, patch
 from fastapi.testclient import TestClient
 
 # Set DATABASE_URL before importing app

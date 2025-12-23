@@ -9,10 +9,9 @@ This module provides:
 """
 import sys
 import os
-from typing import Generator, Dict, Any, List
+from typing import Dict, Any
 from unittest.mock import MagicMock, Mock
 import pytest
-from fastapi.testclient import TestClient
 
 # Set DATABASE_URL before any imports that might need it
 os.environ.setdefault('DATABASE_URL', 'postgresql://test:test@localhost:5432/testdb')

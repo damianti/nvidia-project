@@ -317,7 +317,7 @@ def run_container(
                     _retry_docker_operation(lambda: container.remove())
                 except Exception:
                     pass  # Ignore remove failures in cleanup
-            except:
+            except Exception:
                 pass
             raise HTTPException(
                 status_code=500,
@@ -342,7 +342,7 @@ def run_container(
                     _retry_docker_operation(lambda: container.remove())
                 except Exception:
                     pass  # Ignore remove failures in cleanup
-            except:
+            except Exception:
                 pass
             raise HTTPException(
                 status_code=500,
@@ -427,7 +427,7 @@ def delete_container(container_docker_id: str) -> bool:
         
         try:
             container.stop()
-        except:
+        except Exception:
             pass
         _retry_docker_operation(
             lambda: container.remove()

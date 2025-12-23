@@ -1,5 +1,3 @@
-import os
-import psycopg2
 import enum
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 from sqlalchemy import String, Integer, DateTime, ForeignKey, Float, Enum, Text

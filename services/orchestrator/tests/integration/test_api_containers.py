@@ -10,7 +10,7 @@ This module implements comprehensive integration tests following QA best practic
 """
 import pytest
 import os
-from typing import Dict, Any, List
+from typing import Dict, Any
 from unittest.mock import Mock, patch
 from fastapi import HTTPException
 from fastapi.testclient import TestClient
@@ -21,7 +21,7 @@ os.environ.setdefault('DATABASE_URL', 'postgresql://test:test@localhost:5432/tes
 from app.main import app
 from app.utils.dependencies import get_user_id
 from app.database.config import get_db
-from app.schemas.container import ContainerResponse, ContainerCreate
+from app.schemas.container import ContainerResponse
 
 
 @pytest.mark.integration

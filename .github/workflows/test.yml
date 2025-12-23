@@ -10,21 +10,6 @@ jobs:
   test:
     runs-on: ubuntu-latest
 
-    services:
-      postgres:
-        image: postgres:15
-        env:
-          POSTGRES_USER: ${{ secrets.PG_USER }}
-          POSTGRES_PASSWORD: ${{ secrets.PG_PASSWORD }}
-          POSTGRES_DB: ${{ secrets.PG_DB }}
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-        ports:
-          - 5432:5432
-
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
@@ -52,6 +37,4 @@ jobs:
 
       - name: Run tests
         working-directory: ./services/orchestrator
-        env:
-          DATABASE_URL: postgresql://test_user:test_password@localhost:5432/test_db
         run: pytest tests/ --cov=app --cov-report=xml

@@ -317,12 +317,12 @@ class TestGetExternalPort:
         mock_container = Mock(spec=Container)
         mock_container.id = "container-123"
         mock_container.name = "test-container"
+        # Use an invalid port value that will cause ValueError when converted to int
         mock_container.attrs = {
             "NetworkSettings": {"Ports": {"8080/tcp": [{"HostPort": "invalid"}]}}
         }
-        # Mock int() to raise ValueError
-        with patch("builtins.int", side_effect=ValueError("invalid literal")):
-            result = get_external_port(mock_container, 8080)
+        # The ValueError should be caught and None returned
+        result = get_external_port(mock_container, 8080)
 
         assert result is None
 

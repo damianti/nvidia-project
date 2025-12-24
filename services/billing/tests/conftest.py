@@ -7,21 +7,21 @@ This module provides:
 - Application setup fixtures
 - Common test utilities
 """
+
 import sys
 import os
-from typing import Generator, Dict, Any, List
+from typing import Dict, Any
 from unittest.mock import MagicMock, Mock
 from datetime import datetime, timezone, timedelta
 import pytest
-from fastapi.testclient import TestClient
 
 # Set DATABASE_URL before any imports that might need it
-os.environ.setdefault('DATABASE_URL', 'postgresql://test:test@localhost:5432/testdb')
+os.environ.setdefault("DATABASE_URL", "postgresql://test:test@localhost:5432/testdb")
 
 
 def pytest_configure(config):
     """Hook that runs before test modules are imported.
-    
+
     Args:
         config: Pytest configuration object
     """
@@ -33,7 +33,7 @@ def pytest_configure(config):
 @pytest.fixture
 def db_session_mock() -> Mock:
     """Fixture providing a mock SQLAlchemy database session.
-    
+
     Returns:
         Mock: A mock database session with common methods (commit, rollback, etc.)
     """
@@ -52,7 +52,7 @@ def db_session_mock() -> Mock:
 @pytest.fixture
 def test_user_id() -> int:
     """Fixture providing a test user ID.
-    
+
     Returns:
         int: Test user ID (1)
     """
@@ -62,7 +62,7 @@ def test_user_id() -> int:
 @pytest.fixture
 def test_image_id() -> int:
     """Fixture providing a test image ID.
-    
+
     Returns:
         int: Test image ID (1)
     """
@@ -72,7 +72,7 @@ def test_image_id() -> int:
 @pytest.fixture
 def sample_container_event_data() -> Dict[str, Any]:
     """Fixture providing sample container event data.
-    
+
     Returns:
         Dict[str, Any]: Dictionary with container event parameters
     """
@@ -86,19 +86,19 @@ def sample_container_event_data() -> Dict[str, Any]:
         "external_port": 32768,
         "app_hostname": "test.example.com",
         "user_id": 1,
-        "timestamp": datetime.now(timezone.utc)
+        "timestamp": datetime.now(timezone.utc),
     }
 
 
 @pytest.fixture
 def sample_billing_record() -> Mock:
     """Fixture providing a sample billing record mock.
-    
+
     Returns:
         Mock: A mock Billing record with common attributes
     """
     from app.database.models import BillingStatus
-    
+
     record = Mock()
     record.id = 1
     record.user_id = 1
@@ -115,12 +115,12 @@ def sample_billing_record() -> Mock:
 @pytest.fixture
 def sample_active_billing_record() -> Mock:
     """Fixture providing a sample active billing record mock.
-    
+
     Returns:
         Mock: A mock active Billing record
     """
     from app.database.models import BillingStatus
-    
+
     record = Mock()
     record.id = 2
     record.user_id = 1
@@ -137,7 +137,7 @@ def sample_active_billing_record() -> Mock:
 @pytest.fixture
 def sample_billing_summary_response() -> Dict[str, Any]:
     """Fixture providing sample billing summary response data.
-    
+
     Returns:
         Dict[str, Any]: Dictionary with billing summary response structure
     """
@@ -147,14 +147,14 @@ def sample_billing_summary_response() -> Dict[str, Any]:
         "total_minutes": 45,
         "total_cost": 0.45,
         "active_containers": 1,
-        "last_activity": datetime.now(timezone.utc).isoformat()
+        "last_activity": datetime.now(timezone.utc).isoformat(),
     }
 
 
 @pytest.fixture
 def sample_billing_detail_response() -> Dict[str, Any]:
     """Fixture providing sample billing detail response data.
-    
+
     Returns:
         Dict[str, Any]: Dictionary with billing detail response structure
     """
@@ -166,17 +166,19 @@ def sample_billing_detail_response() -> Dict[str, Any]:
             "total_minutes": 45,
             "total_cost": 0.45,
             "active_containers": 1,
-            "last_activity": datetime.now(timezone.utc).isoformat()
+            "last_activity": datetime.now(timezone.utc).isoformat(),
         },
         "containers": [
             {
                 "id": 1,
                 "container_id": "docker-123",
-                "start_time": (datetime.now(timezone.utc) - timedelta(minutes=30)).isoformat(),
+                "start_time": (
+                    datetime.now(timezone.utc) - timedelta(minutes=30)
+                ).isoformat(),
                 "end_time": datetime.now(timezone.utc).isoformat(),
                 "duration_minutes": 30,
                 "cost": 0.30,
-                "status": "Completed"
+                "status": "Completed",
             }
-        ]
+        ],
     }

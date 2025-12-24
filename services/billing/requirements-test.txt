@@ -1,0 +1,12 @@
+fastapi==0.104.1
+sqlalchemy==2.0.23
+pydantic==2.5.0
+
+# Tests use FastAPI TestClient + async code paths
+pytest>=7.4.0
+pytest-asyncio>=0.21.0
+pytest-cov>=4.1.0
+
+black
+ruff
+

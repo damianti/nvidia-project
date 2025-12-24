@@ -26,11 +26,12 @@ tags_metadata = [
     },
 ]
 
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """
     Application lifespan manager.
-    
+
     Creates database tables and starts the Kafka consumer.
     """
     # Startup
@@ -38,9 +39,9 @@ async def lifespan(app: FastAPI):
         "billing.startup",
         extra={
             "service_name": SERVICE_NAME,
-        }
+        },
     )
-    
+
     # Create database tables
     try:
         create_tables()
@@ -48,46 +49,44 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         logger.error(
             "billing.database_tables_creation_failed",
-            extra={
-                "error": str(e),
-                "error_type": type(e).__name__
-            },
-            exc_info=True
+            extra={"error": str(e), "error_type": type(e).__name__},
+            exc_info=True,
         )
         # Don't fail startup - tables might already exist
-    
+
     # Start Kafka consumer
     kafka_consumer = KafkaConsumerService()
     app.state.kafka_consumer = kafka_consumer
-    
+
     kafka_task = asyncio.create_task(kafka_consumer.start())
 
     app.state.kafka_task = kafka_task
-    
+
     yield
-    
+
     # Shutdown
     logger.info(
         "billing.shutdown",
         extra={
             "service_name": SERVICE_NAME,
-        }
+        },
     )
     kafka_consumer.stop()
-    
+
     try:
         await asyncio.wait_for(asyncio.gather(kafka_task), timeout=5.0)
     except asyncio.TimeoutError:
         logger.warning("billing.shutdown_timeout")
         kafka_task.cancel()
-  
+
+
 # Create FastAPI app with lifespan
 app = FastAPI(
     title="NVIDIA Billing Service",
     description="Handles automated billing, invoice management, and cost tracking for user and platform services.",
     version="1.0.0",
     lifespan=lifespan,
-    tags_metadata=tags_metadata
+    tags_metadata=tags_metadata,
 )
 
 app.add_middleware(LoggingMiddleware)
@@ -101,6 +100,7 @@ app.add_middleware(
 )
 
 app.include_router(billing_router, tags=["billing"])
+
 
 @app.get("/health")
 async def health():
@@ -118,19 +118,8 @@ async def metrics(request: Request):
     }
 
 
-
-
-
 if __name__ == "__main__":
     import uvicorn
-    
-    logger.info(
-        "billing.startup",
-        extra={
-            "host": HOST,
-            "port": PORT
-        }
-    )
+
+    logger.info("billing.startup", extra={"host": HOST, "port": PORT})
     uvicorn.run(app, host=HOST, port=PORT)
-
-

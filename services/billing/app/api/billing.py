@@ -14,48 +14,48 @@ logger = logging.getLogger(SERVICE_NAME)
 router = APIRouter(tags=["billing"])
 
 
-@router.get("/images", response_model=List[BillingSummaryResponse], summary="Get billing summaries for all user images")
+@router.get(
+    "/images",
+    response_model=List[BillingSummaryResponse],
+    summary="Get billing summaries for all user images",
+)
 async def get_user_billings(
-    db: Session = Depends(get_db),
-    user_id: int = Depends(get_user_id)
+    db: Session = Depends(get_db), user_id: int = Depends(get_user_id)
 ):
     """
     Get billing summary for all images of the authenticated user.
-    
+
     Returns a list of billing summaries, one per image, with aggregated costs.
     """
     try:
         summaries = get_all_billing_summaries(db, user_id)
         logger.info(
             "billing.summaries_retrieved",
-            extra={
-                "user_id": user_id,
-                "image_count": len(summaries)
-            }
+            extra={"user_id": user_id, "image_count": len(summaries)},
         )
         return summaries
     except Exception as e:
         logger.error(
             "billing.summaries_retrieval_failed",
-            extra={
-                "user_id": user_id,
-                "error": str(e),
-                "error_type": type(e).__name__
-            },
-            exc_info=True
+            extra={"user_id": user_id, "error": str(e), "error_type": type(e).__name__},
+            exc_info=True,
         )
-        raise HTTPException(status_code=500, detail="Failed to retrieve billing summaries")
+        raise HTTPException(
+            status_code=500, detail="Failed to retrieve billing summaries"
+        )
 
 
-@router.get("/images/{image_id}", response_model=BillingDetailResponse, summary="Get detailed billing information for a specific image")
+@router.get(
+    "/images/{image_id}",
+    response_model=BillingDetailResponse,
+    summary="Get detailed billing information for a specific image",
+)
 async def get_image_billing(
-    image_id: int,
-    db: Session = Depends(get_db),
-    user_id: int = Depends(get_user_id)
+    image_id: int, db: Session = Depends(get_db), user_id: int = Depends(get_user_id)
 ):
     """
     Get detailed billing information for a specific image.
-    
+
     Returns detailed billing including summary and list of all container usage records.
     """
     try:
@@ -64,17 +64,17 @@ async def get_image_billing(
         if not records:
             raise HTTPException(
                 status_code=404,
-                detail=f"No billing records found for image {image_id} or image does not belong to user"
+                detail=f"No billing records found for image {image_id} or image does not belong to user",
             )
-        
+
         detail = get_billing_summary(db, user_id, image_id)
         logger.info(
             "billing.detail_retrieved",
             extra={
                 "user_id": user_id,
                 "image_id": image_id,
-                "container_count": len(detail.containers)
-            }
+                "container_count": len(detail.containers),
+            },
         )
         return detail
     except HTTPException:
@@ -86,8 +86,8 @@ async def get_image_billing(
                 "user_id": user_id,
                 "image_id": image_id,
                 "error": str(e),
-                "error_type": type(e).__name__
+                "error_type": type(e).__name__,
             },
-            exc_info=True
+            exc_info=True,
         )
         raise HTTPException(status_code=500, detail="Failed to retrieve billing detail")

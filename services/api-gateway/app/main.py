@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Request
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 import asyncio
@@ -17,7 +17,7 @@ from app.utils.config import (
     ORCHESTRATOR_URL,
     FRONTEND_URL,
     HOST,
-    PORT
+    PORT,
 )
 from app.clients.lb_client import LoadBalancerClient
 from app.clients.orchestrator_client import OrchestratorClient
@@ -41,6 +41,7 @@ tags_metadata = [
     },
 ]
 
+
 # TODO put this function in corresponding file
 async def clear_cache(cached_memory: Cache):
     """Background task that periodically cleans expired entries from the cache"""
@@ -48,30 +49,21 @@ async def clear_cache(cached_memory: Cache):
         try:
             count = cached_memory.clear_expired()
             if count > 0:
-                logger.info(
-                    "cache.cleanup.completed",
-                    extra={
-                        "entries_removed": count
-                    }
-                )
+                logger.info("cache.cleanup.completed", extra={"entries_removed": count})
         except Exception as e:
             logger.error(
                 "cache.cleanup.error",
-                extra={
-                    "error": str(e),
-                    "error_type": type(e).__name__
-                },
-                exc_info=True
+                extra={"error": str(e), "error_type": type(e).__name__},
+                exc_info=True,
             )
-        
+
         await asyncio.sleep(CACHE_CLEANUP_INTERVAL)
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Application lifespan manager"""
-    # Startup    
-    
+    # Startup
 
     logger.info("gateway.starting")
 
@@ -85,22 +77,21 @@ async def lifespan(app: FastAPI):
     task = asyncio.create_task(clear_cache(cache))
     app.state.cleanup_task = task
     yield
-    
+
     # Shutdown
-    if hasattr(app.state, 'cleanup_task'):
+    if hasattr(app.state, "cleanup_task"):
         cleanup_task = app.state.cleanup_task
         cleanup_task.cancel()
         try:
             await cleanup_task
         except asyncio.CancelledError:
             pass
-    
+
     # Close HTTP client
-    if hasattr(app.state, 'http_client'):
+    if hasattr(app.state, "http_client"):
         await app.state.http_client.aclose()
-    
-    logger.info("gateway.shutting_down") 
-    
+
+    logger.info("gateway.shutting_down")
 
 
 # Create FastAPI app with lifespan
@@ -109,7 +100,7 @@ app = FastAPI(
     description="API gateway for cloud services",
     version="1.0.0",
     lifespan=lifespan,
-    tags_metadata=tags_metadata
+    tags_metadata=tags_metadata,
 )
 
 app.add_middleware(LoggingMiddleware)
@@ -123,40 +114,24 @@ app.add_middleware(
 )
 
 
-
 app.include_router(auth_router, prefix="/auth", tags=["auth"])
 app.include_router(proxy_router, tags=["proxy"])
+
 
 @app.get("/")
 async def root():
     """Root endpoint"""
-    return {
-        "message": "NVIDIA API gateway",
-        "version": "1.0.0",
-        "endpoints": {
+    return {"message": "NVIDIA API gateway", "version": "1.0.0", "endpoints": {}}
 
-        }
-    }
 
 @app.get("/health")
 async def health():
     """Health check endpoint"""
-    return {
-        "status": "healthy",
-        "service": "api-gateway"
-    }
+    return {"status": "healthy", "service": "api-gateway"}
 
 
 if __name__ == "__main__":
     import uvicorn
-    
-    logger.info(
-        "gateway.startup",
-        extra={
-            "host": HOST,
-            "port": PORT
-        }
-    )
+
+    logger.info("gateway.startup", extra={"host": HOST, "port": PORT})
     uvicorn.run(app, host=HOST, port=PORT)
-
-

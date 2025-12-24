@@ -1,10 +1,9 @@
 # Gateway Service - High-level orchestration for gateway operations
 import httpx
 import logging
-from typing import Optional
 from fastapi import Request, Response
 
-from app.services.routing_cache import Cache, CacheEntry
+from app.services.routing_cache import Cache
 from app.services.routing_service import resolve_route
 from app.services.proxy_service import proxy_to_container
 from app.utils.http_utils import extract_client_ip, prepare_proxy_headers
@@ -15,6 +14,7 @@ logger = logging.getLogger("api-gateway")
 
 class RouteValidationError(Exception):
     """Raised when route validation fails"""
+
     def __init__(self, message: str, status_code: int = 400):
         self.message = message
         self.status_code = status_code
@@ -81,4 +81,3 @@ async def handle_route_request(
         client_ip=client_ip,
         remaining_path=remaining_path,
     )
-

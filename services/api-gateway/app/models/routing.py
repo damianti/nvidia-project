@@ -10,6 +10,7 @@ class RoutingInfo:
         self.image_id = image_id
         self.ttl = ttl
 
+
 class LbError(Enum):
     NOT_FOUND = "not found"
     NO_CAPACITY = "no capacity"
@@ -19,12 +20,12 @@ class LbError(Enum):
 
 class RouteResult:
     def __init__(
-        self, 
-        ok: bool, 
-        data: Optional[RoutingInfo] = None, 
-        error: Optional[LbError] = None, 
-        status_code: Optional[int] = None, 
-        message: Optional[str] = None
+        self,
+        ok: bool,
+        data: Optional[RoutingInfo] = None,
+        error: Optional[LbError] = None,
+        status_code: Optional[int] = None,
+        message: Optional[str] = None,
     ) -> None:
         self.ok = ok
         self.data = data

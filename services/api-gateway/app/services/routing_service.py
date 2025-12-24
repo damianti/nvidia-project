@@ -18,7 +18,7 @@ def create_cache_entry_from_routing_info(routing_info: RoutingInfo) -> CacheEntr
         target_port=routing_info.target_port,
         container_id=routing_info.container_id,
         image_id=routing_info.image_id,
-        expires_at=expires_at
+        expires_at=expires_at,
     )
 
 
@@ -30,10 +30,10 @@ async def get_routing_info(
     Query Load Balancer for routing information for a given app_hostname.
     """
     result = await lb_client.route(app_hostname)
-    
+
     if result.ok and result.data:
         return result.data
-    
+
     return None
 
 

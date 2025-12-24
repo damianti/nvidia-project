@@ -1,6 +1,7 @@
 """
 Fixtures for authentication-related tests.
 """
+
 from typing import Dict, Any
 import pytest
 
@@ -12,34 +13,31 @@ import httpx
 @pytest.fixture
 def sample_user_data() -> Dict[str, Any]:
     """Fixture providing sample user data for authentication tests.
-    
+
     Returns:
         Dictionary containing user registration/login data.
     """
     return {
         "email": "test@example.com",
         "password": "testpass123",
-        "username": "testuser"
+        "username": "testuser",
     }
 
 
 @pytest.fixture
 def sample_login_request() -> Dict[str, str]:
     """Fixture providing sample login request data.
-    
+
     Returns:
         Dictionary with email and password for login.
     """
-    return {
-        "email": "test@example.com",
-        "password": "testpass123"
-    }
+    return {"email": "test@example.com", "password": "testpass123"}
 
 
 @pytest.fixture
 def sample_user_response() -> Dict[str, Any]:
     """Fixture providing sample user response from auth service.
-    
+
     Returns:
         Dictionary representing a user object with id, email, and username.
     """
@@ -47,14 +45,14 @@ def sample_user_response() -> Dict[str, Any]:
         "id": 1,
         "email": "test@example.com",
         "username": "testuser",
-        "created_at": "2025-01-01T00:00:00"
+        "created_at": "2025-01-01T00:00:00",
     }
 
 
 @pytest.fixture
 def sample_auth_token() -> str:
     """Fixture providing a sample JWT token.
-    
+
     Returns:
         String representing a JWT access token.
     """
@@ -64,7 +62,7 @@ def sample_auth_token() -> str:
 @pytest.fixture
 def mock_auth_client() -> Mock:
     """Fixture providing a mocked AuthClient.
-    
+
     Returns:
         Mock object configured as AuthClient with async methods.
     """
@@ -81,10 +79,10 @@ def mock_auth_client() -> Mock:
 @pytest.fixture
 def mock_successful_auth_response(sample_user_response: Dict[str, Any]) -> Mock:
     """Fixture providing a mocked successful auth service response.
-    
+
     Args:
         sample_user_response: Sample user response data.
-    
+
     Returns:
         Mock httpx.Response with 200 status and user data.
     """
@@ -98,7 +96,7 @@ def mock_successful_auth_response(sample_user_response: Dict[str, Any]) -> Mock:
 @pytest.fixture
 def mock_error_response_400() -> Mock:
     """Fixture providing a mocked 400 Bad Request response.
-    
+
     Returns:
         Mock httpx.Response with 400 status and error detail.
     """
@@ -112,7 +110,7 @@ def mock_error_response_400() -> Mock:
 @pytest.fixture
 def mock_error_response_401() -> Mock:
     """Fixture providing a mocked 401 Unauthorized response.
-    
+
     Returns:
         Mock httpx.Response with 401 status and authentication error.
     """
@@ -126,7 +124,7 @@ def mock_error_response_401() -> Mock:
 @pytest.fixture
 def mock_error_response_404() -> Mock:
     """Fixture providing a mocked 404 Not Found response.
-    
+
     Returns:
         Mock httpx.Response with 404 status and not found error.
     """
@@ -140,7 +138,7 @@ def mock_error_response_404() -> Mock:
 @pytest.fixture
 def mock_error_response_500() -> Mock:
     """Fixture providing a mocked 500 Internal Server Error response.
-    
+
     Returns:
         Mock httpx.Response with 500 status and server error.
     """
@@ -149,4 +147,3 @@ def mock_error_response_500() -> Mock:
     response.headers = {}
     response.json.return_value = {"detail": "Internal server error"}
     return response
-

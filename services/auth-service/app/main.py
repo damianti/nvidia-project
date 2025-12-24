@@ -7,12 +7,7 @@ from .database.config import engine
 from app.api import auth
 from app.middleware.logging import LoggingMiddleware
 from app.utils.logger import setup_logger
-from app.utils.config import (
-    HOST,
-    PORT,
-    SERVICE_NAME,
-    FRONTEND_URL
-)
+from app.utils.config import HOST, PORT, SERVICE_NAME, FRONTEND_URL
 from app.setup import create_default_user_if_needed
 
 logger = setup_logger(SERVICE_NAME)
@@ -29,40 +24,38 @@ tags_metadata = [
     },
 ]
 
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Application lifespan manager"""
-    
+
     logger.info(
         "auth.startup",
         extra={
             "service_name": SERVICE_NAME,
-        }
+        },
     )
     try:
         Base.metadata.create_all(bind=engine)
         # Create default user if no users exist
         create_default_user_if_needed()
-        
+
     except Exception as e:
         logger.error(
             "auth.startup.database_error",
-            extra={
-                "error": str(e),
-                "service_name": SERVICE_NAME
-            }
+            extra={"error": str(e), "service_name": SERVICE_NAME},
         )
         raise
     yield
-    
+
     # Shutdown
     logger.info(
         "auth.shutdown",
         extra={
             "service_name": SERVICE_NAME,
-        }
+        },
     )
-    
+
 
 # Create FastAPI app with lifespan
 app = FastAPI(
@@ -70,7 +63,7 @@ app = FastAPI(
     description="authentication service for cloud services",
     version="1.0.0",
     lifespan=lifespan,
-    tags_metadata=tags_metadata
+    tags_metadata=tags_metadata,
 )
 
 app.add_middleware(LoggingMiddleware)
@@ -97,8 +90,8 @@ async def root():
             "POST /auth/signup": "Register new user",
             "GET /auth/me": "Get current user info",
             "POST /auth/logout": "Logout user",
-            "GET /health": "Health check"
-        }
+            "GET /health": "Health check",
+        },
     }
 
 
@@ -110,15 +103,13 @@ async def health():
 
 if __name__ == "__main__":
     import uvicorn
-    
+
     logger.info(
         "auth.run",
         extra={
             "host": HOST,
             "port": PORT,
             "service_name": SERVICE_NAME,
-        }
+        },
     )
     uvicorn.run(app, host=HOST, port=PORT)
-
-

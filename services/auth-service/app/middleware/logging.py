@@ -10,14 +10,13 @@ logger = setup_logger(SERVICE_NAME)
 
 
 class LoggingMiddleware(BaseHTTPMiddleware):
-    async def dispatch (self, request: Request, call_next):
-        
+    async def dispatch(self, request: Request, call_next):
+
         correlation_id = request.headers.get("X-Correlation-ID")
         if not correlation_id:
             correlation_id = uuid.uuid4().hex
-            
+
         correlation_id_var.set(correlation_id)
-            
 
         logger.info(
             "request.received",
@@ -27,14 +26,13 @@ class LoggingMiddleware(BaseHTTPMiddleware):
                 "query_params": str(request.url.query) if request.url.query else None,
                 "client_ip": request.client.host if request.client else None,
                 "service_name": SERVICE_NAME,
-            }
+            },
         )
 
         start = time.time()
         try:
             response = await call_next(request)
-            
-            
+
             response.headers["X-Correlation-ID"] = correlation_id
 
             process_time = (time.time() - start) * 1000
@@ -46,9 +44,9 @@ class LoggingMiddleware(BaseHTTPMiddleware):
                     "status_code": response.status_code,
                     "process_time_ms": round(process_time, 2),
                     "service_name": SERVICE_NAME,
-                }
+                },
             )
-            
+
             return response
         except Exception as e:
             process_time = (time.time() - start) * 1000
@@ -62,6 +60,6 @@ class LoggingMiddleware(BaseHTTPMiddleware):
                     "process_time_ms": round(process_time, 2),
                     "service_name": SERVICE_NAME,
                 },
-                exc_info=True
+                exc_info=True,
             )
-            raise 
+            raise

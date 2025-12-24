@@ -6,8 +6,9 @@ from sqlalchemy import inspect
 
 logger = setup_logger(SERVICE_NAME)
 
+
 def create_tables():
-    """Create all tables in the database """
+    """Create all tables in the database"""
 
     try:
         Base.metadata.create_all(bind=engine)
@@ -19,8 +20,8 @@ def create_tables():
             extra={
                 "event": "database.tables.created",
                 "tables": tables,
-                "table_count": len(tables)
-            }
+                "table_count": len(tables),
+            },
         )
     except Exception as e:
         logger.error(
@@ -28,11 +29,12 @@ def create_tables():
             extra={
                 "event": "database.tables.create_error",
                 "error": str(e),
-                "error_type": type(e).__name__
+                "error_type": type(e).__name__,
             },
-            exc_info=True
+            exc_info=True,
         )
         raise
 
+
 if __name__ == "__main__":
-    create_tables() 
+    create_tables()

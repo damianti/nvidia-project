@@ -1,10 +1,11 @@
 """
 Shared fixtures for auth-service tests.
 """
+
 import os
-from typing import Generator, AsyncGenerator
+from typing import Generator
 from datetime import datetime
-from unittest.mock import Mock, MagicMock, patch
+from unittest.mock import Mock, MagicMock
 import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
@@ -61,12 +62,13 @@ def override_get_db(db_session: Session):
     """
     Fixture that overrides the get_db dependency to use the test database.
     """
+
     def _get_db():
         try:
             yield db_session
         finally:
             pass
-    
+
     app.dependency_overrides[get_db] = _get_db
     yield db_session
     app.dependency_overrides.clear()
@@ -88,7 +90,7 @@ def sample_user_data() -> dict:
     return {
         "username": "testuser",
         "email": "test@example.com",
-        "password": "testpassword123"
+        "password": "testpassword123",
     }
 
 
@@ -98,10 +100,9 @@ def sample_user_create():
     Fixture that provides a test UserCreate object.
     """
     from app.schemas.user import UserCreate
+
     return UserCreate(
-        username="testuser",
-        email="test@example.com",
-        password="testpassword123"
+        username="testuser", email="test@example.com", password="testpassword123"
     )
 
 
@@ -111,10 +112,8 @@ def sample_login_request():
     Fixture that provides a test LoginRequest object.
     """
     from app.schemas.user import LoginRequest
-    return LoginRequest(
-        email="test@example.com",
-        password="testpassword123"
-    )
+
+    return LoginRequest(email="test@example.com", password="testpassword123")
 
 
 @pytest.fixture(autouse=True)
@@ -124,21 +123,22 @@ def mock_passlib(monkeypatch):
     Runs automatically for all tests.
     """
     from app.utils import passwords
-    from unittest.mock import MagicMock
-    
+
     # Create mock of passlib context
     mock_pwd_context = MagicMock()
-    
+
     # Simulated valid bcrypt hash for tests
     # This hash will be used for all passwords in tests
-    test_hash = "$2b$12$hashedpassword1234567890123456789012345678901234567890123456789012"
-    
+    test_hash = (
+        "$2b$12$hashedpassword1234567890123456789012345678901234567890123456789012"
+    )
+
     # Configure mock for hash
     def mock_hash(password: str) -> str:
         # Return the same hash for all passwords in tests
         # In real tests, this can be adjusted
         return test_hash
-    
+
     # Configure mock for verify
     def mock_verify(plain: str, hashed: str) -> bool:
         # If the hash is test_hash and password is one of the known ones, return True
@@ -147,12 +147,12 @@ def mock_passlib(monkeypatch):
             if plain in ["testpassword123", "password123", "securepass123", "pass123"]:
                 return True
         return False
-    
+
     mock_pwd_context.hash.side_effect = mock_hash
     mock_pwd_context.verify.side_effect = mock_verify
-    
+
     # Replace pwd_context in passwords module
-    monkeypatch.setattr(passwords, 'pwd_context', mock_pwd_context)
+    monkeypatch.setattr(passwords, "pwd_context", mock_pwd_context)
 
 
 @pytest.fixture
@@ -161,12 +161,12 @@ def sample_user(db_session: Session) -> User:
     Fixture that creates and returns a test user in the database.
     """
     from app.utils import passwords
-    
+
     user = User(
         username="testuser",
         email="test@example.com",
         password=passwords.get_password_hash("testpassword123"),
-        created_at=datetime.now()
+        created_at=datetime.now(),
     )
     db_session.add(user)
     db_session.commit()
@@ -196,7 +196,7 @@ def invalid_user_data() -> dict:
     return {
         "username": "",
         "email": "invalid-email",
-        "password": "123"  # Password muy corto
+        "password": "123",  # Password muy corto
     }
 
 
@@ -205,10 +205,7 @@ def non_existent_user_data() -> dict:
     """
     Fixture that provides user data that doesn't exist in the database.
     """
-    return {
-        "email": "nonexistent@example.com",
-        "password": "somepassword123"
-    }
+    return {"email": "nonexistent@example.com", "password": "somepassword123"}
 
 
 @pytest.fixture
@@ -227,10 +224,10 @@ def expired_token() -> str:
     import jwt
     from datetime import datetime, timedelta, timezone
     from app.utils.config import SECRET_KEY, ALGORITHM
-    
+
     payload = {
         "sub": "testuser",
-        "exp": datetime.now(timezone.utc) - timedelta(minutes=1)
+        "exp": datetime.now(timezone.utc) - timedelta(minutes=1),
     }
     return jwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM)
 
@@ -241,4 +238,3 @@ def invalid_token() -> str:
     Fixture that provides an invalid JWT token for tests.
     """
     return "invalid.token.here"
-

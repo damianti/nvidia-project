@@ -6,6 +6,7 @@ from app.utils.config import SECRET_KEY, ALGORITHM, ACCESS_TOKEN_EXPIRE_MINUTES
 from app.schemas.user import TokenData
 from app.exceptions.domain import TokenExpiredError, InvalidTokenError
 
+
 def create_access_token(data: Dict[str, Any]) -> str:
     to_encode = data.copy()
     expire = datetime.now(timezone.utc) + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
@@ -22,9 +23,9 @@ def decode_access_token(token: str) -> TokenData:
         if username is None:
             raise InvalidTokenError("Missing username in token")
         return TokenData(username=username)
-        
+
     except jwt.ExpiredSignatureError:
         raise TokenExpiredError("Token has expired")
-        
+
     except jwt.PyJWTError as e:
         raise InvalidTokenError(f"Invalid token: {str(e)}")

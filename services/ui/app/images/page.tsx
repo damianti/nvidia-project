@@ -1,196 +1,226 @@
-'use client'
+"use client";
 
-import { useState, useEffect } from 'react'
-import Link from 'next/link'
-import { useRouter } from 'next/navigation'
+import { useState, useEffect, useCallback } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 
-
-import { imageService, Image, CreateImageRequest } from '@/services/imageService'
-import { useAuth } from '@/contexts/AuthContext'
-import Navbar from '@/components/Navbar'
-import LoadingSpinner from '@/components/LoadingSpinner'
+import {
+  imageService,
+  Image,
+  CreateImageRequest,
+} from "@/services/imageService";
+import { useAuth } from "@/contexts/AuthContext";
+import Navbar from "@/components/Navbar";
+import LoadingSpinner from "@/components/LoadingSpinner";
 
 export default function ImagesPage() {
-  const router = useRouter()
-  const { user, loading: authLoading } = useAuth()
-  const [images, setImages] = useState<Image[]>([])
-  const [loading, setLoading] = useState(true)
-  const [showUploadForm, setShowUploadForm] = useState(false)
-  const [uploadLoading, setUploadLoading] = useState(false)
-  const [error, setError] = useState('')
-  const [success, setSuccess] = useState('')
-  const [deletingImageId, setDeletingImageId] = useState<number | null>(null)
+  const router = useRouter();
+  const { user, loading: authLoading } = useAuth();
+  const [images, setImages] = useState<Image[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [showUploadForm, setShowUploadForm] = useState(false);
+  const [uploadLoading, setUploadLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
+  const [deletingImageId, setDeletingImageId] = useState<number | null>(null);
   const [uploadForm, setUploadForm] = useState<CreateImageRequest>({
-    name: '',
-    tag: 'latest',
-    app_hostname: '',
+    name: "",
+    tag: "latest",
+    app_hostname: "",
     container_port: 8080,
     min_instances: 1,
     max_instances: 3,
-    cpu_limit: '0.5',
-    memory_limit: '512m',
+    cpu_limit: "0.5",
+    memory_limit: "512m",
     user_id: 0,
-    file: null as any
-  })
-  const [selectedFile, setSelectedFile] = useState<File | null>(null)
+    file: null as any,
+  });
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
-  
+  const fetchImages = useCallback(
+    async (showLoadingSpinner: boolean = true) => {
+      try {
+        if (showLoadingSpinner) {
+          setLoading(true);
+        }
+        setError("");
+        const fetchedImages = await imageService.getImages();
+        setImages(fetchedImages);
+      } catch (error) {
+        console.error("Error fetching images:", error);
+        setError("Failed to load images. Please try again.");
+      } finally {
+        if (showLoadingSpinner) {
+          setLoading(false);
+        }
+      }
+    },
+    []
+  );
+
   useEffect(() => {
     if (!authLoading && !user) {
-        router.push('/login')
+      router.push("/login");
+      return;
     }
-    fetchImages()
-  }, [authLoading, user, router])
+    if (user) {
+      fetchImages();
+    }
+  }, [authLoading, user, router, fetchImages]);
 
   useEffect(() => {
-    if (!user || images.length === 0) return
-    
-    const buildingImages = images.filter(img => img.status === 'building')
-    if (buildingImages.length === 0) return
+    if (!user || images.length === 0) return;
+
+    const buildingImages = images.filter((img) => img.status === "building");
+    if (buildingImages.length === 0) return;
 
     const interval = setInterval(() => {
-      fetchImages()
-    }, 2000)
-    
-    return () => clearInterval(interval)
-  }, [images, user])
+      fetchImages(false); // Don't show loading spinner during polling
+    }, 2000);
 
-  const fetchImages = async () => {
-    try {
-      setLoading(true)
-      setError('')
-      const fetchedImages = await imageService.getImages()
-      setImages(fetchedImages)
-    } catch (error) {
-      console.error('Error fetching images:', error)
-      setError('Failed to load images. Please try again.')
-    } finally {
-      setLoading(false)
-    }
-  }
+    return () => clearInterval(interval);
+  }, [images, user]); // fetchImages is stable (useCallback with []), no need to include
 
   const handleUpload = async (e: React.FormEvent) => {
-    e.preventDefault()
-    
+    e.preventDefault();
+
     if (!user) {
-      setError('You must be logged in to upload images')
-      return
+      setError("You must be logged in to upload images");
+      return;
     }
-    
+
     // Form validation
     if (!uploadForm.name.trim()) {
-      setError('Image name is required')
-      return
+      setError("Image name is required");
+      return;
     }
     if (!uploadForm.tag.trim()) {
-      setError('Image tag is required')
-      return
+      setError("Image tag is required");
+      return;
     }
     if (!uploadForm.app_hostname.trim()) {
-      setError('App hostname is required')
-      return
+      setError("App hostname is required");
+      return;
     }
 
-    if (!selectedFile){
-      setError('Please select a file to upload (zip or tar.gz')
-      return
+    if (!selectedFile) {
+      setError("Please select a file to upload (zip or tar.gz");
+      return;
     }
 
-    const fileName = selectedFile.name.toLowerCase()
-    if (!fileName.endsWith('.zip') && !fileName.endsWith('.tar.gz') && !fileName.endsWith('.tgz') && !fileName.endsWith('.tar')) {
-      setError('File must be a .zip, .tar, .tar.gz, or .tgz archive')
-      return
+    const fileName = selectedFile.name.toLowerCase();
+    if (
+      !fileName.endsWith(".zip") &&
+      !fileName.endsWith(".tar.gz") &&
+      !fileName.endsWith(".tgz") &&
+      !fileName.endsWith(".tar")
+    ) {
+      setError("File must be a .zip, .tar, .tar.gz, or .tgz archive");
+      return;
     }
-    const hostname = uploadForm.app_hostname.trim().toLowerCase()
-    const hostnameRegex = /^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?(\.[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?)*$/
+    const hostname = uploadForm.app_hostname.trim().toLowerCase();
+    const hostnameRegex =
+      /^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?(\.[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?)*$/;
     if (!hostnameRegex.test(hostname)) {
-      setError('Please enter a valid app hostname (e.g., myapp or myapp.example.com)')
-      return
+      setError(
+        "Please enter a valid app hostname (e.g., myapp or myapp.example.com)"
+      );
+      return;
     }
     if (uploadForm.min_instances < 1 || uploadForm.max_instances < 1) {
-      setError('Instance counts must be at least 1')
-      return
+      setError("Instance counts must be at least 1");
+      return;
     }
     if (uploadForm.min_instances > uploadForm.max_instances) {
-      setError('Min instances cannot be greater than max instances')
-      return
+      setError("Min instances cannot be greater than max instances");
+      return;
     }
-    
-    setUploadLoading(true)
-    setError('')
-    setSuccess('')
-    
+
+    setUploadLoading(true);
+    setError("");
+    setSuccess("");
+
     try {
       // Create the image using the service with user_id
       const imageData = {
         ...uploadForm,
         user_id: user.id,
         container_port: uploadForm.container_port || 8080,
-        file: selectedFile
-      }
-      const newImage = await imageService.createImage(imageData)
-      
+        file: selectedFile,
+      };
+      const newImage = await imageService.createImage(imageData);
+
       // Add the new image to the list
-      setImages(prevImages => [newImage, ...prevImages])
-      
+      setImages((prevImages) => [newImage, ...prevImages]);
+
       // Reset form and close modal
       setUploadForm({
-        name: '',
-        tag: 'latest',
-        app_hostname: '',
+        name: "",
+        tag: "latest",
+        app_hostname: "",
         container_port: 8080,
         min_instances: 1,
         max_instances: 3,
-        cpu_limit: '0.5',
-        memory_limit: '512m',
+        cpu_limit: "0.5",
+        memory_limit: "512m",
         user_id: 0,
-        file: null as any
-      })
-      setSelectedFile(null)
-      setShowUploadForm(false)
-      setSuccess(`Image "${newImage.name}:${newImage.tag}" created successfully`)
-      setTimeout(() => setSuccess(""), 3000)
-      
+        file: null as any,
+      });
+      setSelectedFile(null);
+      setShowUploadForm(false);
+      setSuccess(
+        `Image "${newImage.name}:${newImage.tag}" created successfully`
+      );
+      setTimeout(() => setSuccess(""), 3000);
     } catch (error) {
-      console.error('Error uploading image:', error)
-      setError(error instanceof Error ? error.message : 'Failed to upload image')
-      setTimeout(() => setError(""), 5000)
+      console.error("Error uploading image:", error);
+      setError(
+        error instanceof Error ? error.message : "Failed to upload image"
+      );
+      setTimeout(() => setError(""), 5000);
     } finally {
-      setUploadLoading(false)
+      setUploadLoading(false);
     }
-  }
+  };
 
   const handleDelete = async (imageId: number) => {
-    if (!confirm('Are you sure you want to delete this image? All containers from this image must be stopped first.')) {
-      return
+    if (
+      !confirm(
+        "Are you sure you want to delete this image? All containers from this image must be stopped first."
+      )
+    ) {
+      return;
     }
 
     try {
-      setDeletingImageId(imageId)
-      setError('')
-      setSuccess('')
-      await imageService.deleteImage(imageId)
-      
+      setDeletingImageId(imageId);
+      setError("");
+      setSuccess("");
+      await imageService.deleteImage(imageId);
+
       // Remove the image from the list
-      const deletedImage = images.find(img => img.id === imageId)
-      setImages(prevImages => prevImages.filter(img => img.id !== imageId))
-      setSuccess(`Image "${deletedImage?.name}:${deletedImage?.tag}" deleted successfully`)
-      setTimeout(() => setSuccess(""), 3000)
-      
+      const deletedImage = images.find((img) => img.id === imageId);
+      setImages((prevImages) => prevImages.filter((img) => img.id !== imageId));
+      setSuccess(
+        `Image "${deletedImage?.name}:${deletedImage?.tag}" deleted successfully`
+      );
+      setTimeout(() => setSuccess(""), 3000);
     } catch (error) {
-      console.error('Error deleting image:', error)
-      setError(error instanceof Error ? error.message : 'Failed to delete image')
-      setTimeout(() => setError(""), 5000)
+      console.error("Error deleting image:", error);
+      setError(
+        error instanceof Error ? error.message : "Failed to delete image"
+      );
+      setTimeout(() => setError(""), 5000);
     } finally {
-      setDeletingImageId(null)
+      setDeletingImageId(null);
     }
-  }
+  };
 
   if (authLoading) {
-    return <LoadingSpinner />
+    return <LoadingSpinner />;
   }
-  if (!user){
-    return null
+  if (!user) {
+    return null;
   }
 
   if (loading) {
@@ -201,35 +231,62 @@ export default function ImagesPage() {
           <div className="text-xl text-gray-700">Loading images...</div>
         </div>
       </div>
-    )
+    );
   }
   const getStatusBadge = (status: string) => {
-    const statusColors: Record<string, {bg: string, text: string, label: string }> = {
-      building: { bg: 'bg-yellow-100', text: 'text-yellow-800', label: 'Building' },
-      ready: { bg: 'bg-green-100', text: 'text-green-800', label: 'Ready' },
-      build_failed: { bg: 'bg-red-100', text: 'text-red-800', label: 'Build Failed' },
-      registered: { bg: 'bg-gray-100', text: 'text-gray-800', label: 'Registered' },
-    }
-    const colors = statusColors[status] || statusColors.registered
+    const statusColors: Record<
+      string,
+      { bg: string; text: string; label: string }
+    > = {
+      building: {
+        bg: "bg-yellow-100",
+        text: "text-yellow-800",
+        label: "Building",
+      },
+      ready: { bg: "bg-green-100", text: "text-green-800", label: "Ready" },
+      build_failed: {
+        bg: "bg-red-100",
+        text: "text-red-800",
+        label: "Build Failed",
+      },
+      registered: {
+        bg: "bg-gray-100",
+        text: "text-gray-800",
+        label: "Registered",
+      },
+    };
+    const colors = statusColors[status] || statusColors.registered;
 
     return (
-      <span className={`px-3 py-1 rounded-full text-xs font-semibold ${colors.bg} ${colors.text}`}>
+      <span
+        className={`px-3 py-1 rounded-full text-xs font-semibold ${colors.bg} ${colors.text}`}
+      >
         {colors.label}
       </span>
-    )
-  }
+    );
+  };
 
   return (
     <div className="min-h-screen p-4">
-      <Navbar/>
+      <Navbar />
 
       {/* Success Message */}
       {success && (
         <div className="max-w-7xl mx-auto mb-6">
           <div className="modern-card p-4 bg-green-50 border border-green-200 rounded-lg">
             <div className="flex items-center">
-              <svg className="w-5 h-5 text-green-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+              <svg
+                className="w-5 h-5 text-green-600 mr-2"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M5 13l4 4L19 7"
+                />
               </svg>
               <p className="text-green-700 font-medium">{success}</p>
             </div>
@@ -242,8 +299,18 @@ export default function ImagesPage() {
         <div className="max-w-7xl mx-auto mb-6">
           <div className="modern-card p-4 bg-red-50 border border-red-200 rounded-lg">
             <div className="flex items-center">
-              <svg className="w-5 h-5 text-red-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              <svg
+                className="w-5 h-5 text-red-600 mr-2"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M6 18L18 6M6 6l12 12"
+                />
               </svg>
               <p className="text-red-700 font-medium">{error}</p>
             </div>
@@ -258,7 +325,9 @@ export default function ImagesPage() {
           <div className="fixed inset-0 bg-black bg-opacity-50 overflow-y-auto h-full w-full z-50 flex items-center justify-center p-4">
             <div className="modern-card w-full max-w-md p-8 fade-in">
               <div className="flex justify-between items-center mb-6">
-                <h3 className="text-2xl font-bold text-gray-900">Upload New Image</h3>
+                <h3 className="text-2xl font-bold text-gray-900">
+                  Upload New Image
+                </h3>
                 <button
                   onClick={() => setShowUploadForm(false)}
                   className="text-gray-400 hover:text-gray-600 text-2xl"
@@ -266,122 +335,231 @@ export default function ImagesPage() {
                   ×
                 </button>
               </div>
-              <form onSubmit={handleUpload} className="space-y-6">
+              {/* Error Message dentro del modal */}
+              {error && (
+                <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg">
+                  <div className="flex items-center">
+                    <svg
+                      className="w-5 h-5 text-red-600 mr-2"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M6 18L18 6M6 6l12 12"
+                      />
+                    </svg>
+                    <p className="text-red-700 font-medium text-sm">{error}</p>
+                  </div>
+                </div>
+              )}
+
+              <form
+                onSubmit={handleUpload}
+                noValidate={process.env.NODE_ENV === "test"}
+                className="space-y-6"
+              >
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">Image Name</label>
+                  <label
+                    htmlFor="image-name"
+                    className="block text-sm font-semibold text-gray-700 mb-2"
+                  >
+                    Image Name
+                  </label>
                   <input
+                    id="image-name"
                     type="text"
                     required
                     className="modern-input w-full"
                     placeholder="e.g., nginx, python, redis"
                     value={uploadForm.name}
-                    onChange={(e) => setUploadForm({...uploadForm, name: e.target.value})}
+                    onChange={(e) =>
+                      setUploadForm({ ...uploadForm, name: e.target.value })
+                    }
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">Tag</label>
+                  <label
+                    htmlFor="image-tag"
+                    className="block text-sm font-semibold text-gray-700 mb-2"
+                  >
+                    Tag
+                  </label>
                   <input
+                    id="image-tag"
                     type="text"
                     required
                     className="modern-input w-full"
                     placeholder="e.g., latest, 3.9, alpine"
                     value={uploadForm.tag}
-                    onChange={(e) => setUploadForm({...uploadForm, tag: e.target.value})}
+                    onChange={(e) =>
+                      setUploadForm({ ...uploadForm, tag: e.target.value })
+                    }
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  <label
+                    htmlFor="app-hostname"
+                    className="block text-sm font-semibold text-gray-700 mb-2"
+                  >
                     App hostname
                   </label>
                   <input
+                    id="app-hostname"
                     type="text"
                     required
                     className="modern-input w-full"
                     placeholder="myapp.example.com"
                     value={uploadForm.app_hostname}
-                    onChange={(e) => setUploadForm({...uploadForm, app_hostname: e.target.value})}
+                    onChange={(e) =>
+                      setUploadForm({
+                        ...uploadForm,
+                        app_hostname: e.target.value,
+                      })
+                    }
                   />
                 </div>
                 <div>
-                  <label className='block text-sm font-semibold text-gray-700 mb-2'>
+                  <label
+                    htmlFor="container-port"
+                    className="block text-sm font-semibold text-gray-700 mb-2"
+                  >
                     Container Port
                   </label>
                   <input
-                    type='number'
+                    id="container-port"
+                    type="number"
                     min="1"
                     max="65535"
-                    className='modern-input w-full'
-                    placeholder='8080'
-                    value={uploadForm.container_port || 8080} 
-                    onChange={(e) => setUploadForm({...uploadForm, container_port: parseInt(e.target.value) || 8080})}
+                    className="modern-input w-full"
+                    placeholder="8080"
+                    value={uploadForm.container_port || 8080}
+                    onChange={(e) =>
+                      setUploadForm({
+                        ...uploadForm,
+                        container_port: parseInt(e.target.value) || 8080,
+                      })
+                    }
                   />
-                  <p className='text-xs text-gray-500 mt-1'>
+                  <p className="text-xs text-gray-500 mt-1">
                     Internarl port your applications listens on (default: 8080)
                   </p>
                 </div>
                 <div>
-                  <label className='block text-sm font-semibold text-gray-700 mb-2'>
-                    Build Context File <span className='text-red-500'>*</span>
+                  <label
+                    htmlFor="build-context-file"
+                    className="block text-sm font-semibold text-gray-700 mb-2"
+                  >
+                    Build Context File <span className="text-red-500">*</span>
                   </label>
                   <input
+                    id="build-context-file"
                     type="file"
                     required
                     accept=".zip, .tar, .tar.gz, .tgz"
-                    className='modern-input w-full'
+                    className="modern-input w-full"
                     onChange={(e) => {
-                      const file = e.target.files?.[0] || null
-                      setSelectedFile(file)
+                      const file = e.target.files?.[0] || null;
+                      setSelectedFile(file);
                     }}
                   />
-                  <p className='text-xs text-gray-500 mt-1'>
-                    Upload a zip or tar.gz archive containing your Dockerfile and source code
+                  <p className="text-xs text-gray-500 mt-1">
+                    Upload a zip or tar.gz archive containing your Dockerfile
+                    and source code
                   </p>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">Min Instances</label>
+                    <label
+                      htmlFor="min-instances"
+                      className="block text-sm font-semibold text-gray-700 mb-2"
+                    >
+                      Min Instances
+                    </label>
                     <input
+                      id="min-instances"
                       type="number"
                       min="1"
                       className="modern-input w-full"
                       value={uploadForm.min_instances}
-                      onChange={(e) => setUploadForm({...uploadForm, min_instances: parseInt(e.target.value)})}
+                      onChange={(e) =>
+                        setUploadForm({
+                          ...uploadForm,
+                          min_instances: parseInt(e.target.value),
+                        })
+                      }
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">Max Instances</label>
+                    <label
+                      htmlFor="max-instances"
+                      className="block text-sm font-semibold text-gray-700 mb-2"
+                    >
+                      Max Instances
+                    </label>
                     <input
+                      id="max-instances"
                       type="number"
                       min="1"
                       className="modern-input w-full"
                       value={uploadForm.max_instances}
-                      onChange={(e) => setUploadForm({...uploadForm, max_instances: parseInt(e.target.value)})}
+                      onChange={(e) =>
+                        setUploadForm({
+                          ...uploadForm,
+                          max_instances: parseInt(e.target.value),
+                        })
+                      }
                     />
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">CPU Limit</label>
+                    <label
+                      htmlFor="cpu-limit"
+                      className="block text-sm font-semibold text-gray-700 mb-2"
+                    >
+                      CPU Limit
+                    </label>
                     <input
+                      id="cpu-limit"
                       type="text"
                       className="modern-input w-full"
                       placeholder="e.g., 0.5, 1.0"
                       value={uploadForm.cpu_limit}
-                      onChange={(e) => setUploadForm({...uploadForm, cpu_limit: e.target.value})}
+                      onChange={(e) =>
+                        setUploadForm({
+                          ...uploadForm,
+                          cpu_limit: e.target.value,
+                        })
+                      }
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">Memory Limit</label>
+                    <label
+                      htmlFor="memory-limit"
+                      className="block text-sm font-semibold text-gray-700 mb-2"
+                    >
+                      Memory Limit
+                    </label>
                     <input
+                      id="memory-limit"
                       type="text"
                       className="modern-input w-full"
                       placeholder="e.g., 512m, 1g"
                       value={uploadForm.memory_limit}
-                      onChange={(e) => setUploadForm({...uploadForm, memory_limit: e.target.value})}
+                      onChange={(e) =>
+                        setUploadForm({
+                          ...uploadForm,
+                          memory_limit: e.target.value,
+                        })
+                      }
                     />
                   </div>
                 </div>
-                
+
                 <div className="flex justify-end space-x-3 pt-4">
                   <button
                     type="button"
@@ -401,7 +579,7 @@ export default function ImagesPage() {
                         Uploading...
                       </div>
                     ) : (
-                      'Upload'
+                      "Upload"
                     )}
                   </button>
                 </div>
@@ -414,62 +592,110 @@ export default function ImagesPage() {
         {images.length > 0 ? (
           <div className="modern-card p-8 fade-in">
             <div className="flex items-center justify-between mb-6">
-              <h3 className="text-2xl font-bold text-gray-900">Your Images ({images.length})</h3>
+              <h3 className="text-2xl font-bold text-gray-900">
+                Your Images ({images.length})
+              </h3>
               <button
                 onClick={() => setShowUploadForm(true)}
                 className="btn-modern"
               >
-                <svg className="w-5 h-5 mr-2 inline-block" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                <svg
+                  className="w-5 h-5 mr-2 inline-block"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M12 4v16m8-8H4"
+                  />
                 </svg>
                 Upload New Image
               </button>
             </div>
             <div className="space-y-6">
               {images.map((image) => (
-                <div key={image.id} className="modern-card p-6 hover:scale-[1.02] transition-transform">
+                <div
+                  key={image.id}
+                  className="modern-card p-6 hover:scale-[1.02] transition-transform"
+                >
                   <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-4">
                       <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-blue-600 rounded-xl flex items-center justify-center">
-                        <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                        <svg
+                          className="w-6 h-6 text-white"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+                          />
                         </svg>
                       </div>
                       <div>
                         <div className="flex items-center space-x-3">
                           <h4 className="text-lg font-semibold text-gray-900">
-                          <span>{image.name}:{image.tag} → {image.app_hostname}</span>
+                            <span>
+                              {image.name}:{image.tag} → {image.app_hostname}
+                            </span>
                           </h4>
                           {getStatusBadge(image.status)}
                         </div>
                         <div className="mt-2 flex items-center space-x-4 text-sm text-gray-600">
-                          <span>Created: {new Date(image.created_at).toLocaleDateString()}</span>
+                          <span>
+                            Created:{" "}
+                            {new Date(image.created_at).toLocaleDateString()}
+                          </span>
                           <span>•</span>
-                          <span>Instances: {image.min_instances}-{image.max_instances}</span>
+                          <span>
+                            Instances: {image.min_instances}-
+                            {image.max_instances}
+                          </span>
                           <span>•</span>
                           <span>CPU: {image.cpu_limit}</span>
                           <span>•</span>
                           <span>Memory: {image.memory_limit}</span>
                         </div>
-                        {(image.status === 'ready' || image.status === 'registered') && (
+                        {(image.status === "ready" ||
+                          image.status === "registered") && (
                           <div className="mt-3 pt-3 border-t border-gray-200">
                             <div className="flex items-center space-x-2">
-                              <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                              <svg
+                                className="w-4 h-4 text-gray-500"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2}
+                                  d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"
+                                />
                               </svg>
-                              <span className="text-sm font-medium text-gray-700">App URL:</span>
+                              <span className="text-sm font-medium text-gray-700">
+                                App URL:
+                              </span>
                               <code className="text-sm bg-gray-100 px-2 py-1 rounded text-gray-800">
                                 /apps/{image.app_hostname}/
                               </code>
                               <button
                                 onClick={async () => {
-                                  const url = `/apps/${image.app_hostname}/`
+                                  const url = `/apps/${image.app_hostname}/`;
                                   try {
-                                    await navigator.clipboard.writeText(url)
-                                    setSuccess(`URL copied to clipboard: ${url}`)
-                                    setTimeout(() => setSuccess(""), 2000)
+                                    await navigator.clipboard.writeText(url);
+                                    setSuccess(
+                                      `URL copied to clipboard: ${url}`
+                                    );
+                                    setTimeout(() => setSuccess(""), 2000);
                                   } catch (error) {
-                                    setError('Failed to copy URL to clipboard')
+                                    setError("Failed to copy URL to clipboard");
                                   }
                                 }}
                                 className="text-xs text-blue-600 hover:text-blue-800 font-medium"
@@ -500,20 +726,26 @@ export default function ImagesPage() {
                             Deleting...
                           </span>
                         ) : (
-                          'Delete'
+                          "Delete"
                         )}
                       </button>
-                      {image.status === 'build_failed' && (
+                      {image.status === "build_failed" && (
                         <button
                           onClick={async () => {
                             try {
-                              const logs = await imageService.getBuildLogs(image.id)
-                              alert(`Build logs:\n\n${logs}`)
+                              const logs = await imageService.getBuildLogs(
+                                image.id
+                              );
+                              alert(`Build logs:\n\n${logs}`);
                             } catch (error) {
-                              setError(error instanceof Error ? error.message : 'Failed to fetch build logs')
+                              setError(
+                                error instanceof Error
+                                  ? error.message
+                                  : "Failed to fetch build logs"
+                              );
                             }
                           }}
-                          className='btn-modern bg-yellow-600 hover:bg-yellow-700'
+                          className="btn-modern bg-yellow-600 hover:bg-yellow-700"
                         >
                           View Build Logs
                         </button>
@@ -527,12 +759,26 @@ export default function ImagesPage() {
         ) : (
           <div className="modern-card p-12 text-center fade-in">
             <div className="w-24 h-24 bg-gradient-to-r from-blue-500 to-purple-600 rounded-3xl flex items-center justify-center mx-auto mb-6">
-              <svg className="w-12 h-12 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              <svg
+                className="w-12 h-12 text-white"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+                />
               </svg>
             </div>
-            <h3 className="text-2xl font-bold text-gray-900 mb-2">No images yet</h3>
-            <p className="text-gray-600 mb-8">Get started by uploading your first Docker image.</p>
+            <h3 className="text-2xl font-bold text-gray-900 mb-2">
+              No images yet
+            </h3>
+            <p className="text-gray-600 mb-8">
+              Get started by uploading your first Docker image.
+            </p>
             <button
               onClick={() => setShowUploadForm(true)}
               className="btn-modern"
@@ -543,5 +789,5 @@ export default function ImagesPage() {
         )}
       </div>
     </div>
-  )
-} 
+  );
+}

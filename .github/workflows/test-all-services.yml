@@ -50,27 +50,27 @@ jobs:
         working-directory: ./services/${{ matrix.service }}
         run: pytest tests/ --cov=app --cov-report=xml
 
-  # test-frontend:
-  #   runs-on: ubuntu-latest
-  #   steps:
-  #     - name: Checkout code
-  #       uses: actions/checkout@v3
+  test-frontend:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
 
-  #     - name: Set up Node.js
-  #       uses: actions/setup-node@v3
-  #       with:
-  #         node-version: "18"
-  #         cache: "npm"
-  #         cache-dependency-path: services/ui/package-lock.json
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: "18"
+          cache: "npm"
+          cache-dependency-path: services/ui/package-lock.json
 
-  #     - name: Install dependencies
-  #       working-directory: ./services/ui
-  #       run: npm ci
+      - name: Install dependencies
+        working-directory: ./services/ui
+        run: npm ci
 
-  #     - name: Test
-  #       working-directory: ./services/ui
-  #       run: npm test
+      - name: Test
+        working-directory: ./services/ui
+        run: npm test
 
-  #     - name: Build
-  #       working-directory: ./services/ui
-  #       run: npm run build
+      - name: Build
+        working-directory: ./services/ui
+        run: npm run build

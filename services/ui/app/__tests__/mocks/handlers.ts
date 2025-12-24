@@ -20,7 +20,7 @@ export const mockImages = [
     name: 'another-image',
     tag: 'v1.0',
     app_hostname: 'another.example.com',
-    status: 'building',
+    status: 'ready', // Changed from 'building' to avoid triggering polling during tests
     created_at: '2024-01-02T00:00:00Z',
     min_instances: 2,
     max_instances: 5,

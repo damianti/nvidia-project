@@ -22,15 +22,17 @@ afterEach(() => server.resetHandlers())
 // Clean up after the tests are finished
 afterAll(() => server.close())
 
-// Mock Next.js router
+// Mock Next.js router - create stable mock object to avoid infinite loops
+const mockRouter = {
+  push: jest.fn(),
+  replace: jest.fn(),
+  prefetch: jest.fn(),
+  back: jest.fn(),
+}
+
 jest.mock('next/navigation', () => ({
   useRouter() {
-    return {
-      push: jest.fn(),
-      replace: jest.fn(),
-      prefetch: jest.fn(),
-      back: jest.fn(),
-    }
+    return mockRouter
   },
   usePathname() {
     return '/'

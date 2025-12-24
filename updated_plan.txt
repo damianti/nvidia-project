@@ -1,0 +1,330 @@
+# PLAN DE TRABAJO ACTUALIZADO - NVIDIA PROJECT
+# Fecha: 23 Dec 2025
+# Este archivo contiene SOLO las tareas PENDIENTES del PLAN_TRABAJO.txt
+
+## PRIORIDAD ALTA - Próximos pasos inmediatos
+
+### FASE 3: MÉTRICAS Y MONITOREO (2 días)
+
+**Día 5: Métricas en Load Balancer**
+- [ ] Implementar `MetricsCollector` en Load Balancer
+- [ ] Tracking: requests per image, traffic per image, latency
+- [ ] Endpoint `/api/metrics` para exposición
+- [ ] Endpoint `/api/mappings` para mapeo de puertos
+
+**Día 6: Integración con UI**
+- [ ] Exponer métricas vía API Gateway
+- [ ] Dashboard en UI con gráficos básicos
+- [ ] Auto-refresh cada 10s
+
+### FASE 6: TESTING Y DOCUMENTACIÓN (2 días)
+
+**Día 11-12: Testing completo**
+- [ ] Unit tests para nuevos componentes
+- [ ] Integration tests: Service Discovery → Load Balancer
+- [ ] E2E tests: flujo completo con Watch API
+- [ ] Testing de carga y edge cases
+- [ ] Documentación actualizada
+
+---
+
+## PRIORIDAD MEDIA
+
+### DÍA 7 - MEJORAS DE UI: MONITORING (4 horas)
+- [ ] Mostrar health status de containers en UI
+- [ ] Implementar auto-refresh de estado
+- [ ] Agregar indicadores visuales
+- [ ] Estadísticas por imagen
+- [ ] Endpoint `/api/containers/{id}/health` en Orchestrator (consulta Service Discovery/Consul)
+- [ ] Polling cada 10s en frontend para actualizar estado
+- [ ] Indicadores: 🟢 Running, 🔴 Stopped, 🟡 Unhealthy
+- [ ] Contador de requests por container (si es posible, vía métricas del LB)
+
+### DÍA 8 - MEJORAS DE UI: DASHBOARD Y ANALYTICS (4 horas)
+- [ ] Mejorar dashboard con estadísticas
+- [ ] Gráficos de uso de recursos
+- [ ] Histórico de containers
+- [ ] Export de datos
+- [ ] Total de containers por estado (running/stopped)
+- [ ] Containers por imagen (gráfico de barras)
+- [ ] Histórico de creación/eliminación (últimos 7 días)
+- [ ] Botón de export a CSV/JSON
+
+### DÍA 9 - TESTING E2E Y REFINAMIENTO (5 horas)
+- [ ] Testing completo del flujo end-to-end
+- [ ] Casos edge: 0 containers, todos unhealthy, etc.
+- [ ] Optimización de performance
+- [ ] Documentación
+- [ ] Script de testing: crear 5 imágenes, 15 containers
+- [ ] Simular carga con múltiples requests simultáneos
+- [ ] Verificar Round Robin distribuye correctamente
+- [ ] Medir latencia API Gateway → Container
+- [ ] Actualizar README.md con arquitectura actual
+
+### DÍA 10 - DEPLOYMENT Y PRODUCCIÓN (5 horas)
+- [ ] Preparar para deployment
+- [ ] Variables de entorno para producción
+- [ ] Logging estructurado
+- [ ] Monitoreo básico
+- [ ] Separar .env.development y .env.production
+- [ ] Configurar logging level por servicio
+- [ ] Agregar Prometheus metrics (opcional)
+- [ ] Health checks para todos los servicios
+- [ ] Script de deploy
+
+### FASE 4: OPTIMIZACIONES (2-3 días)
+
+**Día 7-8: Routing basado en carga**
+- [ ] Endpoint en Orchestrator para métricas de containers (CPU, memoria)
+- [ ] Modificar Load Balancer para usar Least Load algorithm
+- [ ] Fallback a Round-Robin si no hay métricas
+- [ ] Testing de distribución de carga
+
+**Día 9: Registry de servicios internos (opcional)**
+- [ ] Service Discovery registra servicios internos del sistema (orchestrator, load-balancer, api-gateway)
+- [ ] Endpoint `/api/services/system` para descubrimiento interno
+- [ ] Auto-discovery de servicios
+- [ ] Registrar servicios internos en Consul vía Service Discovery
+- [ ] Health checks para servicios internos
+- [ ] Documentación de uso
+
+---
+
+## PRIORIDAD BAJA - Bonus Features
+
+### FASE 5: BONUS FEATURES (1-2 días)
+
+**Día 10: Routing geográfico (bonus)**
+- [ ] Integración con geolocation API (MaxMind, ipapi.co)
+- [ ] Algoritmo de selección por distancia
+- [ ] Testing con IPs simuladas
+- [ ] Documentación de feature
+
+### DÍA 12 - ALGORITMOS DE LB AVANZADOS (5 horas)
+- [ ] Implementar Least Connections algorithm
+- [ ] Implementar Weighted Round Robin
+- [ ] Permitir selección de algoritmo por configuración
+- [ ] Tracking de conexiones activas por container
+- [ ] Algoritmo Least Connections
+- [ ] Algoritmo Weighted Round Robin (con pesos configurables)
+- [ ] Configuración de algoritmo vía env var
+- [ ] Testing de distribución con diferentes algoritmos
+
+### DÍA 13 - AUTO-SCALING (6 horas)
+- [ ] Crear/eliminar containers según carga real
+- [ ] Métricas de carga (requests, CPU, memoria)
+- [ ] Políticas de escalado configurables
+- [ ] Recolectar métricas de carga por container
+- [ ] Definir thresholds (min/max containers, CPU threshold, etc.)
+- [ ] Lógica de auto-scaling (crear/eliminar containers)
+- [ ] Integración con Orchestrator para crear/eliminar containers
+- [ ] Testing de escalado automático
+
+### DÍA 14 - RATE LIMITING POR USUARIO (4 horas)
+- [ ] Implementar rate limiting en API Gateway
+- [ ] Límites por usuario/configurables
+- [ ] Headers de rate limit en respuestas
+- [ ] Middleware de rate limiting en API Gateway
+- [ ] Tracking de requests por usuario (en memoria o Redis)
+- [ ] Headers `X-RateLimit-Limit`, `X-RateLimit-Remaining`, `X-RateLimit-Reset`
+- [ ] Respuesta 429 cuando se excede límite
+- [ ] Configuración de límites por usuario
+
+### DÍA 15 - BILLING BASADO EN USO (6 horas)
+- [ ] Billing por requests, CPU, memoria (además de tiempo)
+- [ ] Métricas de uso por container
+- [ ] Cálculo de costo basado en uso real
+- [ ] Recolectar métricas de uso (requests, CPU, memoria) por container
+- [ ] Extender modelo de billing para incluir uso
+- [ ] Cálculo de costo basado en uso + tiempo
+- [ ] Pricing rules configurables
+- [ ] Endpoints para consultar billing por uso
+- [ ] Agregación por período y reportes/export
+- [ ] UI/dashboard de facturación
+
+### DÍA 16 - MULTI-TENANCY MEJORADO (6 horas)
+- [ ] Aislar datos y recursos por tenant
+- [ ] Propagar tenant context en toda la arquitectura
+- [ ] Métricas y facturación segmentadas por tenant
+- [ ] Aislar datos por tenant (schemas separados o claves por tenant)
+- [ ] Propagar tenant context en API Gateway, eventos Kafka y billing
+- [ ] Métricas segmentadas por tenant
+- [ ] Facturación por tenant
+- [ ] Testing de aislamiento
+
+### DÍA 17 - SOPORTE PARA WEBSOCKETS (5 horas)
+- [ ] Soporte WebSockets en API Gateway
+- [ ] Proxy WebSocket en Load Balancer
+- [ ] Upgrade de conexión HTTP a WebSocket
+- [ ] Detectar upgrade requests en API Gateway
+- [ ] Proxy WebSocket hacia containers
+- [ ] Manejo de conexiones persistentes
+- [ ] Testing de WebSocket end-to-end
+
+### DÍA 18 - MÉTRICAS AVANZADAS CON PROMETHEUS + GRAFANA (6 horas)
+- [ ] Setup Prometheus para métricas
+- [ ] Dashboards en Grafana
+- [ ] Métricas avanzadas de todos los servicios
+- [ ] Configurar Prometheus en docker-compose
+- [ ] Exponer métricas en formato Prometheus desde servicios
+- [ ] Configurar Grafana con dashboards
+- [ ] Dashboards para Load Balancer, Service Discovery, Orchestrator
+- [ ] Alertas básicas
+
+### DÍA 19 - CI/CD PIPELINE (6 horas)
+- [ ] Pipeline automatizado de integración y deployment
+- [ ] Tests automáticos en cada PR
+- [ ] Build y deploy automático
+- [ ] Configurar GitHub Actions / GitLab CI
+- [ ] Tests automáticos en cada PR
+- [ ] Build de imágenes Docker automático
+- [ ] Deploy automático a staging/producción
+- [ ] Rollback automático en caso de fallos
+
+### DÍA 20 - UI / PANEL PARA PROBAR SERVICIOS END-TO-END (5 horas)
+- [ ] Panel en UI para probar servicios
+- [ ] Requests de prueba a servicios desplegados
+- [ ] Visualización de respuestas y métricas
+- [ ] Componente de testing en UI
+- [ ] Formulario para hacer requests de prueba
+- [ ] Visualización de respuestas (status, headers, body)
+- [ ] Métricas de latencia y performance
+- [ ] Historial de pruebas
+
+### DÍA 21 - TESTING REFORZADO (8 horas)
+- [ ] Suite de testing exhaustiva con edge cases
+- [ ] Alta cobertura de tests
+- [ ] Tests de carga y seguridad
+- [ ] Unit tests con alta cobertura (>80%)
+- [ ] Integration tests para todos los servicios
+- [ ] E2E tests con casos edge (fallos de red, timeouts, contenedores que caen)
+- [ ] Tests de carga y stress testing
+- [ ] Tests de seguridad (SQL injection, XSS, etc.)
+- [ ] Mocking de servicios externos (Docker, Consul, Kafka)
+
+### DÍA 22 - KUBERNETES MIGRATION (Futuro lejano - 8 horas)
+- [ ] Migrar proyecto a Kubernetes
+- [ ] Crear manifests (Deployments, Services, Ingress)
+- [ ] Comparar performance vs Docker Compose
+- [ ] Configurar Minikube o cluster Kubernetes
+- [ ] Crear manifests (Deployments, Services, Ingress)
+- [ ] Adaptar servicios para Kubernetes
+- [ ] Configurar ConfigMaps y Secrets
+- [ ] Comparar performance vs Docker Compose actual
+
+### DÍA 23 - GRAPHQL API (5 horas)
+- [ ] Implementar GraphQL como alternativa a REST para queries más flexibles
+- [ ] Endpoint GraphQL en API Gateway
+- [ ] Resolvers para Images, Containers, Billing
+- [ ] Setup GraphQL (Strawberry o Ariadne)
+- [ ] Definir schema GraphQL
+- [ ] Resolvers para Images, Containers, Billing
+- [ ] Integración con servicios existentes
+- [ ] Testing de queries GraphQL
+
+### DÍA 24 - DOMINIO PROPIO Y SSL/TLS (4 horas)
+- [ ] Comprar y configurar un dominio para testing/producción
+- [ ] Configurar DNS
+- [ ] SSL/TLS con Let's Encrypt
+- [ ] Comprar dominio
+- [ ] Configurar DNS (A records, CNAME)
+- [ ] Configurar Let's Encrypt (certbot)
+- [ ] Subdominios para servicios (api.dominio.com, ui.dominio.com)
+- [ ] Renovación automática de certificados
+
+### DÍA 25 - GITHUB WEBHOOKS PARA DEPLOYMENT (5 horas)
+- [ ] Integración con GitHub para deployment automático
+- [ ] Build automático cuando se hace push
+- [ ] No almacenar código en servidor
+- [ ] Webhook endpoint que recibe push events de repositorios
+- [ ] Build automático cuando se hace push a branch específico
+- [ ] Build desde GitHub directamente (no almacenar código)
+- [ ] Configuración de repositorio por imagen/usuario
+- [ ] Testing de webhooks
+
+### DÍA 26 - KEYCLOAK PARA AUTENTICACIÓN (6 horas)
+- [ ] Reemplazar/migrar sistema de auth actual a Keycloak
+- [ ] Integración con Keycloak (OAuth2/OIDC)
+- [ ] SSO (Single Sign-On)
+- [ ] Setup Keycloak en docker-compose
+- [ ] Integración con Keycloak (OAuth2/OIDC)
+- [ ] SSO (Single Sign-On)
+- [ ] Gestión de usuarios, roles, permisos centralizada
+- [ ] Migración de usuarios existentes
+
+---
+
+## FASE 8: MEJORAS ADICIONALES (Opcional)
+
+### Autenticación en API Gateway
+- [ ] Mover JWT validation al API Gateway
+- [ ] Remover auth del Orchestrator
+- [ ] User context propagation
+
+### Prometheus + Grafana
+- [ ] Setup Prometheus
+- [ ] Grafana dashboards
+- [ ] Métricas avanzadas
+
+---
+
+## RESUMEN DE TAREAS PENDIENTES POR CATEGORÍA
+
+### Testing y Calidad
+- Testing E2E completo
+- Testing de carga y edge cases
+- Tests de seguridad
+- Documentación actualizada
+
+### UI/UX
+- Health status de containers en tiempo real
+- Dashboard con estadísticas y gráficos
+- Auto-refresh de estado
+- Panel para probar servicios end-to-end
+- Export de datos
+
+### Métricas y Monitoreo
+- Métricas en Load Balancer (requests, traffic, latency)
+- Endpoints `/api/metrics` y `/api/mappings`
+- Integración con UI
+- Prometheus + Grafana
+
+### Optimizaciones
+- Routing basado en carga (Least Load)
+- Registry de servicios internos
+- Routing geográfico (bonus)
+- Algoritmos LB avanzados (Least Connections, Weighted Round Robin)
+
+### Features Avanzadas
+- Auto-scaling
+- Rate limiting por usuario
+- Billing por uso (CPU/memoria/requests)
+- Multi-tenancy mejorado
+- Soporte WebSockets
+- GraphQL API
+
+### Infraestructura y Deployment
+- Deployment y producción (env vars, logging, scripts)
+- CI/CD pipeline
+- Kubernetes migration (futuro)
+- Dominio propio y SSL/TLS
+- GitHub webhooks para deployment
+- Keycloak para autenticación
+
+---
+
+## NOTAS IMPORTANTES
+
+### Estado actual del proyecto
+- ✅ Arquitectura core completada (Load Balancer, Service Discovery, API Gateway)
+- ✅ Circuit Breaker y Fallback implementados
+- ✅ Billing básico operativo
+- ✅ Testing básico implementado en varios servicios
+- ⚠️ Pendiente: Testing E2E completo, métricas avanzadas, mejoras de UI
+
+### Prioridades recomendadas
+1. **Testing E2E y Documentación** (Día 9, 11-12) - Asegurar calidad
+2. **Métricas y Monitoreo** (Día 5-6) - Visibilidad del sistema
+3. **Mejoras de UI** (Día 7-8) - Mejor experiencia de usuario
+4. **Deployment** (Día 10) - Preparar para producción
+5. **Features avanzadas** (Día 12-26) - Mejoras incrementales

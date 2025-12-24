@@ -1,0 +1,76 @@
+name: Test All Services
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test-python-services:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        service:
+          - orchestrator
+          - api-gateway
+          - load-balancer
+          - auth-service
+          - billing
+          # - client-workload
+        
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+          cache-dependency-path: services/${{ matrix.service }}/requirements*.txt
+      
+      - name: Install dependencies
+        working-directory: ./services/${{ matrix.service }}
+        run: |
+          pip install --upgrade pip
+          pip install -r requirements-test.txt
+          pip install pytest pytest-cov black ruff
+
+      - name: Lint with ruff
+        working-directory: ./services/${{ matrix.service }}
+        run: ruff check app/
+
+      - name: Check formatting with black
+        working-directory: ./services/${{ matrix.service }}
+        run: black --check app/
+
+      - name: Run tests
+        working-directory: ./services/${{ matrix.service }}
+        run: pytest tests/ --cov=app --cov-report=xml
+    
+  test-frontend:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with: node-version: '18'
+        cache: 'npm'
+        cache-dependency-path: services/ui/package-lock.json
+      
+      - name: Install dependencies
+        working-directory: ./services/ui
+        run: npm ci
+
+      - name: Test
+        working-directory: ./services/ui
+        run: npm test
+
+      - name: Build
+        working-directory: ./services/ui
+        run: npm run build

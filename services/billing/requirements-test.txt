@@ -1,6 +1,7 @@
 fastapi==0.104.1
 sqlalchemy==2.0.23
 pydantic==2.5.0
+httpx==0.25.2
 
 # Tests use FastAPI TestClient + async code paths
 pytest>=7.4.0

@@ -27,6 +27,38 @@ class ContainerService {
         }
       }
 
+    // Helper para manejar errores de respuesta
+    private async handleErrorResponse(response: Response, defaultMessage: string): Promise<never> {
+        // Errores específicos que siempre se manejan igual
+        if (response.status === 401) {
+            throw new Error('Authentication required')
+        }
+
+        // Para 4xx (errores del cliente): usar mensaje del backend
+        if (response.status >= 400 && response.status < 500) {
+            try {
+                const error = await response.json()
+                throw new Error(error.detail || error.error || defaultMessage)
+            } catch (e) {
+                if (e instanceof Error && e.message !== defaultMessage) throw e
+                throw new Error(defaultMessage)
+            }
+        }
+
+        // Para 5xx (errores del servidor): mensaje genérico + log detallado
+        if (response.status >= 500) {
+            try {
+                const error = await response.json()
+                console.error(`Server error (${response.status}):`, error)
+            } catch {
+                console.error(`Server error: ${response.status} ${response.statusText}`)
+            }
+            throw new Error(defaultMessage)
+        }
+
+        throw new Error(defaultMessage)
+    }
+
     async getContainers(): Promise<Container[]> {
         try{
             const response = await fetch(this.baseUrl, {
@@ -36,11 +68,7 @@ class ContainerService {
             })
 
             if (!response.ok){
-                if (response.status === 401){
-                    throw new Error('Authentication required')
-                }
-                const error = await response.json()
-                throw new Error(error.detail || error.error || 'failed to fetch containers')
+                await this.handleErrorResponse(response, 'Failed to fetch containers')
             }
             return await response.json()
         }
@@ -57,11 +85,7 @@ class ContainerService {
                 credentials: 'include',
             })
             if (!response.ok){
-                if (response.status == 401) {
-                    throw new Error ('Authentication required')
-                }
-                const error = await response.json()
-                throw new Error (error.detail || error.error || 'Failed to fetch images with containers')
+                await this.handleErrorResponse(response, 'Failed to fetch images with containers')
             }
             return await response.json()
         }
@@ -111,12 +135,7 @@ class ContainerService {
                 credentials: 'include',
             })
             if (!response.ok){
-                
-                if (response.status == 401){
-                    throw new Error ('Authentication required');
-                }
-                const error = await response.json();
-                throw new Error (error.detail || error.error || 'Failed to start container');
+                await this.handleErrorResponse(response, 'Failed to start container')
             } 
             return response.json()
         }
@@ -132,11 +151,7 @@ class ContainerService {
                 credentials: 'include',
             })
             if (!response.ok){
-                if (response.status == 401){
-                    throw new Error ('Authentication required');
-                }
-                const error = await response.json();
-                throw new Error (error.detail || error.error || 'Failed to stop container')
+                await this.handleErrorResponse(response, 'Failed to stop container')
             }
             return response.json()
         }
@@ -152,11 +167,7 @@ class ContainerService {
                 credentials: 'include',
             })
             if (!response.ok){
-                if (response.status == 401){
-                    throw new Error ('Authentication required');
-                }
-                const error = await response.json();
-                throw new Error (error.detail || error.error || 'Failed to delete container')
+                await this.handleErrorResponse(response, 'Failed to delete container')
             }
             return response.json()
         }

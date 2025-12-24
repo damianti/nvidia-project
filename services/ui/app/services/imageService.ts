@@ -41,6 +41,38 @@ class ImageService {
     }
   }
 
+  // Helper para manejar errores de respuesta
+  private async handleErrorResponse(response: Response, defaultMessage: string): Promise<never> {
+    // Errores específicos que siempre se manejan igual
+    if (response.status === 401) {
+      throw new Error('Authentication required')
+    }
+
+    // Para 4xx (errores del cliente): usar mensaje del backend
+    if (response.status >= 400 && response.status < 500) {
+      try {
+        const error = await response.json()
+        throw new Error(error.detail || error.error || defaultMessage)
+      } catch (e) {
+        if (e instanceof Error && e.message !== defaultMessage) throw e
+        throw new Error(defaultMessage)
+      }
+    }
+
+    // Para 5xx (errores del servidor): mensaje genérico + log detallado
+    if (response.status >= 500) {
+      try {
+        const error = await response.json()
+        console.error(`Server error (${response.status}):`, error)
+      } catch {
+        console.error(`Server error: ${response.status} ${response.statusText}`)
+      }
+      throw new Error(defaultMessage)
+    }
+
+    throw new Error(defaultMessage)
+  }
+
   // Get all images
   async getImages(): Promise<Image[]> {
     try {
@@ -51,11 +83,7 @@ class ImageService {
       })
 
       if (!response.ok) {
-        if (response.status === 401) {
-          throw new Error('Authentication required')
-        }
-        const error = await response.json()
-        throw new Error(error.detail || error.error || 'Failed to fetch images')
+        await this.handleErrorResponse(response, 'Failed to fetch images')
       }
 
       return await response.json()
@@ -75,11 +103,7 @@ class ImageService {
       })
 
       if (!response.ok) {
-        if (response.status === 401) {
-          throw new Error('Authentication required')
-        }
-        const error = await response.json()
-        throw new Error(error.detail || error.error || 'Failed to fetch image')
+        await this.handleErrorResponse(response, 'Failed to fetch image')
       }
 
       return await response.json()
@@ -90,19 +114,15 @@ class ImageService {
   }
 
   async getBuildLogs(id: number): Promise<string>{
-
     try {
       const response = await fetch (`${this.baseUrl}/${id}/build-logs`,{
         method: 'GET',
         headers: this.getHeaders(),
         credentials: 'include',
       })
+      
       if (!response.ok){
-        if (response.status == 401){
-          throw new Error('Authentication required')
-        }
-        const error = await response.json()
-        throw new Error(error.detail || error.error || 'Failed to fetch build logs')
+        await this.handleErrorResponse(response, 'Failed to fetch build logs')
       }
 
       const data = await response.json()
@@ -111,9 +131,6 @@ class ImageService {
       console.error('Error fetching build logs:', error)
       throw error
     }
-    
-
-
   }
 
   // Create new image
@@ -138,11 +155,7 @@ class ImageService {
       })
 
       if (!response.ok) {
-        if (response.status === 401) {
-          throw new Error('Authentication required')
-        }
-        const error = await response.json()
-        throw new Error(error.detail || error.error || 'Failed to create image')
+        await this.handleErrorResponse(response, 'Failed to create image')
       }
 
       return await response.json()
@@ -163,11 +176,7 @@ class ImageService {
       })
 
       if (!response.ok) {
-        if (response.status === 401) {
-          throw new Error('Authentication required')
-        }
-        const error = await response.json()
-        throw new Error(error.detail || error.error || 'Failed to update image')
+        await this.handleErrorResponse(response, 'Failed to update image')
       }
 
       return await response.json()
@@ -187,11 +196,7 @@ class ImageService {
       })
 
       if (!response.ok) {
-        if (response.status === 401) {
-          throw new Error('Authentication required')
-        }
-        const error = await response.json()
-        throw new Error(error.detail || error.error || 'Failed to delete image')
+        await this.handleErrorResponse(response, 'Failed to delete image')
       }
     } catch (error) {
       console.error('Error deleting image:', error)

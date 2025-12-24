@@ -10,6 +10,7 @@ from app.services.billing_service import (
     process_container_started,
     process_container_stopped,
     get_billing_summary,
+    get_all_billing_summaries,
 )
 from app.schemas.billing import ContainerEventData
 from app.database.models import BillingStatus
@@ -161,49 +162,55 @@ class TestProcessContainerStopped:
         mock_get_active.assert_called_once_with(db, "container-123")
 
 
-class TestGetBillingSummary:
-    """Tests for get_billing_summary function."""
+class TestGetAllBillingSummariesBasic:
+    """Basic tests for get_all_billing_summaries (all images)."""
 
     @patch("app.services.billing_service.get_all_by_user")
-    @patch("app.services.billing_service.calculate_cost")
-    def test_get_billing_summary_success(self, mock_calculate, mock_get_all):
-        """Test successful billing summary retrieval."""
+    def test_get_all_billing_summaries_success(self, mock_get_all):
+        """Test successful retrieval of billing summaries for all images."""
         # Setup mocks
         mock_record1 = Mock()
         mock_record1.status = BillingStatus.COMPLETED
         mock_record1.duration_minutes = 60
         mock_record1.cost = 0.60
+        mock_record1.image_id = 1
+        mock_record1.start_time = datetime.now(timezone.utc) - timedelta(minutes=90)
+        mock_record1.end_time = datetime.now(timezone.utc) - timedelta(minutes=30)
 
         mock_record2 = Mock()
         mock_record2.status = BillingStatus.COMPLETED
         mock_record2.duration_minutes = 30
         mock_record2.cost = 0.30
+        mock_record2.image_id = 1
+        mock_record2.start_time = datetime.now(timezone.utc) - timedelta(minutes=30)
+        mock_record2.end_time = datetime.now(timezone.utc)
 
         mock_get_all.return_value = [mock_record1, mock_record2]
 
         db = Mock(spec=Session)
 
         # Test
-        result = get_billing_summary(db, user_id=1)
+        result = get_all_billing_summaries(db, user_id=1)
 
         # Assertions
-        assert result.total_cost == 0.90
-        assert result.total_containers == 2
+        assert isinstance(result, list)
+        assert len(result) == 1
+        assert result[0].total_cost == 0.90
+        assert result[0].total_containers == 2
         mock_get_all.assert_called_once_with(db, 1)
 
     @patch("app.services.billing_service.get_all_by_user")
-    def test_get_billing_summary_no_records(self, mock_get_all):
-        """Test billing summary with no records."""
+    def test_get_all_billing_summaries_no_records(self, mock_get_all):
+        """Test retrieval when user has no billing records."""
         mock_get_all.return_value = []
 
         db = Mock(spec=Session)
 
         # Test
-        result = get_billing_summary(db, user_id=1)
+        result = get_all_billing_summaries(db, user_id=1)
 
         # Assertions
-        assert result.total_cost == 0.0
-        assert result.total_containers == 0
+        assert result == []
 
 
 class TestGetBillingSummaryWithImage:

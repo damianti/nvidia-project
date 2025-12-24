@@ -1,6 +1,7 @@
 """
 Integration tests for LoggingMiddleware.
 """
+
 from contextlib import asynccontextmanager
 from fastapi.testclient import TestClient
 import pytest
@@ -28,6 +29,7 @@ class TestLoggingMiddleware:
 
     def test_preserva_correlation_id_existente(self) -> None:
         correlation = "test-corr-id"
+
         @asynccontextmanager
         async def dummy_lifespan(_):
             yield

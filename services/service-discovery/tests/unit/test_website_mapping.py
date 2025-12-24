@@ -1,6 +1,7 @@
 """
 Unit tests for AppHostnameMapping.
 """
+
 import pytest
 
 from app.services.website_mapping import AppHostnameMapping
@@ -27,7 +28,9 @@ class TestAppHostnameMapping:
 
         assert mapping.size() == 0
 
-    def test_conflicto_image_id_registra_warning(self, caplog: pytest.LogCaptureFixture) -> None:
+    def test_conflicto_image_id_registra_warning(
+        self, caplog: pytest.LogCaptureFixture
+    ) -> None:
         """When reassigning same hostname, new image_id overwrites and warns."""
         mapping = AppHostnameMapping()
         mapping.add("app.localhost", 1)

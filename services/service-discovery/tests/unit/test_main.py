@@ -1,6 +1,7 @@
 """
 Unit tests for app.main (lifespan and basic setup).
 """
+
 import asyncio
 import pytest
 from unittest.mock import AsyncMock, MagicMock
@@ -10,7 +11,9 @@ from app.main import app, lifespan
 
 @pytest.mark.unit
 @pytest.mark.asyncio
-async def test_lifespan_inicia_y_detiene_tareas(monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_lifespan_inicia_y_detiene_tareas(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     """Verify lifespan starts and stops tasks without errors."""
     # Service mocks
     mock_kafka = MagicMock()

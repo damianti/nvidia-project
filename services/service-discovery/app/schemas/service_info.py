@@ -1,22 +1,30 @@
 from pydantic import BaseModel, Field, ConfigDict
 from typing import List, Optional
-from datetime import datetime 
+from datetime import datetime
+
 
 class ServiceInfo(BaseModel):
     """
     Represents a healthy service from Consul.
     Used in ServiceCache for fast lookups.
     """
+
     container_id: str = Field(..., description="Docker container ID")
     container_ip: str = Field(..., description="Internal IP address")
     internal_port: int = Field(..., description="Port inside container")
     external_port: Optional[int] = Field(None, description="External port on host")
-    status: str = Field(..., description="Health check status: passing/warning/critical")
-    tags: List[str] = Field(default_factory=list, description="Service tags from Consul")
+    status: str = Field(
+        ..., description="Health check status: passing/warning/critical"
+    )
+    tags: List[str] = Field(
+        default_factory=list, description="Service tags from Consul"
+    )
     image_id: Optional[int] = Field(None, description="Extracted from tags")
-    app_hostname: Optional[str] = Field(None, description="App hostname identifier extracted from tags")
+    app_hostname: Optional[str] = Field(
+        None, description="App hostname identifier extracted from tags"
+    )
     user_id: Optional[int] = Field(None, description="user id")
-    timestamp: Optional[datetime] = Field(default=None,description="Timestamp in UTC")
+    timestamp: Optional[datetime] = Field(default=None, description="Timestamp in UTC")
 
     model_config = ConfigDict(
         json_schema_extra={
@@ -28,7 +36,7 @@ class ServiceInfo(BaseModel):
                 "status": "passing",
                 "tags": ["image-1", "app-hostname-example.com", "external-port-32768"],
                 "image_id": 1,
-                "app_hostname": "example.com"
+                "app_hostname": "example.com",
             }
         }
     )

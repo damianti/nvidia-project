@@ -1,6 +1,7 @@
 """
 Unit tests for ServiceCache.
 """
+
 import pytest
 from datetime import datetime
 from typing import List
@@ -54,9 +55,7 @@ class TestServiceCache:
         assert servicios[0].image_id == 1
         assert mapping.get_image_id("demo.example.com") == 1
 
-    def test_get_services_sin_filtros(
-        self, sample_services: List[ServiceInfo]
-    ) -> None:
+    def test_get_services_sin_filtros(self, sample_services: List[ServiceInfo]) -> None:
         """Returns all services when no filters are provided."""
         cache = ServiceCache()
         cache._cache = {1: sample_services}

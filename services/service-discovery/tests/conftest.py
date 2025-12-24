@@ -1,14 +1,18 @@
 """
 Shared fixtures and configuration for service-discovery tests.
 """
+
 import os
 import sys
 from datetime import datetime
 from types import SimpleNamespace
 from typing import Any, Dict, List
 from unittest.mock import AsyncMock, MagicMock, Mock
-
 import pytest
+
+from app.schemas.container_data import ContainerEventData
+from app.schemas.service_info import ServiceInfo
+
 
 # Mock external dependencies before importing app modules
 sys.modules["confluent_kafka"] = MagicMock()
@@ -18,9 +22,6 @@ os.environ.setdefault("CONSUL_HOST", "http://consul:8500")
 os.environ.setdefault("KAFKA_BOOTSTRAP_SERVERS", "kafka:9092")
 os.environ.setdefault("KAFKA_CONSUMER_GROUP", "service-discovery")
 os.environ.setdefault("LOG_LEVEL", "INFO")
-
-from app.schemas.container_data import ContainerEventData
-from app.schemas.service_info import ServiceInfo
 
 
 @pytest.fixture
@@ -90,13 +91,19 @@ def mock_async_client(mock_async_client_response: Mock) -> AsyncMock:
 
 
 @pytest.fixture
-def mock_httpx(monkeypatch: pytest.MonkeyPatch, mock_async_client: AsyncMock) -> AsyncMock:
+def mock_httpx(
+    monkeypatch: pytest.MonkeyPatch, mock_async_client: AsyncMock
+) -> AsyncMock:
     """Patch httpx.AsyncClient to return the mock."""
     import app.services.consul_client as consul_client
     import app.services.consul_watcher as consul_watcher
 
-    monkeypatch.setattr(consul_client.httpx, "AsyncClient", lambda timeout=5.0: mock_async_client)
-    monkeypatch.setattr(consul_watcher.httpx, "AsyncClient", lambda timeout=65.0: mock_async_client)
+    monkeypatch.setattr(
+        consul_client.httpx, "AsyncClient", lambda timeout=5.0: mock_async_client
+    )
+    monkeypatch.setattr(
+        consul_watcher.httpx, "AsyncClient", lambda timeout=65.0: mock_async_client
+    )
     return mock_async_client
 
 
@@ -109,7 +116,9 @@ def mock_consul_client(monkeypatch: pytest.MonkeyPatch) -> MagicMock:
     mock_module.register_service = AsyncMock(return_value=True)
     mock_module.deregister_service = AsyncMock(return_value=True)
     monkeypatch.setattr(consul_client, "register_service", mock_module.register_service)
-    monkeypatch.setattr(consul_client, "deregister_service", mock_module.deregister_service)
+    monkeypatch.setattr(
+        consul_client, "deregister_service", mock_module.deregister_service
+    )
     return mock_module
 
 

@@ -28,11 +28,12 @@ tags_metadata = [
     },
 ]
 
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """
     Application lifespan manager.
-    
+
     Starts the Kafka consumer and Consul watcher as asyncio tasks.
     """
     # Startup
@@ -40,51 +41,52 @@ async def lifespan(app: FastAPI):
         "sd.startup",
         extra={
             "service_name": SERVICE_NAME,
-        }
+        },
     )
     app_hostname_map = AppHostnameMapping()
     service_cache = ServiceCache(app_hostname_map)
     app.state.service_cache = service_cache
     app.state.app_hostname_map = app_hostname_map
-    
+
     kafka_consumer = KafkaConsumerService()
     app.state.kafka_consumer = kafka_consumer
 
     consul_watcher = ConsulWatcher(service_cache)
     app.state.consul_watcher = consul_watcher
-    
+
     kafka_task = asyncio.create_task(kafka_consumer.start())
     watcher_task = asyncio.create_task(consul_watcher.start())
 
     app.state.kafka_task = kafka_task
     app.state.watcher_task = watcher_task
-    
+
     yield
-    
+
     # Shutdown
     logger.info(
         "sd.shutdown",
         extra={
             "service_name": SERVICE_NAME,
-        }
+        },
     )
     kafka_consumer.stop()
     consul_watcher.stop()
-    
+
     try:
         await asyncio.wait_for(asyncio.gather(kafka_task, watcher_task), timeout=5.0)
     except asyncio.TimeoutError:
         logger.warning("sd.shutdown_timeout")
         kafka_task.cancel()
         watcher_task.cancel()
-  
+
+
 # Create FastAPI app with lifespan
 app = FastAPI(
     title="NVIDIA service-discovery",
     description="Service discovery for user services",
     version="1.0.0",
     lifespan=lifespan,
-    tags_metadata=tags_metadata
+    tags_metadata=tags_metadata,
 )
 
 app.add_middleware(LoggingMiddleware)
@@ -98,6 +100,7 @@ app.add_middleware(
 )
 
 app.include_router(services_router, tags=["services"])
+
 
 @app.get("/health")
 async def health():
@@ -114,19 +117,8 @@ async def metrics(request: Request):
     }
 
 
-
-
-
 if __name__ == "__main__":
     import uvicorn
-    
-    logger.info(
-        "service_discovery.startup",
-        extra={
-            "host": HOST,
-            "port": PORT
-        }
-    )
+
+    logger.info("service_discovery.startup", extra={"host": HOST, "port": PORT})
     uvicorn.run(app, host=HOST, port=PORT)
-
-

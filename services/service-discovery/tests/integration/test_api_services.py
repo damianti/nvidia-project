@@ -1,9 +1,9 @@
 """
 Integration tests for service-discovery endpoints.
 """
+
 from datetime import datetime
 from typing import List
-from unittest.mock import Mock
 
 import pytest
 from fastapi.testclient import TestClient
@@ -21,6 +21,7 @@ class TestApiServicesIntegration:
     @pytest.fixture(autouse=True)
     def setup_app_state(self, sample_services: List[ServiceInfo]) -> None:
         """Configure app.state without running lifespan."""
+
         @asynccontextmanager
         async def dummy_lifespan(_):
             yield
@@ -49,7 +50,9 @@ class TestApiServicesIntegration:
         if hasattr(app.state, "kafka_consumer"):
             del app.state.kafka_consumer
 
-    def test_get_healthy_services_happy_path(self, sample_services: List[ServiceInfo]) -> None:
+    def test_get_healthy_services_happy_path(
+        self, sample_services: List[ServiceInfo]
+    ) -> None:
         """Returns services from cache."""
         with TestClient(app) as client:
             response = client.get("/services/healthy")
@@ -59,10 +62,14 @@ class TestApiServicesIntegration:
         assert data["count"] == len(sample_services)
         assert data["services"][0]["container_id"] == sample_services[0].container_id
 
-    def test_get_healthy_services_filtrado_hostname(self, sample_services: List[ServiceInfo]) -> None:
+    def test_get_healthy_services_filtrado_hostname(
+        self, sample_services: List[ServiceInfo]
+    ) -> None:
         """Filters by app_hostname using mapping."""
         with TestClient(app) as client:
-            response = client.get("/services/healthy", params={"app_hostname": "demo.example.com"})
+            response = client.get(
+                "/services/healthy", params={"app_hostname": "demo.example.com"}
+            )
 
         assert response.status_code == 200
         data = response.json()

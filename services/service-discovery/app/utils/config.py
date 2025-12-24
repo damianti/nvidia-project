@@ -14,7 +14,7 @@ CONSUL_HOST = os.getenv("CONSUL_HOST", "http://consul:8500")
 
 # Kafka variables
 KAFKA_BOOTSTRAP_SERVERS = os.getenv("KAFKA_BOOTSTRAP_SERVERS", "kafka:9092")
-KAFKA_CONSUMER_GROUP = os.getenv("KAFKA_CONSUMER_GROUP", 'service-discovery')
+KAFKA_CONSUMER_GROUP = os.getenv("KAFKA_CONSUMER_GROUP", "service-discovery")
 
 # Logging configuration
 LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO").upper()

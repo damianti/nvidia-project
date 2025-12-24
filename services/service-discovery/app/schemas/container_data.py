@@ -3,19 +3,28 @@ from typing import Optional, Literal
 from datetime import datetime
 
 
-
 class ContainerEventData(BaseModel):
     """
     Data structure for container lifecycle events from Kafka.
     Validates incoming messages and provides type safety.
     """
-    event: Literal["container.created", "container.started", "container.stopped", "container.deleted"]
-    container_id: str = Field (..., description="Docker container ID")
+
+    event: Literal[
+        "container.created",
+        "container.started",
+        "container.stopped",
+        "container.deleted",
+    ]
+    container_id: str = Field(..., description="Docker container ID")
     container_name: str = Field(..., description="Human-readable container name")
     container_ip: str = Field(..., description="Internal IP address of the container")
     image_id: int = Field(..., description="Database ID of the image", gt=0)
-    internal_port: int = Field(..., description="Port exposed inside container", ge=1, le=65535)
-    external_port: int = Field(..., description="External port mapped on host", ge=1, le=65535)
+    internal_port: int = Field(
+        ..., description="Port exposed inside container", ge=1, le=65535
+    )
+    external_port: int = Field(
+        ..., description="External port mapped on host", ge=1, le=65535
+    )
     app_hostname: str = Field(..., description="App hostname for routing")
     user_id: Optional[int] = Field(None, description="User ID who owns the container")
     timestamp: Optional[datetime] = Field(None, description="Event timestamp in UTC")
@@ -30,7 +39,7 @@ class ContainerEventData(BaseModel):
                 "image_id": 1,
                 "internal_port": 80,
                 "external_port": 32768,
-                "app_hostname": "myapp.nvidia.com"
+                "app_hostname": "myapp.nvidia.com",
             }
         }
     )

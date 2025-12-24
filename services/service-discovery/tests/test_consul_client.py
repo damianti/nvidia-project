@@ -1,6 +1,7 @@
 """
 Unit tests for consul_client.
 """
+
 import pytest
 from unittest.mock import AsyncMock
 
@@ -87,23 +88,29 @@ class TestConsulClient:
         assert mock_httpx.get.await_count == 2
 
     @pytest.mark.asyncio
-    async def test_query_healthy_services_excepcion(self, mock_httpx, monkeypatch: pytest.MonkeyPatch) -> None:
+    async def test_query_healthy_services_excepcion(
+        self, mock_httpx, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         """Exception during request returns empty list."""
+
         async def raise_error(*_, **__):
             raise Exception("boom")
 
         mock_httpx.get = AsyncMock(side_effect=raise_error)
 
-        servicios = await consul_client.query_healthy_services(service_name="webapp-service")
+        servicios = await consul_client.query_healthy_services(
+            service_name="webapp-service"
+        )
 
         assert servicios == []
 
     @pytest.mark.asyncio
-    async def test_deregister_service_excepcion(self, mock_httpx, monkeypatch: pytest.MonkeyPatch) -> None:
+    async def test_deregister_service_excepcion(
+        self, mock_httpx, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         """Exception in deregister returns False without raising."""
         mock_httpx.put = AsyncMock(side_effect=Exception("boom"))
 
         result = await consul_client.deregister_service("abc123")
 
         assert result is False
-

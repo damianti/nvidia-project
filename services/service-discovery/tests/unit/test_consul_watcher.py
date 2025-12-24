@@ -1,8 +1,8 @@
 """
 Unit tests for ConsulWatcher.
 """
+
 import pytest
-from unittest.mock import AsyncMock
 
 from app.services.consul_watcher import ConsulWatcher
 from app.services.service_cache import ServiceCache
@@ -23,7 +23,11 @@ class TestConsulWatcher:
                     "ID": "abc123",
                     "Address": "172.18.0.10",
                     "Port": 80,
-                    "Tags": ["image-1", "app-hostname-demo.example.com", "external-port-32000"],
+                    "Tags": [
+                        "image-1",
+                        "app-hostname-demo.example.com",
+                        "external-port-32000",
+                    ],
                 },
                 "Checks": [{"Status": "passing"}],
             },
@@ -92,7 +96,9 @@ class TestConsulWatcher:
         assert watcher._extract_image_id(["other-tag"]) is None
 
     @pytest.mark.asyncio
-    async def test_start_ejecuta_watch_loop_y_stop(self, monkeypatch: pytest.MonkeyPatch) -> None:
+    async def test_start_ejecuta_watch_loop_y_stop(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         """Covers start loop setting running False after one iteration."""
         cache = ServiceCache()
         watcher = ConsulWatcher(cache)

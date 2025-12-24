@@ -1,13 +1,13 @@
 """
 Unit tests for KafkaConsumerService.
 """
+
 import asyncio
 import json
 import pytest
 from unittest.mock import AsyncMock, Mock
 
 from app.services.kafka_consumer import KafkaConsumerService
-from app.utils.config import KAFKA_BOOTSTRAP_SERVERS, KAFKA_CONSUMER_GROUP
 
 
 @pytest.mark.unit
@@ -44,7 +44,9 @@ class TestKafkaConsumerService:
 
         import app.services.consul_client as consul_client
 
-        monkeypatch.setattr(consul_client, "register_service", AsyncMock(side_effect=fail_register))
+        monkeypatch.setattr(
+            consul_client, "register_service", AsyncMock(side_effect=fail_register)
+        )
 
         await service.process_message(message)
 
@@ -63,7 +65,9 @@ class TestKafkaConsumerService:
         assert service.message_count == 0
 
     @pytest.mark.asyncio
-    async def test_process_message_validation_error(self, sample_container_event: dict) -> None:
+    async def test_process_message_validation_error(
+        self, sample_container_event: dict
+    ) -> None:
         """Handles pydantic validation errors."""
         service = KafkaConsumerService()
         message = Mock()
@@ -95,6 +99,7 @@ class TestKafkaConsumerService:
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
         """Covers start loop interrupted to close gracefully."""
+
         # Fake Consumer con poll que levanta KeyboardInterrupt en segunda llamada
         class FakeConsumer:
             def __init__(self):
@@ -118,7 +123,9 @@ class TestKafkaConsumerService:
         async def fake_to_thread(fn, *args, **kwargs):
             return fn(*args, **kwargs)
 
-        monkeypatch.setattr("app.services.kafka_consumer.Consumer", lambda config: fake_consumer)
+        monkeypatch.setattr(
+            "app.services.kafka_consumer.Consumer", lambda config: fake_consumer
+        )
         monkeypatch.setattr("asyncio.to_thread", fake_to_thread)
 
         service = KafkaConsumerService()

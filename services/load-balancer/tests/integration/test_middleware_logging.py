@@ -1,6 +1,7 @@
 """
 Integration tests for LoggingMiddleware headers.
 """
+
 from contextlib import asynccontextmanager
 from fastapi.testclient import TestClient
 import pytest
@@ -31,10 +32,14 @@ class TestLoggingMiddleware:
         assert "X-Correlation-ID" in response.headers
         assert response.headers["X-Correlation-ID"]
 
-    def test_preserves_existing_correlation_id(self, client_with_middleware: TestClient):
+    def test_preserves_existing_correlation_id(
+        self, client_with_middleware: TestClient
+    ):
         correlation = "existing-corr-id"
 
-        response = client_with_middleware.get("/health", headers={"X-Correlation-ID": correlation})
+        response = client_with_middleware.get(
+            "/health", headers={"X-Correlation-ID": correlation}
+        )
 
         assert response.status_code == 200
         assert response.headers["X-Correlation-ID"] == correlation

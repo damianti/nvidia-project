@@ -14,6 +14,7 @@ from app.utils.config import (
     PORT,
     SERVICE_NAME,
 )
+
 logger = setup_logger(SERVICE_NAME)
 
 # Tags metadata for Swagger organization
@@ -28,46 +29,46 @@ tags_metadata = [
     },
 ]
 
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Application lifespan manager"""
-    
+
     logger.info(
         "lb.startup",
         extra={
             "service_name": SERVICE_NAME,
-        }
+        },
     )
-    
+
     discovery_client = ServiceDiscoveryClient()
     service_selector = RoundRobinSelector()
     circuit_breaker = CircuitBreaker(failure_threshold=3, reset_timeout=15.0)
     fallback_cache = FallbackCache(ttl_seconds=10.0)
-    
+
     app.state.discovery_client = discovery_client
     app.state.service_selector = service_selector
     app.state.circuit_breaker = circuit_breaker
     app.state.fallback_cache = fallback_cache
     yield
-    
+
     # Shutdown
     logger.info(
         "lb.shutdown",
         extra={
             "service_name": SERVICE_NAME,
-        }
+        },
     )
     await discovery_client.close()
 
 
-    
 # Create FastAPI app with lifespan
 app = FastAPI(
     title="NVIDIA Load Balancer",
     description="Load Balancer for cloud services",
     version="1.0.0",
     lifespan=lifespan,
-    tags_metadata=tags_metadata
+    tags_metadata=tags_metadata,
 )
 
 app.add_middleware(LoggingMiddleware)
@@ -82,29 +83,26 @@ app.add_middleware(
 
 app.include_router(lb_routes.router, tags=["load_balancer"])
 
+
 @app.get("/")
 async def root():
     """Root endpoint"""
     return {
         "message": "NVIDIA Load Balancer",
         "version": "1.0.0",
-        "endpoints": {
-            "POST /route": "Route request to container by app_hostname"
-        }
+        "endpoints": {"POST /route": "Route request to container by app_hostname"},
     }
 
 
 if __name__ == "__main__":
     import uvicorn
-    
+
     logger.info(
         "lb.run",
         extra={
             "host": HOST,
             "port": PORT,
             "service_name": SERVICE_NAME,
-        }
+        },
     )
     uvicorn.run(app, host=HOST, port=PORT)
-
-

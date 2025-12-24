@@ -2,7 +2,11 @@ import asyncio
 import pytest
 from unittest.mock import AsyncMock
 
-from app.services.circuit_breaker import CircuitBreaker, CircuitBreakerOpenError, CircuitState
+from app.services.circuit_breaker import (
+    CircuitBreaker,
+    CircuitBreakerOpenError,
+    CircuitState,
+)
 
 
 @pytest.fixture
@@ -75,4 +79,3 @@ async def test_success_resets_failure_count(short_breaker: CircuitBreaker):
 
     assert result == "ok"
     assert short_breaker.get_status()["failure_count"] == 0
-

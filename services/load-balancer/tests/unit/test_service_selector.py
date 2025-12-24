@@ -1,6 +1,7 @@
 """
 Unit tests for RoundRobinSelector.
 """
+
 import pytest
 
 from app.services.service_selector import RoundRobinSelector

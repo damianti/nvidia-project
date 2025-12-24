@@ -1,12 +1,11 @@
 """
 Unit tests for FallbackCache.
 """
+
 import asyncio
 import pytest
-from datetime import datetime, timedelta
 
 from app.services.fallback_cache import FallbackCache
-from app.schemas.service_info import ServiceInfo
 
 
 @pytest.mark.unit

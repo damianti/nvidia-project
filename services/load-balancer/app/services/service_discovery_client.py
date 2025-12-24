@@ -22,7 +22,9 @@ class ServiceDiscoveryClient:
     The Load Balancer relies on this client instead of talking directly to Consul.
     """
 
-    def __init__(self, base_url: str = SERVICE_DISCOVERY_URL, timeout: float = 5.0) -> None:
+    def __init__(
+        self, base_url: str = SERVICE_DISCOVERY_URL, timeout: float = 5.0
+    ) -> None:
         self.base_url = base_url.rstrip("/")
         self._client = httpx.AsyncClient(timeout=timeout)
         self._lock = asyncio.Lock()
@@ -52,7 +54,9 @@ class ServiceDiscoveryClient:
         )
 
         try:
-            response = await self._client.get(f"{self.base_url}/services/healthy", params=params)
+            response = await self._client.get(
+                f"{self.base_url}/services/healthy", params=params
+            )
             response.raise_for_status()
         except httpx.HTTPStatusError as exc:
             logger.error(
@@ -62,7 +66,9 @@ class ServiceDiscoveryClient:
                     "response": exc.response.text[:200],
                 },
             )
-            raise ServiceDiscoveryError("Service discovery responded with an error") from exc
+            raise ServiceDiscoveryError(
+                "Service discovery responded with an error"
+            ) from exc
         except httpx.HTTPError as exc:
             logger.error(
                 "discovery.http_error",
@@ -81,4 +87,3 @@ class ServiceDiscoveryClient:
             },
         )
         return services
-

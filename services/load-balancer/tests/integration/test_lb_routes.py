@@ -1,6 +1,7 @@
 """
 Integration tests for load-balancer FastAPI routes.
 """
+
 from contextlib import asynccontextmanager
 from typing import List
 from unittest.mock import AsyncMock, Mock

@@ -1,13 +1,18 @@
 """
 Unit tests for lb_service helpers and request handling.
 """
+
 import json
 import pytest
 from unittest.mock import AsyncMock, Mock
 from fastapi import HTTPException
 
 from app.services import lb_service
-from app.services.lb_service import normalize_app_hostname, handle_request, _pick_service
+from app.services.lb_service import (
+    normalize_app_hostname,
+    handle_request,
+    _pick_service,
+)
 from app.schemas.service_info import ServiceInfo
 from app.services.circuit_breaker import CircuitBreakerOpenError
 from app.services.service_discovery_client import ServiceDiscoveryError
@@ -18,7 +23,10 @@ class TestNormalizeHostname:
     """Hostname normalization tests."""
 
     def test_strips_protocol_and_port(self):
-        assert normalize_app_hostname("https://Demo.Example.com:8080/path") == "demo.example.com"
+        assert (
+            normalize_app_hostname("https://Demo.Example.com:8080/path")
+            == "demo.example.com"
+        )
 
     def test_returns_empty_on_blank(self):
         assert normalize_app_hostname("   ") == ""
@@ -29,7 +37,9 @@ class TestPickService:
     """Tests for _pick_service selection logic."""
 
     @pytest.mark.asyncio
-    async def test_success_updates_fallback(self, mock_discovery_client, mock_circuit_breaker, mock_fallback_cache):
+    async def test_success_updates_fallback(
+        self, mock_discovery_client, mock_circuit_breaker, mock_fallback_cache
+    ):
         service = ServiceInfo(
             container_id="a",
             container_ip="1.1.1.1",
@@ -96,7 +106,9 @@ class TestPickService:
             )
 
     @pytest.mark.asyncio
-    async def test_no_services_returns_none(self, mock_circuit_breaker, mock_fallback_cache):
+    async def test_no_services_returns_none(
+        self, mock_circuit_breaker, mock_fallback_cache
+    ):
         mock_circuit_breaker.call.return_value = []
         mock_fallback_cache.get = AsyncMock(return_value=None)
 

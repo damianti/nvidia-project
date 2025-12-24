@@ -17,7 +17,7 @@ from app.utils.config import SERVICE_NAME
 logger = logging.getLogger(SERVICE_NAME)
 router = APIRouter(tags=["load_balancer"])
 
-    
+
 @router.get("/health", summary="Health check endpoint")
 async def health():
     """Check if the Load Balancer service is healthy and operational"""
@@ -40,10 +40,3 @@ async def route_image(
         circuit_breaker=circuit_breaker,
         fallback_cache=fallback_cache,
     )
-    
-    
-
-    
-
-
-

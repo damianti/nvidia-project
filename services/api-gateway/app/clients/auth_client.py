@@ -92,7 +92,7 @@ class AuthClient:
             headers = {"Authorization": authorization_header}
             headers.update(self._build_headers())
 
-            # Build cookies string if provided
+            
             cookies_dict = {}
             if cookies:
                 cookies_dict = cookies

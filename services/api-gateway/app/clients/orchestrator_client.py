@@ -3,8 +3,9 @@ import httpx
 from typing import Optional
 from urllib.parse import urlencode
 from app.utils.logger import correlation_id_var
+from app.utils.config import SERVICE_NAME
 
-logger = logging.getLogger("api-gateway")
+logger = logging.getLogger(SERVICE_NAME)
 
 
 class OrchestratorClient:

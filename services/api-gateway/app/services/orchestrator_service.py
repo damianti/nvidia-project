@@ -1,8 +1,12 @@
-# Orchestrator Service - High-level orchestration for orchestrator proxy operations
+from typing import Optional, Tuple
 from fastapi import Request, Response, UploadFile
 import httpx
 
 from app.clients.orchestrator_client import OrchestratorClient
+from app.utils.logger import setup_logger
+from app.utils.config import SERVICE_NAME
+
+logger = setup_logger(SERVICE_NAME)
 
 
 async def handle_image_upload(
@@ -18,11 +22,9 @@ async def handle_image_upload(
     user_id: int,
     orchestrator_client: OrchestratorClient,
 ) -> Response:
-    """Handle image upload with multipart/form-data"""
-    # Read file content
+    """Upload image to Orchestrator service with multipart/form-data."""
     file_content = await file.read()
 
-    # Prepare multipart form data
     files = {
         "file": (
             file.filename,
@@ -41,12 +43,9 @@ async def handle_image_upload(
         "memory_limit": memory_limit,
     }
 
-    # Send to Orchestrator
     url = f"{orchestrator_client.base_url}/api/images/"
     headers = {"X-User-Id": str(user_id)}
 
-    # Use the orchestrator_client's http_client which has follow_redirects=True
-    # or create a new one with follow_redirects enabled
     async with httpx.AsyncClient(follow_redirects=True) as client:
         response = await client.post(
             url=url,
@@ -63,101 +62,76 @@ async def handle_image_upload(
         )
 
 
-async def handle_orchestrator_proxy(
-    request: Request, path: str, user_id: int, orchestrator_client: OrchestratorClient
-) -> Response:
+async def _read_multipart_body(request: Request) -> Tuple[Optional[bytes], Optional[str]]:
     """
-    Handle proxy request to Orchestrator API.
-
-    Args:
-        request: FastAPI request object
-        path: API path to proxy
-        orchestrator_client: Orchestrator client instance
-
+    Read multipart body from request stream.
+    
     Returns:
-        FastAPI Response with proxied content
+        Tuple of (body bytes, error message). Returns (None, error_msg) on failure.
     """
+    try:
+        body_chunks = []
+        async for chunk in request.stream():
+            body_chunks.append(chunk)
+        body = b"".join(body_chunks)
+
+        if not body:
+            try:
+                await request.form()
+                logger.error(
+                    "orchestrator.multipart.body_consumed",
+                    extra={"path": request.url.path},
+                )
+                return None, "Multipart form data cannot be proxied through generic endpoint"
+            except Exception:
+                pass
+
+        return body, None
+    except Exception as e:
+        logger.error(
+            "orchestrator.multipart.read_error",
+            extra={"path": request.url.path, "error": str(e)},
+            exc_info=True,
+        )
+        return None, f"Error processing multipart request: {str(e)}"
+
+
+async def handle_orchestrator_proxy(
+    request: Request,
+    path: str,
+    user_id: int,
+    orchestrator_client: OrchestratorClient,
+) -> Response:
+    """Proxy request to Orchestrator API."""
     query_params = dict(request.query_params) if request.query_params else None
     headers = {"X-User-Id": str(user_id)}
-
-    # Check if this is a multipart/form-data request
     content_type = str(request.headers.get("Content-Type", ""))
     is_multipart = "multipart/form-data" in content_type
 
     if is_multipart:
-        # For multipart requests, try to read raw body
-        # Note: Once FastAPI starts parsing, the stream may be consumed
-        # So we try to read it before it's parsed
-        try:
-            body_chunks = []
-            async for chunk in request.stream():
-                body_chunks.append(chunk)
-            body = b"".join(body_chunks)
-
-            # If body is empty, FastAPI may have already consumed it
-            # In that case, we need to reconstruct from form data
-            if not body or len(body) == 0:
-                # Fallback: try to get form data (may not work for generic endpoints)
-                try:
-                    _ = await request.form()  # Check if form data exists
-                    # Reconstruct multipart manually would be complex
-                    # For now, log error and return 500
-                    import logging
-
-                    logger = logging.getLogger("api-gateway")
-                    logger.error(
-                        "Multipart body was consumed by FastAPI, cannot reconstruct"
-                    )
-                    return Response(
-                        content='{"detail": "Multipart form data cannot be proxied through generic endpoint"}',
-                        status_code=500,
-                        media_type="application/json",
-                    )
-                except Exception:
-                    pass
-        except Exception as e:
-            import logging
-
-            logger = logging.getLogger("api-gateway")
-            logger.error(f"Error reading multipart stream: {e}")
+        body, error_msg = await _read_multipart_body(request)
+        if body is None:
             return Response(
-                content=f'{{"detail": "Error processing multipart request: {str(e)}"}}',
+                content=f'{{"detail": "{error_msg}"}}',
                 status_code=500,
                 media_type="application/json",
             )
-
-        # Preserve the Content-Type header with boundary
         headers["Content-Type"] = content_type
-
-        response = await orchestrator_client.proxy_request(
-            method=request.method,
-            path=f"/api/{path}",
-            query_params=query_params,
-            body=body,
-            headers=headers,
-        )
-
-        return Response(
-            content=response.content,
-            status_code=response.status_code,
-            headers=dict(response.headers),
-        )
     else:
-        # For non-multipart requests, use the original body-based approach
         body = await request.body()
         if content_type:
             headers["Content-Type"] = content_type
 
-        response = await orchestrator_client.proxy_request(
-            method=request.method,
-            path=f"/api/{path}",
-            query_params=query_params,
-            body=body if body else None,
-            headers=headers,
-        )
+    response = await orchestrator_client.proxy_request(
+        method=request.method,
+        path=f"/api/{path}",
+        query_params=query_params,
+        body=body if body else None,
+        headers=headers,
+    )
 
-        return Response(
-            content=response.content,
-            status_code=response.status_code,
-            headers=dict(response.headers),
-        )
+    return Response(
+        content=response.content,
+        status_code=response.status_code,
+        headers=dict(response.headers),
+    )

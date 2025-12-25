@@ -7,6 +7,7 @@ from app.services.routing_cache import Cache
 from app.clients.lb_client import LoadBalancerClient
 from app.clients.orchestrator_client import OrchestratorClient
 from app.clients.auth_client import AuthClient
+from app.utils.auth import build_bearer_auth_header
 
 
 def get_from_app_state(
@@ -99,24 +100,13 @@ async def verify_token_and_get_user_id(
     This dependency is used for routes that require authentication.
     Supports both cookies and Authorization header.
     """
-    # Try to get token from cookies first
-    cookies = request.cookies
-    cookie_token = cookies.get("access_token")
-
-    # Build authorization header from cookie or use provided header
-    auth_header = None
-    if cookie_token:
-        auth_header = f"Bearer {cookie_token}"
-    elif authorization:
-        if not authorization.startswith("Bearer "):
-            raise HTTPException(
-                status_code=401, detail="Invalid authorization header format"
-            )
-        auth_header = authorization
-    else:
+    auth_header = build_bearer_auth_header(
+        request, authorization, allow_authorization_header=True
+    )
+    if not auth_header:
         raise HTTPException(status_code=401, detail="Authentication required")
 
-    response = await auth_client.get_current_user(auth_header, cookies)
+    response = await auth_client.get_current_user(auth_header, request.cookies)
 
     if response.status_code == 200:
         return response.json()["id"]

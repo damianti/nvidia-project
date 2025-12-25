@@ -13,7 +13,7 @@ The API Gateway serves as the public-facing entry point for the platform, provid
 ## Features
 
 - **Authentication**: Proxies login, signup, logout, and user info requests to auth-service
-- **Container Routing**: Routes HTTP requests to containers via path-based routing (`/apps/{app_hostname}/...`) or Host header
+- **Container Routing**: Routes HTTP requests to containers via path-based routing (`/apps/{app_hostname}/...`)
 - **Image Upload**: Handles multipart/form-data uploads for Docker images with Dockerfiles
 - **Orchestrator Proxy**: Proxies authenticated API requests for container and image management
 - **Caching**: Maintains routing cache with automatic cleanup of expired entries
@@ -28,8 +28,7 @@ The API Gateway serves as the public-facing entry point for the platform, provid
 - `GET /auth/me` - Get current authenticated user information
 
 ### Container Routing
-- `GET /apps/{app_hostname}/{remaining_path:path}` - **Path-based routing** (recommended). Routes requests to user applications via Load Balancer
-- `POST /route` - Legacy routing via Host header. Extracts `app_hostname` from Host header and routes to Load Balancer
+- `GET /apps/{app_hostname}/{remaining_path:path}` - **Path-based routing**. Routes requests to user applications via Load Balancer
 
 ### Orchestrator API Proxy
 - `POST /api/images` - **Upload Docker image** with multipart/form-data (Dockerfile + context). Requires authentication.

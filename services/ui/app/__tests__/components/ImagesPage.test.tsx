@@ -88,7 +88,7 @@ describe("ImagesPage", () => {
       expect(screen.getByText(/test-image:latest/i)).toBeInTheDocument();
       expect(screen.getByText(/another-image:v1.0/i)).toBeInTheDocument();
       // Check hostname appears in the App URL code block
-      const codeElements = screen.getAllByText(/test\.example\.com/i)
+      const codeElements = screen.getAllByText(/test\.example\.com/i);
       expect(codeElements.length).toBeGreaterThan(0);
     });
 
@@ -182,7 +182,9 @@ describe("ImagesPage", () => {
       expect(screen.getByLabelText(/image name/i)).toBeInTheDocument();
       expect(screen.getByLabelText(/tag/i)).toBeInTheDocument();
       expect(screen.getByLabelText(/app hostname/i)).toBeInTheDocument();
-      expect(screen.getByRole("button", { name: /^upload$/i })).toBeInTheDocument();
+      expect(
+        screen.getByRole("button", { name: /^upload$/i })
+      ).toBeInTheDocument();
     });
 
     it("should close upload form when cancel button is clicked", async () => {
@@ -250,7 +252,9 @@ describe("ImagesPage", () => {
 
       // Assert - Should show JavaScript validation error for hostname
       await waitFor(() => {
-        const errorMessages = screen.getAllByText(/please enter a valid app hostname/i);
+        const errorMessages = screen.getAllByText(
+          /please enter a valid app hostname/i
+        );
         expect(errorMessages.length).toBeGreaterThan(0);
       });
     });
@@ -289,7 +293,7 @@ describe("ImagesPage", () => {
       const invalidFile = new File(["content"], "test.txt", {
         type: "text/plain",
       });
-      Object.defineProperty(fileInput, 'files', {
+      Object.defineProperty(fileInput, "files", {
         value: [invalidFile],
         configurable: true,
       });
@@ -523,7 +527,9 @@ describe("ImagesPage", () => {
 
       // Assert - Should show the specific error message from the backend (4xx error)
       await waitFor(() => {
-        expect(screen.getByText(/cannot delete image with running containers/i)).toBeInTheDocument();
+        expect(
+          screen.getByText(/cannot delete image with running containers/i)
+        ).toBeInTheDocument();
       });
     });
   });

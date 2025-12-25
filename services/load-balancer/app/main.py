@@ -6,7 +6,7 @@ from app.services.service_discovery_client import ServiceDiscoveryClient
 from app.services.service_selector import RoundRobinSelector
 from app.services.circuit_breaker import CircuitBreaker
 from app.services.fallback_cache import FallbackCache
-from app.routes import lb_routes
+from app.routes import lb_routes, lb_metrics, lb_health
 from app.middleware.logging import LoggingMiddleware
 from app.utils.logger import setup_logger
 from app.utils.config import (
@@ -81,7 +81,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.include_router(lb_routes.router, tags=["load_balancer"])
+app.include_router(lb_routes.router, prefix="/route", tags=["load_balancer"])
+app.include_router(lb_metrics.router, prefix="/metrics", tags=["load_balancer"])
+app.include_router(lb_health.router, prefix="/health", tags=["load_balancer"])
 
 
 @app.get("/")

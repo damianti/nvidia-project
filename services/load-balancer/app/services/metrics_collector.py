@@ -9,3 +9,5 @@ import logging
 from app.utils.config import SERVICE_NAME
 
 logger = logging.getLogger(SERVICE_NAME)
+
+

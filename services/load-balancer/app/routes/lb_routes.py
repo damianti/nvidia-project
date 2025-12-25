@@ -17,14 +17,7 @@ from app.utils.config import SERVICE_NAME
 logger = logging.getLogger(SERVICE_NAME)
 router = APIRouter(tags=["load_balancer"])
 
-
-@router.get("/health", summary="Health check endpoint")
-async def health():
-    """Check if the Load Balancer service is healthy and operational"""
-    return {"status": "ok"}
-
-
-@router.post("/route", summary="Route HTTP request to healthy container instance")
+@router.post("/", summary="Route HTTP request to healthy container instance")
 async def route_image(
     request: Request,
     discovery_client: ServiceDiscoveryClient = Depends(get_discovery_client),

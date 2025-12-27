@@ -71,9 +71,16 @@ check_python_service() {
     fi
     
     # Setup Python environment
+    # Prefer Python 3.11 (same as CI), fallback to python3
+    PYTHON_CMD="python3"
+    if command_exists python3.11; then
+        PYTHON_CMD="python3.11"
+        echo -e "${YELLOW}  Using Python 3.11 (matching CI)${NC}"
+    fi
+    
     if [ ! -d "venv" ]; then
-        echo -e "${YELLOW}  Creating venv...${NC}"
-        python3 -m venv venv
+        echo -e "${YELLOW}  Creating venv with ${PYTHON_CMD}...${NC}"
+        $PYTHON_CMD -m venv venv
     fi
     
     source venv/bin/activate
@@ -82,17 +89,17 @@ check_python_service() {
     echo -e "${YELLOW}  Installing dependencies...${NC}"
     pip install --upgrade pip --quiet > /dev/null 2>&1
     
-    # Try to install dependencies, but be tolerant of optional dependencies
-    if ! pip install -r requirements-test.txt --quiet 2>&1 | tee /tmp/pip-install-${service_name}.log; then
-        # Check if it's a critical error or just optional dependencies
-        if grep -q "ERROR: Failed building wheel\|Failed to build" /tmp/pip-install-${service_name}.log; then
-            echo -e "${YELLOW}  ⚠ Some dependencies failed to install (may be optional)${NC}"
-            echo -e "${YELLOW}  Attempting to continue with available dependencies...${NC}"
-            # Try to install core dependencies manually
-            pip install pytest pytest-asyncio pytest-cov black ruff --quiet > /dev/null 2>&1 || true
+    # Try to install dependencies
+    # Redirect stderr to capture errors but don't fail immediately
+    if ! pip install -r requirements-test.txt 2>&1 | tee /tmp/pip-install-${service_name}.log | grep -v "WARNING:" | tail -5; then
+        # Check if critical dependencies are installed
+        if python -c "import pytest, black, ruff" 2>/dev/null; then
+            echo -e "${YELLOW}  ⚠ Some dependencies failed, but core tools are available${NC}"
+            echo -e "${YELLOW}  Continuing with available dependencies...${NC}"
         else
-            echo -e "${RED}  ✗ Failed to install dependencies${NC}"
-            cat /tmp/pip-install-${service_name}.log | tail -10
+            echo -e "${RED}  ✗ Failed to install critical dependencies${NC}"
+            echo -e "${RED}  Last 10 lines of error:${NC}"
+            tail -10 /tmp/pip-install-${service_name}.log | grep -E "ERROR|Failed" || tail -10 /tmp/pip-install-${service_name}.log
             FAILED_CHECKS+=("${service_name}: dependency installation failed")
             has_errors=true
             deactivate

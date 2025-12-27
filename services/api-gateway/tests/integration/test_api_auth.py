@@ -11,6 +11,7 @@ endpoints following QA Automation best practices:
 
 from typing import Dict, Any
 import pytest
+import httpx
 from unittest.mock import AsyncMock, Mock
 from fastapi.testclient import TestClient
 
@@ -75,10 +76,12 @@ class TestAuthRoutesIntegration:
 
         response_data = response.json()
         assert isinstance(response_data, dict), "Response should be a dictionary"
-        assert "id" in response_data, "Response should contain 'id' field"
-        assert "email" in response_data, "Response should contain 'email' field"
-        assert response_data["email"] == sample_user_response["email"]
-        assert response_data["id"] == sample_user_response["id"]
+        assert "user" in response_data, "Response should contain 'user' field"
+        user_data = response_data["user"]
+        assert "id" in user_data, "Response should contain 'id' field in user"
+        assert "email" in user_data, "Response should contain 'email' field in user"
+        assert user_data["email"] == sample_user_response["email"]
+        assert user_data["id"] == sample_user_response["id"]
 
         # Verify Set-Cookie header is set
         assert (
@@ -234,16 +237,18 @@ class TestAuthRoutesIntegration:
 
         # Assert
         assert (
-            response.status_code == 200
-        ), f"Expected 200, got {response.status_code}: {response.text}"
+            response.status_code == 201
+        ), f"Expected 201, got {response.status_code}: {response.text}"
 
         response_data = response.json()
         assert isinstance(response_data, dict), "Response should be a dictionary"
-        assert "id" in response_data, "Response should contain 'id' field"
-        assert "email" in response_data, "Response should contain 'email' field"
-        assert "username" in response_data, "Response should contain 'username' field"
-        assert response_data["email"] == sample_user_data["email"]
-        assert response_data["username"] == sample_user_data["username"]
+        assert "user" in response_data, "Response should contain 'user' field"
+        user_data = response_data["user"]
+        assert "id" in user_data, "Response should contain 'id' field in user"
+        assert "email" in user_data, "Response should contain 'email' field in user"
+        assert "username" in user_data, "Response should contain 'username' field in user"
+        assert user_data["email"] == sample_user_data["email"]
+        assert user_data["username"] == sample_user_data["username"]
 
     @pytest.mark.asyncio
     async def test_signup_duplicate_email(
@@ -384,8 +389,13 @@ class TestAuthRoutesIntegration:
             - Response structure matches expected schema
         """
         # Arrange
+        # /auth/me returns UserResponse directly, not wrapped in {"user": ...}
+        mock_me_response = Mock(spec=httpx.Response)
+        mock_me_response.status_code = 200
+        mock_me_response.headers = {}
+        mock_me_response.json.return_value = sample_user_response  # Direct user, not wrapped
         mock_auth_client.get_current_user = AsyncMock(
-            return_value=mock_successful_auth_response
+            return_value=mock_me_response
         )
 
         # Act
@@ -398,6 +408,7 @@ class TestAuthRoutesIntegration:
 
         response_data = response.json()
         assert isinstance(response_data, dict), "Response should be a dictionary"
+        # /auth/me returns UserResponse directly, not wrapped in {"user": ...}
         assert "id" in response_data, "Response should contain 'id' field"
         assert "email" in response_data, "Response should contain 'email' field"
         assert response_data["id"] == sample_user_response["id"]

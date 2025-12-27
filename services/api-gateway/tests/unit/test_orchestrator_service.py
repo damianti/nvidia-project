@@ -36,7 +36,7 @@ class TestOrchestratorService:
     ):
         """Test successful image upload"""
         mock_response = Mock()
-        mock_response.status_code = 200
+        mock_response.status_code = 201
         mock_response.content = b'{"id": 1, "status": "building"}'
         mock_response.headers = {"Content-Type": "application/json"}
 
@@ -61,7 +61,7 @@ class TestOrchestratorService:
             )
 
             assert isinstance(result, Response)
-            assert result.status_code == 200
+            assert result.status_code == 201
 
     @pytest.mark.asyncio
     async def test_handle_orchestrator_proxy_get(self, mock_orchestrator_client):

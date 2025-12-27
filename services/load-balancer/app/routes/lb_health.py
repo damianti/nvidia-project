@@ -1,5 +1,4 @@
 from fastapi import APIRouter
-from app.utils.config import SERVICE_NAME
 
 router = APIRouter(tags=["health"])
 
@@ -12,22 +11,17 @@ router = APIRouter(tags=["health"])
     responses={
         200: {
             "description": "Service is healthy",
-            "content": {
-                "application/json": {
-                    "example": {"status": "ok"}
-                }
-            },
+            "content": {"application/json": {"example": {"status": "ok"}}},
         }
     },
 )
 async def health():
     """
     Health check endpoint.
-    
+
     Used by monitoring systems and load balancers to verify service availability.
-    
+
     Returns:
         dict: Health status
     """
     return {"status": "ok"}
-

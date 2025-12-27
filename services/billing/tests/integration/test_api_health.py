@@ -55,7 +55,7 @@ class TestHealthEndpoints:
 class TestMetricsEndpoints:
     """Test suite for Metrics API endpoints."""
 
-    @patch("app.main.KafkaConsumerService")
+    @patch("app.core.lifespan.KafkaConsumerService")
     def test_metrics_success(self, mock_kafka_service: Mock) -> None:
         """Test successful metrics retrieval (Happy Path).
 
@@ -72,9 +72,10 @@ class TestMetricsEndpoints:
         mock_consumer.message_count = 100
         mock_consumer.processed_success = 95
         mock_consumer.processed_failures = 5
+        mock_consumer.start = Mock(return_value=None)
         mock_kafka_service.return_value = mock_consumer
 
-        # Set up app state
+        # Set up app state (the endpoint reads from app.state.kafka_consumer)
         app.state.kafka_consumer = mock_consumer
 
         client = TestClient(app)

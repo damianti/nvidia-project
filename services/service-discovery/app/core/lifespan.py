@@ -61,4 +61,3 @@ async def lifespan(app: FastAPI):
         logger.warning("sd.shutdown_timeout")
         kafka_task.cancel()
         watcher_task.cancel()
-

@@ -33,7 +33,7 @@ async def lifespan(app: FastAPI):
     app.state.circuit_breaker = circuit_breaker
     app.state.fallback_cache = fallback_cache
     app.state.metrics_collector = metrics_collector
-    
+
     yield
 
     # Shutdown
@@ -44,4 +44,3 @@ async def lifespan(app: FastAPI):
         },
     )
     await discovery_client.close()
-

@@ -49,9 +49,9 @@ class ImageResponse(ImageBase):
                 "memory_limit": "512m",
                 "status": "ready",
                 "created_at": "2024-01-01T00:00:00Z",
-                "user_id": 1
+                "user_id": 1,
             }
-        }
+        },
     )
 
 

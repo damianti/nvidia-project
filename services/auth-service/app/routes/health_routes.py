@@ -13,7 +13,7 @@ router = APIRouter(tags=["health"])
 async def root():
     """
     Root endpoint that returns basic service information.
-    
+
     Returns:
         dict: Service metadata including name, version, and available endpoints
     """
@@ -54,11 +54,10 @@ async def root():
 async def health():
     """
     Health check endpoint.
-    
+
     Used by monitoring systems and load balancers to verify service availability.
-    
+
     Returns:
         dict: Health status with service name
     """
     return {"status": "healthy", "service": SERVICE_NAME}
-

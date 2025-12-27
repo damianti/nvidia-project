@@ -1,6 +1,6 @@
 from typing import List
 
-from fastapi import APIRouter, Depends, UploadFile, File, Form, HTTPException
+from fastapi import APIRouter, Depends, UploadFile, File, Form
 from sqlalchemy.orm import Session
 
 from app.database.config import get_db
@@ -49,18 +49,28 @@ async def create_image(
     name: str = Form(..., description="Image name (e.g., 'myapp')"),
     tag: str = Form(..., description="Image tag (e.g., 'latest', 'v1.0.0')"),
     app_hostname: str = Form(..., description="Application hostname identifier"),
-    container_port: int = Form(8080, description="Container port to expose", ge=1, le=65535),
-    min_instances: int = Form(1, description="Minimum number of container instances", ge=1),
-    max_instances: int = Form(3, description="Maximum number of container instances", ge=1),
+    container_port: int = Form(
+        8080, description="Container port to expose", ge=1, le=65535
+    ),
+    min_instances: int = Form(
+        1, description="Minimum number of container instances", ge=1
+    ),
+    max_instances: int = Form(
+        3, description="Maximum number of container instances", ge=1
+    ),
     cpu_limit: str = Form("0.5", description="CPU limit (e.g., '0.5', '1.0', '2')"),
-    memory_limit: str = Form("512m", description="Memory limit (e.g., '512m', '1g', '2g')"),
-    file: UploadFile = File(..., description="Compressed archive with Dockerfile and build context"),
+    memory_limit: str = Form(
+        "512m", description="Memory limit (e.g., '512m', '1g', '2g')"
+    ),
+    file: UploadFile = File(
+        ..., description="Compressed archive with Dockerfile and build context"
+    ),
     db: Session = Depends(get_db),
     user_id: int = Depends(get_user_id),
 ):
     """
     Create a new Docker image from uploaded build context.
-    
+
     Args:
         name: Image name
         tag: Image tag/version
@@ -73,7 +83,7 @@ async def create_image(
         file: Compressed archive with Dockerfile and build context
         db: Database session (injected)
         user_id: Authenticated user ID (from token, injected)
-    
+
     Returns:
         ImageResponse: Created image information with build status
     """
@@ -126,11 +136,11 @@ async def list_images(
 ):
     """
     List all registered images for the current user.
-    
+
     Args:
         db: Database session (injected)
         user_id: Authenticated user ID (from token, injected)
-    
+
     Returns:
         List[ImageResponse]: List of all images for the user
     """
@@ -155,11 +165,11 @@ async def list_images_with_containers(
 ):
     """
     List all images with their containers for the current user.
-    
+
     Args:
         db: Database session (injected)
         user_id: Authenticated user ID (from token, injected)
-    
+
     Returns:
         List[ImageWithContainers]: List of images with nested containers
     """
@@ -188,12 +198,12 @@ async def get_image(
 ):
     """
     Get a specific image by ID.
-    
+
     Args:
         image_id: Image identifier
         db: Database session (injected)
         user_id: Authenticated user ID (from token, injected)
-    
+
     Returns:
         ImageResponse: Image details
     """
@@ -224,12 +234,12 @@ async def get_image_build_logs(
 ):
     """
     Get build logs for a specific image.
-    
+
     Args:
         image_id: Image identifier
         db: Database session (injected)
         user_id: Authenticated user ID (from token, injected)
-    
+
     Returns:
         BuildLogsResponse: Build logs for the image
     """
@@ -259,12 +269,12 @@ async def list_image_containers(
 ):
     """
     List containers for a specific image.
-    
+
     Args:
         image_id: Image identifier
         db: Database session (injected)
         user_id: Authenticated user ID (from token, injected)
-    
+
     Returns:
         List[ContainerResponse]: List of containers for the image
     """
@@ -297,12 +307,12 @@ async def delete_image(
 ):
     """
     Delete an image.
-    
+
     Args:
         image_id: Image identifier
         db: Database session (injected)
         user_id: Authenticated user ID (from token, injected)
-    
+
     Returns:
         MessageResponse: Deletion confirmation message
     """

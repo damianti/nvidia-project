@@ -37,13 +37,13 @@ async def get_user_billings(
 ):
     """
     Get billing summary for all images of the authenticated user.
-    
+
     Returns a list of billing summaries, one per image, with aggregated costs.
-    
+
     Args:
         db: Database session (injected)
         user_id: Authenticated user ID (from token, injected)
-    
+
     Returns:
         List[BillingSummaryResponse]: List of billing summaries per image
     """
@@ -91,14 +91,14 @@ async def get_image_billing(
 ):
     """
     Get detailed billing information for a specific image.
-    
+
     Returns detailed billing including summary and list of all container usage records.
-    
+
     Args:
         image_id: Image identifier
         db: Database session (injected)
         user_id: Authenticated user ID (from token, injected)
-    
+
     Returns:
         BillingDetailResponse: Detailed billing information with container usage records
     """

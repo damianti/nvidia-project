@@ -33,4 +33,3 @@ async def lifespan(app: FastAPI):
     # Shutdown
     logger.info("orchestrator.shutdown")
     KafkaProducerSingleton.instance().flush(5)
-

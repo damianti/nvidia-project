@@ -20,7 +20,7 @@ async def lifespan(app: FastAPI):
             "service_name": SERVICE_NAME,
         },
     )
-    
+
     try:
         Base.metadata.create_all(bind=engine)
         create_default_user_if_needed()
@@ -31,9 +31,9 @@ async def lifespan(app: FastAPI):
             exc_info=True,
         )
         raise
-    
+
     yield
-    
+
     # Shutdown
     logger.info(
         "auth.shutdown",
@@ -41,4 +41,3 @@ async def lifespan(app: FastAPI):
             "service_name": SERVICE_NAME,
         },
     )
-

@@ -103,8 +103,8 @@ class TestContainersEndpoints:
 
         # Assert
         assert (
-            response.status_code == 200
-        ), f"Expected 200, got {response.status_code}: {response.text}"
+            response.status_code == 201
+        ), f"Expected 201, got {response.status_code}: {response.text}"
 
         response_data = response.json()
         assert isinstance(response_data, list), "Response should be a list"
@@ -431,21 +431,8 @@ class TestContainersEndpoints:
             test_user_id: Fixture with test user ID
         """
         # Arrange
-        mock_container = ContainerResponse(
-            id=1,
-            container_id="docker-123",
-            container_ip="172.17.0.2",
-            name="test-container",
-            internal_port=8080,
-            external_port=32768,
-            status="stopped",
-            cpu_usage="0.0",
-            memory_usage="0m",
-            created_at="2024-01-01T00:00:00Z",
-            image_id=1,
-            user_id=test_user_id,
-        )
-        mock_delete.return_value = mock_container
+        # The service returns a dict with a message, not a ContainerResponse
+        mock_delete.return_value = {"message": "Container 1 deleted successfully"}
 
         client = TestClient(app)
 
@@ -458,9 +445,9 @@ class TestContainersEndpoints:
         ), f"Expected 200, got {response.status_code}: {response.text}"
 
         response_data = response.json()
-        assert "id" in response_data, "Response should contain container data"
-        assert response_data["id"] == 1
-        assert response_data["status"] == "stopped"
+        assert "message" in response_data, "Response should contain a message"
+        assert isinstance(response_data["message"], str)
+        assert "deleted" in response_data["message"].lower()
 
         mock_delete.assert_called_once()
 

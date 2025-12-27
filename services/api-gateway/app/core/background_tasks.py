@@ -12,17 +12,14 @@ async def clear_cache_task(cached_memory: Cache) -> None:
         try:
             count = cached_memory.clear_expired()
             if count > 0:
-                logger.info(
-                    "cache.cleanup.completed",
-                    extra={"entries_removed": count}
-                )
+                logger.info("cache.cleanup.completed", extra={"entries_removed": count})
         except Exception as e:
             logger.error(
                 "cache.cleanup.error",
                 extra={"error": str(e), "error_type": type(e).__name__},
                 exc_info=True,
             )
-        
+
         await asyncio.sleep(CACHE_CLEANUP_INTERVAL)
 
 
@@ -38,4 +35,3 @@ async def stop_cache_cleanup_task(task: asyncio.Task) -> None:
         await task
     except asyncio.CancelledError:
         pass
-

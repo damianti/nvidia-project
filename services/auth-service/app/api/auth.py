@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, Response, HTTPException
+from fastapi import APIRouter, Depends, Response
 from sqlalchemy.orm import Session
 
 from app.database.config import get_db
@@ -46,15 +46,15 @@ async def login(
 ):
     """
     Authenticate user and get JWT token.
-    
+
     The JWT token is automatically set as an HttpOnly cookie for security.
     The token can also be used in the Authorization header for API clients.
-    
+
     Args:
         credentials: User credentials (email and password)
         response: FastAPI response object (used to set cookie)
         db: Database session (injected)
-    
+
     Returns:
         LoginResponse: User information (token is set as cookie)
     """
@@ -96,13 +96,13 @@ async def login(
 async def signup(user_data: UserCreate, db: Session = Depends(get_db)):
     """
     Register a new user account.
-    
+
     Creates a new user account with the provided email, username, and password.
-    
+
     Args:
         user_data: User registration data (username, email, password)
         db: Database session (injected)
-    
+
     Returns:
         UserResponse: Created user information
     """
@@ -130,12 +130,12 @@ async def signup(user_data: UserCreate, db: Session = Depends(get_db)):
 async def logout(response: Response):
     """
     Logout user and invalidate session.
-    
+
     Removes the JWT token cookie from the client.
-    
+
     Args:
         response: FastAPI response object (used to remove cookie)
-    
+
     Returns:
         LogoutResponse: Logout confirmation message
     """
@@ -166,13 +166,13 @@ async def get_current_user_info(
 ):
     """
     Get current authenticated user information.
-    
+
     Retrieves the user information for the currently authenticated user
     based on the JWT token in the cookie or Authorization header.
-    
+
     Args:
         current_user: Authenticated user (from token, injected)
-    
+
     Returns:
         UserResponse: Current user information
     """

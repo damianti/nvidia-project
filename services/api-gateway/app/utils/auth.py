@@ -41,5 +41,3 @@ def build_bearer_auth_header(
         return authorization
 
     return None
-
-

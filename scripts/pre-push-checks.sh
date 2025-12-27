@@ -87,12 +87,40 @@ check_python_service() {
     
     # Install/upgrade dependencies
     echo -e "${YELLOW}  Installing dependencies...${NC}"
-    pip install --upgrade pip --quiet > /dev/null 2>&1
+    pip install --upgrade pip --quiet > /dev/null 2>&1 || true
     
     # Try to install dependencies
-    # Redirect stderr to capture errors but don't fail immediately
-    if ! pip install -r requirements-test.txt 2>&1 | tee /tmp/pip-install-${service_name}.log | grep -v "WARNING:" | tail -5; then
-        # Check if critical dependencies are installed
+    # Temporarily disable set -e to handle installation errors gracefully
+    set +e
+    pip install -r requirements-test.txt > /tmp/pip-install-${service_name}.log 2>&1
+    pip_exit_code=$?
+    set -e
+    
+    # Show last few lines of output (filtering warnings)
+    tail -5 /tmp/pip-install-${service_name}.log | grep -v "WARNING:" || true
+    
+    # Check if critical dependencies are installed even if pip install failed
+    if [ $pip_exit_code -ne 0 ]; then
+        # Try to install critical tools directly if they're not available
+        if ! python -c "import pytest" 2>/dev/null; then
+            echo -e "${YELLOW}  Installing pytest...${NC}"
+            pip install pytest pytest-cov pytest-asyncio --quiet > /dev/null 2>&1 || true
+        fi
+        if ! python -c "import black" 2>/dev/null; then
+            echo -e "${YELLOW}  Installing black...${NC}"
+            pip install black --quiet > /dev/null 2>&1 || true
+        fi
+        if ! python -c "import ruff" 2>/dev/null; then
+            echo -e "${YELLOW}  Installing ruff...${NC}"
+            pip install ruff --quiet > /dev/null 2>&1 || true
+        fi
+        # Install httpx if needed (required by FastAPI TestClient)
+        if ! python -c "import httpx" 2>/dev/null; then
+            echo -e "${YELLOW}  Installing httpx...${NC}"
+            pip install httpx --quiet > /dev/null 2>&1 || true
+        fi
+        
+        # Check again if critical dependencies are now available
         if python -c "import pytest, black, ruff" 2>/dev/null; then
             echo -e "${YELLOW}  ⚠ Some dependencies failed, but core tools are available${NC}"
             echo -e "${YELLOW}  Continuing with available dependencies...${NC}"
@@ -142,7 +170,18 @@ check_python_service() {
     
     # 3. Run tests
     echo -e "  ${BLUE}Running tests...${NC}"
-    if python -m pytest tests/ --cov=app --cov-report=xml --cov-report=term-missing -q 2>&1; then
+    # Check if pytest.ini has coverage options and install pytest-cov if needed
+    if [ -f "pytest.ini" ] && grep -q "cov" pytest.ini 2>/dev/null; then
+        # pytest.ini has coverage config, ensure pytest-cov is installed
+        if ! python -c "import pytest_cov" 2>/dev/null; then
+            echo -e "${YELLOW}  Installing pytest-cov...${NC}"
+            pip install pytest-cov --quiet > /dev/null 2>&1 || true
+        fi
+        pytest_cmd="python -m pytest tests/ -q"
+    else
+        pytest_cmd="python -m pytest tests/ --cov=app --cov-report=xml --cov-report=term-missing -q"
+    fi
+    if eval "$pytest_cmd" 2>&1; then
         echo -e "  ${GREEN}✓ Tests passed${NC}"
     else
         echo -e "  ${RED}✗ Tests failed${NC}"

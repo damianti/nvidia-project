@@ -1,4 +1,4 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, HTTPException
 from app.database.config import get_db
 import docker
 
@@ -18,7 +18,7 @@ router = APIRouter(tags=["health"])
                     "example": {
                         "status": "healthy",
                         "database": "connected",
-                        "docker": "connected"
+                        "docker": "connected",
                     }
                 }
             },
@@ -28,11 +28,11 @@ router = APIRouter(tags=["health"])
 async def health_check():
     """
     Detailed health check endpoint.
-    
+
     Checks the health of the service and its dependencies:
     - Database connectivity (PostgreSQL)
     - Docker daemon connectivity
-    
+
     Returns:
         dict: Health status with database and Docker connection status
     """

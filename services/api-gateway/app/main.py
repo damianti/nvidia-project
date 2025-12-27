@@ -21,7 +21,6 @@ setup_middleware(app)
 setup_routers(app)
 
 
-
 if __name__ == "__main__":
     import uvicorn
 

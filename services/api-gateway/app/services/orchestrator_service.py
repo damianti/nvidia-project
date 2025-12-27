@@ -62,10 +62,12 @@ async def handle_image_upload(
         )
 
 
-async def _read_multipart_body(request: Request) -> Tuple[Optional[bytes], Optional[str]]:
+async def _read_multipart_body(
+    request: Request,
+) -> Tuple[Optional[bytes], Optional[str]]:
     """
     Read multipart body from request stream.
-    
+
     Returns:
         Tuple of (body bytes, error message). Returns (None, error_msg) on failure.
     """
@@ -82,7 +84,10 @@ async def _read_multipart_body(request: Request) -> Tuple[Optional[bytes], Optio
                     "orchestrator.multipart.body_consumed",
                     extra={"path": request.url.path},
                 )
-                return None, "Multipart form data cannot be proxied through generic endpoint"
+                return (
+                    None,
+                    "Multipart form data cannot be proxied through generic endpoint",
+                )
             except Exception:
                 pass
 

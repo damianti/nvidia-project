@@ -296,7 +296,7 @@ class TestProxyRoutesIntegration:
 
         mock_response = Response(
             content=b'{"id": 1, "status": "building", "name": "test-app"}',
-            status_code=200,
+            status_code=201,
             headers={"Content-Type": "application/json"},
         )
 
@@ -311,8 +311,8 @@ class TestProxyRoutesIntegration:
 
             # Assert
             assert (
-                response.status_code == 200
-            ), f"Expected 200, got {response.status_code}: {response.text}"
+                response.status_code == 201
+            ), f"Expected 201, got {response.status_code}: {response.text}"
 
             response_data = response.json()
             assert isinstance(response_data, dict), "Response should be a dictionary"

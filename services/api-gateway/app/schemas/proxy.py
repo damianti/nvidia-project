@@ -4,6 +4,7 @@ from datetime import datetime
 
 class ImageUploadResponse(BaseModel):
     """Response model for image upload endpoint"""
+
     id: int
     name: str
     tag: str
@@ -16,7 +17,7 @@ class ImageUploadResponse(BaseModel):
     status: str
     created_at: datetime
     user_id: int
-    
+
     model_config = ConfigDict(
         json_schema_extra={
             "example": {
@@ -31,7 +32,7 @@ class ImageUploadResponse(BaseModel):
                 "memory_limit": "512m",
                 "status": "building",
                 "created_at": "2024-01-01T00:00:00Z",
-                "user_id": 1
+                "user_id": 1,
             }
         }
     )
@@ -39,26 +40,17 @@ class ImageUploadResponse(BaseModel):
 
 class ProxyErrorResponse(BaseModel):
     """Error response for proxy endpoints"""
+
     detail: str
-    
+
     model_config = ConfigDict(
         json_schema_extra={
             "examples": [
-                {
-                    "detail": "Invalid app hostname"
-                },
-                {
-                    "detail": "Application not found or no containers available"
-                },
-                {
-                    "detail": "Authentication required"
-                },
-                {
-                    "detail": "Resource not found"
-                },
-                {
-                    "detail": "Internal server error"
-                }
+                {"detail": "Invalid app hostname"},
+                {"detail": "Application not found or no containers available"},
+                {"detail": "Authentication required"},
+                {"detail": "Resource not found"},
+                {"detail": "Internal server error"},
             ]
         }
     )
@@ -66,23 +58,22 @@ class ProxyErrorResponse(BaseModel):
 
 class ValidationErrorResponse(BaseModel):
     """Validation error response"""
+
     detail: str | list[dict]
-    
+
     model_config = ConfigDict(
         json_schema_extra={
             "examples": [
-                {
-                    "detail": "Invalid file format. Expected zip, tar, tar.gz, or tgz"
-                },
+                {"detail": "Invalid file format. Expected zip, tar, tar.gz, or tgz"},
                 {
                     "detail": [
                         {
                             "loc": ["body", "name"],
                             "msg": "field required",
-                            "type": "value_error.missing"
+                            "type": "value_error.missing",
                         }
                     ]
-                }
+                },
             ]
         }
     )

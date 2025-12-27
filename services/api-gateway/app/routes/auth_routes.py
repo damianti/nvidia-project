@@ -46,15 +46,15 @@ async def login_user(
 ):
     """
     Authenticate user and get JWT token.
-    
+
     The JWT token is automatically set as an HttpOnly cookie for security.
     The token can also be used in the Authorization header for API clients.
-    
+
     Args:
         login_data: User credentials (email and password)
         response: FastAPI response object (used to set cookie)
         auth_client: Auth service client (injected)
-    
+
     Returns:
         LoginResponse: User information and token details
     """
@@ -86,15 +86,15 @@ async def logout_user(
 ):
     """
     Logout user and invalidate session.
-    
+
     Removes the JWT token cookie and invalidates the session on the auth-service.
     Requires a valid authentication token.
-    
+
     Args:
         request: FastAPI request object (used to extract auth token)
         response: FastAPI response object (used to remove cookie)
         auth_client: Auth service client (injected)
-    
+
     Returns:
         LogoutResponse: Logout confirmation message
     """
@@ -111,7 +111,7 @@ async def logout_user(
 @router.post(
     "/signup",
     response_model=LoginResponse,
-    status_code=200,
+    status_code=201,
     summary="Register new user",
     description="Create a new user account. The user will be automatically logged in and receive a JWT token.",
     response_description="User information and authentication token",
@@ -137,15 +137,15 @@ async def signup_user(
 ):
     """
     Register a new user account.
-    
+
     Creates a new user account and automatically logs them in.
     The JWT token is set as an HttpOnly cookie.
-    
+
     Args:
         user_data: User registration data (username, email, password)
         response: FastAPI response object (used to set cookie)
         auth_client: Auth service client (injected)
-    
+
     Returns:
         LoginResponse: User information and token details
     """
@@ -175,14 +175,14 @@ async def get_current_user(
 ):
     """
     Get current authenticated user information.
-    
+
     Retrieves the user information for the currently authenticated user
     based on the JWT token in the cookie or Authorization header.
-    
+
     Args:
         request: FastAPI request object (used to extract auth token)
         auth_client: Auth service client (injected)
-    
+
     Returns:
         UserResponse: Current user information
     """

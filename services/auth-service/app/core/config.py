@@ -46,4 +46,3 @@ APP_METADATA = {
         "name": "Proprietary",
     },
 }
-

@@ -61,4 +61,3 @@ async def lifespan(app: FastAPI):
     except asyncio.TimeoutError:
         logger.warning("billing.shutdown_timeout")
         kafka_task.cancel()
-

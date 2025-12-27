@@ -21,10 +21,7 @@ router = APIRouter(tags=["load_balancer"])
                         "total_requests": 1000,
                         "total_errors": 10,
                         "avg_latency_ms": 50.5,
-                        "status_codes": {
-                            "200": 950,
-                            "500": 10
-                        }
+                        "status_codes": {"200": 950, "500": 10},
                     }
                 }
             },
@@ -34,16 +31,16 @@ router = APIRouter(tags=["load_balancer"])
 async def get_metrics(request: Request):
     """
     Get load balancer metrics.
-    
+
     Returns metrics about the load balancer including:
     - Total requests processed
     - Total errors
     - Average latency
     - Status code distribution
-    
+
     Args:
         request: FastAPI request object (used to access app state)
-    
+
     Returns:
         dict: Load balancer metrics
     """

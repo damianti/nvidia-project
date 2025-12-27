@@ -1,5 +1,4 @@
 from fastapi import APIRouter, Request
-from app.utils.config import SERVICE_NAME
 
 router = APIRouter(tags=["health"])
 
@@ -12,20 +11,16 @@ router = APIRouter(tags=["health"])
     responses={
         200: {
             "description": "Service is healthy",
-            "content": {
-                "application/json": {
-                    "example": {"status": "healthy"}
-                }
-            },
+            "content": {"application/json": {"example": {"status": "healthy"}}},
         }
     },
 )
 async def health():
     """
     Health check endpoint.
-    
+
     Used by monitoring systems and load balancers to verify service availability.
-    
+
     Returns:
         dict: Health status
     """
@@ -45,7 +40,7 @@ async def health():
                     "example": {
                         "messages_processed": 100,
                         "processed_success": 95,
-                        "processed_failures": 5
+                        "processed_failures": 5,
                     }
                 }
             },
@@ -55,15 +50,15 @@ async def health():
 async def metrics(request: Request):
     """
     Get service metrics.
-    
+
     Returns metrics about the Kafka consumer including:
     - Total messages processed
     - Successfully processed events
     - Failed processing attempts
-    
+
     Args:
         request: FastAPI request object (used to access app state)
-    
+
     Returns:
         dict: Service metrics
     """
@@ -73,4 +68,3 @@ async def metrics(request: Request):
         "processed_success": consumer.processed_success,
         "processed_failures": consumer.processed_failures,
     }
-

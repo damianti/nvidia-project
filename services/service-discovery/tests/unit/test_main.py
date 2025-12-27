@@ -24,10 +24,11 @@ async def test_lifespan_inicia_y_detiene_tareas(
     mock_watcher.stop = MagicMock()
 
     # Patch classes to return mocks
-    import app.main as main_module
+    # KafkaConsumerService and ConsulWatcher are imported in app.core.lifespan
+    import app.core.lifespan as lifespan_module
 
-    monkeypatch.setattr(main_module, "KafkaConsumerService", lambda: mock_kafka)
-    monkeypatch.setattr(main_module, "ConsulWatcher", lambda cache: mock_watcher)
+    monkeypatch.setattr(lifespan_module, "KafkaConsumerService", lambda: mock_kafka)
+    monkeypatch.setattr(lifespan_module, "ConsulWatcher", lambda cache: mock_watcher)
 
     async def fake_wait_for(task, timeout):
         raise asyncio.TimeoutError()

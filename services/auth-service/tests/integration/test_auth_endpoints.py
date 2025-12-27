@@ -169,7 +169,7 @@ class TestSignupEndpoint:
             },
         )
 
-        assert response.status_code == status.HTTP_200_OK
+        assert response.status_code == status.HTTP_201_CREATED
 
         # Verify response body structure
         body = response.json()
@@ -294,7 +294,7 @@ class TestSignupEndpoint:
         # May be 422 if there's length validation or 200 if not
         assert response.status_code in [
             status.HTTP_422_UNPROCESSABLE_ENTITY,
-            status.HTTP_200_OK,
+            status.HTTP_201_CREATED,
         ]
 
 

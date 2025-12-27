@@ -10,20 +10,20 @@ class UserBase(BaseModel):
 
 class UserCreate(UserBase):
     password: str
-    
+
     model_config = ConfigDict(
         json_schema_extra={
             "examples": [
                 {
                     "username": "johndoe",
                     "email": "john@example.com",
-                    "password": "securepassword123"
+                    "password": "securepassword123",
                 },
                 {
                     "username": "janedoe",
                     "email": "jane@example.com",
-                    "password": "mypassword456"
-                }
+                    "password": "mypassword456",
+                },
             ]
         }
     )
@@ -40,27 +40,21 @@ class UserResponse(UserBase):
                 "id": 1,
                 "username": "johndoe",
                 "email": "john@example.com",
-                "created_at": "2024-01-01T00:00:00Z"
+                "created_at": "2024-01-01T00:00:00Z",
             }
-        }
+        },
     )
 
 
 class LoginRequest(BaseModel):
     email: str
     password: str
-    
+
     model_config = ConfigDict(
         json_schema_extra={
             "examples": [
-                {
-                    "email": "user@example.com",
-                    "password": "securepassword123"
-                },
-                {
-                    "email": "admin@example.com",
-                    "password": "admin123"
-                }
+                {"email": "user@example.com", "password": "securepassword123"},
+                {"email": "admin@example.com", "password": "admin123"},
             ]
         }
     )
@@ -68,7 +62,7 @@ class LoginRequest(BaseModel):
 
 class LoginResponse(BaseModel):
     user: UserResponse
-    
+
     model_config = ConfigDict(
         json_schema_extra={
             "example": {
@@ -76,7 +70,7 @@ class LoginResponse(BaseModel):
                     "id": 1,
                     "username": "johndoe",
                     "email": "john@example.com",
-                    "created_at": "2024-01-01T00:00:00Z"
+                    "created_at": "2024-01-01T00:00:00Z",
                 }
             }
         }
@@ -85,34 +79,22 @@ class LoginResponse(BaseModel):
 
 class LogoutResponse(BaseModel):
     message: str
-    
+
     model_config = ConfigDict(
-        json_schema_extra={
-            "example": {
-                "message": "Successfully logged out"
-            }
-        }
+        json_schema_extra={"example": {"message": "Successfully logged out"}}
     )
 
 
 class ErrorResponse(BaseModel):
     detail: str
-    
+
     model_config = ConfigDict(
         json_schema_extra={
             "examples": [
-                {
-                    "detail": "Invalid email or password"
-                },
-                {
-                    "detail": "User already exists"
-                },
-                {
-                    "detail": "Authentication required"
-                },
-                {
-                    "detail": "Validation error"
-                }
+                {"detail": "Invalid email or password"},
+                {"detail": "User already exists"},
+                {"detail": "Authentication required"},
+                {"detail": "Validation error"},
             ]
         }
     )

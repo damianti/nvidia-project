@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 from typing import List
 
@@ -43,13 +43,13 @@ async def create_containers(
 ):
     """
     Create and run containers from a specific image.
-    
+
     Args:
         image_id: Image identifier to create containers from
         container_data: Container creation data (name, count)
         db: Database session (injected)
         user_id: Authenticated user ID (from token, injected)
-    
+
     Returns:
         List[ContainerResponse]: List of created containers
     """
@@ -82,12 +82,12 @@ async def start_container_endpoint(
 ):
     """
     Start a stopped container.
-    
+
     Args:
         id: Container identifier
         db: Database session (injected)
         user_id: Authenticated user ID (from token, injected)
-    
+
     Returns:
         ContainerResponse: Updated container information
     """
@@ -120,12 +120,12 @@ async def stop_container_endpoint(
 ):
     """
     Stop a running container.
-    
+
     Args:
         id: Container identifier
         db: Database session (injected)
         user_id: Authenticated user ID (from token, injected)
-    
+
     Returns:
         ContainerResponse: Updated container information
     """
@@ -154,12 +154,12 @@ async def delete_container_endpoint(
 ):
     """
     Delete a container.
-    
+
     Args:
         id: Container identifier
         db: Database session (injected)
         user_id: Authenticated user ID (from token, injected)
-    
+
     Returns:
         MessageResponse: Deletion confirmation message
     """
@@ -184,11 +184,11 @@ async def list_containers(
 ):
     """
     List all containers for the current user.
-    
+
     Args:
         db: Database session (injected)
         user_id: Authenticated user ID (from token, injected)
-    
+
     Returns:
         List[ContainerResponse]: List of all containers for the user
     """

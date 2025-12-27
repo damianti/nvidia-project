@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Request, Depends, Response
+from fastapi import APIRouter, Request, Depends
 
 from app.services.service_discovery_client import ServiceDiscoveryClient
 from app.services.service_selector import RoundRobinSelector
@@ -34,9 +34,7 @@ router = APIRouter(tags=["load_balancer"])
         200: {
             "description": "Request routed successfully",
             "content": {
-                "application/json": {
-                    "example": {"message": "Response from container"}
-                }
+                "application/json": {"example": {"message": "Response from container"}}
             },
         },
         503: {
@@ -50,9 +48,7 @@ router = APIRouter(tags=["load_balancer"])
         502: {
             "description": "Bad gateway - container unavailable",
             "content": {
-                "application/json": {
-                    "example": {"detail": "Service unavailable"}
-                }
+                "application/json": {"example": {"detail": "Service unavailable"}}
             },
         },
     },
@@ -66,14 +62,14 @@ async def route_image(
 ):
     """
     Route HTTP request to a healthy container instance.
-    
+
     Args:
         request: FastAPI request object
         discovery_client: Service discovery client (injected)
         selector: Service selector for load balancing (injected)
         circuit_breaker: Circuit breaker for fault tolerance (injected)
         fallback_cache: Fallback cache for degraded service (injected)
-    
+
     Returns:
         Response: Proxied response from the selected container
     """

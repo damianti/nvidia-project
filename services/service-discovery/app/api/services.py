@@ -35,11 +35,11 @@ router = APIRouter(prefix="/services", tags=["services"])
                                 "app_hostname": "myapp.localhost",
                                 "host": "localhost",
                                 "port": 30001,
-                                "status": "healthy"
+                                "status": "healthy",
                             }
                         ],
                         "count": 1,
-                        "filters": {"app_hostname": "myapp.localhost"}
+                        "filters": {"app_hostname": "myapp.localhost"},
                     }
                 }
             },
@@ -62,11 +62,11 @@ async def get_healthy_services(
 ):
     """
     Get healthy services from Consul cache.
-    
+
     Args:
         request: FastAPI request object (used to access app state)
         app_hostname: Optional filter by application hostname
-    
+
     Returns:
         dict: List of healthy services with count and filters
     """
@@ -99,7 +99,7 @@ async def get_healthy_services(
                     "example": {
                         "total_services": 10,
                         "last_update": "2024-01-01T00:00:00Z",
-                        "cache_size": 10
+                        "cache_size": 10,
                     }
                 }
             },
@@ -109,15 +109,15 @@ async def get_healthy_services(
 async def get_cache_status(request: Request):
     """
     Get cache status and statistics.
-    
+
     Returns information about the service cache including:
     - Total number of services in cache
     - Last update timestamp
     - Cache size
-    
+
     Args:
         request: FastAPI request object (used to access app state)
-    
+
     Returns:
         dict: Cache status and statistics
     """

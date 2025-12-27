@@ -84,12 +84,13 @@ def mock_successful_auth_response(sample_user_response: Dict[str, Any]) -> Mock:
         sample_user_response: Sample user response data.
 
     Returns:
-        Mock httpx.Response with 200 status and user data.
+        Mock httpx.Response with 200 status and user data wrapped in {"user": ...}.
     """
     response = Mock(spec=httpx.Response)
     response.status_code = 200
     response.headers = {"set-cookie": "access_token=test-token; HttpOnly; Path=/"}
-    response.json.return_value = sample_user_response
+    # Auth service returns {"user": user} format
+    response.json.return_value = {"user": sample_user_response}
     return response
 
 

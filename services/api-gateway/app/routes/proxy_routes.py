@@ -13,7 +13,11 @@ from app.services.orchestrator_service import (
     handle_image_upload,
 )
 from app.utils.dependencies import verify_token_and_get_user_id
-from app.schemas.proxy import ImageUploadResponse, ProxyErrorResponse, ValidationErrorResponse
+from app.schemas.proxy import (
+    ImageUploadResponse,
+    ProxyErrorResponse,
+    ValidationErrorResponse,
+)
 from app.schemas.user import ErrorResponse
 
 router = APIRouter(tags=["proxy"])
@@ -41,7 +45,7 @@ router = APIRouter(tags=["proxy"])
                 "application/json": {
                     "description": "Response from the user's application (format varies)"
                 }
-            }
+            },
         },
         400: {
             "description": "Invalid app_hostname",
@@ -63,7 +67,7 @@ async def apps_route(
 ):
     """
     Route HTTP requests to user applications.
-    
+
     Args:
         request: FastAPI request object
         app_hostname: Application hostname identifier
@@ -71,7 +75,7 @@ async def apps_route(
         cached_memory: Routing cache (injected)
         lb_client: Load Balancer client (injected)
         http_client: HTTP client (injected)
-    
+
     Returns:
         Response: Proxied response from the application container
     """
@@ -95,7 +99,7 @@ async def apps_route(
 @router.post(
     "/api/images",
     response_model=ImageUploadResponse,
-    status_code=200,
+    status_code=201,
     summary="Upload Docker image",
     description="""
     Upload a Docker image with Dockerfile and build context.
@@ -124,19 +128,32 @@ async def apps_route(
 async def upload_image(
     name: str = Form(..., description="Image name (e.g., 'myapp')"),
     tag: str = Form(..., description="Image tag (e.g., 'latest', 'v1.0.0')"),
-    app_hostname: str = Form(..., description="Application hostname identifier (e.g., 'myapp.localhost')"),
-    container_port: int = Form(8080, description="Container port to expose", ge=1, le=65535),
-    min_instances: int = Form(1, description="Minimum number of container instances", ge=1),
-    max_instances: int = Form(3, description="Maximum number of container instances", ge=1),
+    app_hostname: str = Form(
+        ..., description="Application hostname identifier (e.g., 'myapp.localhost')"
+    ),
+    container_port: int = Form(
+        8080, description="Container port to expose", ge=1, le=65535
+    ),
+    min_instances: int = Form(
+        1, description="Minimum number of container instances", ge=1
+    ),
+    max_instances: int = Form(
+        3, description="Maximum number of container instances", ge=1
+    ),
     cpu_limit: str = Form("0.5", description="CPU limit (e.g., '0.5', '1.0', '2')"),
-    memory_limit: str = Form("512m", description="Memory limit (e.g., '512m', '1g', '2g')"),
-    file: UploadFile = File(..., description="Compressed archive (zip, tar, tar.gz, tgz) with Dockerfile and build context"),
+    memory_limit: str = Form(
+        "512m", description="Memory limit (e.g., '512m', '1g', '2g')"
+    ),
+    file: UploadFile = File(
+        ...,
+        description="Compressed archive (zip, tar, tar.gz, tgz) with Dockerfile and build context",
+    ),
     user_id: int = Depends(verify_token_and_get_user_id),
     orchestrator_client=Depends(get_orchestrator_client),
 ):
     """
     Upload Docker image with build context.
-    
+
     Args:
         name: Image name
         tag: Image tag/version
@@ -149,7 +166,7 @@ async def upload_image(
         file: Compressed archive with Dockerfile and build context
         user_id: Authenticated user ID (from token)
         orchestrator_client: Orchestrator client (injected)
-    
+
     Returns:
         ImageUploadResponse: Image information including build status
     """
@@ -195,7 +212,7 @@ async def upload_image(
                 "application/json": {
                     "description": "Response from Orchestrator service (format varies by endpoint)"
                 }
-            }
+            },
         },
         401: {
             "description": "Authentication required",
@@ -219,13 +236,13 @@ async def proxy_api(
 ):
     """
     Proxy authenticated API requests to Orchestrator service.
-    
+
     Args:
         path: API path to proxy (e.g., 'images', 'containers', 'images/1')
         request: FastAPI request object
         user_id: Authenticated user ID (from token)
         orchestrator_client: Orchestrator client (injected)
-    
+
     Returns:
         Response: Proxied response from Orchestrator service
     """

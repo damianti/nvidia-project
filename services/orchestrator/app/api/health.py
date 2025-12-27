@@ -1,15 +1,41 @@
 from fastapi import APIRouter
 from app.database.config import get_db
 import docker
-from fastapi import HTTPException
-
 
 router = APIRouter(tags=["health"])
 
 
-@router.get("/")
+@router.get(
+    "/",
+    summary="Health check",
+    description="Detailed health check endpoint that verifies database and Docker connectivity.",
+    response_description="Service health status with dependency checks",
+    responses={
+        200: {
+            "description": "Service health status",
+            "content": {
+                "application/json": {
+                    "example": {
+                        "status": "healthy",
+                        "database": "connected",
+                        "docker": "connected"
+                    }
+                }
+            },
+        }
+    },
+)
 async def health_check():
-    """Detailed health check"""
+    """
+    Detailed health check endpoint.
+    
+    Checks the health of the service and its dependencies:
+    - Database connectivity (PostgreSQL)
+    - Docker daemon connectivity
+    
+    Returns:
+        dict: Health status with database and Docker connection status
+    """
     try:
         db = next(get_db())
         from sqlalchemy import text

@@ -1,104 +1,26 @@
 from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
-from contextlib import asynccontextmanager
-from .database.models import Base
-from .database.config import engine
 
-from app.api import auth
-from app.middleware.logging import LoggingMiddleware
+from app.core.lifespan import lifespan
+from app.core.config import TAGS_METADATA, APP_METADATA
+from app.core.middleware import setup_middleware
+from app.core.routers import setup_routers
+from app.routes.health_routes import router as health_router
 from app.utils.logger import setup_logger
-from app.utils.config import HOST, PORT, SERVICE_NAME, FRONTEND_URL
-from app.setup import create_default_user_if_needed
+from app.utils.config import SERVICE_NAME, HOST, PORT
 
 logger = setup_logger(SERVICE_NAME)
 
-# Tags metadata for Swagger organization
-tags_metadata = [
-    {
-        "name": "health",
-        "description": "Health check and diagnostic endpoints",
-    },
-    {
-        "name": "auth",
-        "description": "User authentication and authorization operations",
-    },
-]
-
-
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    """Application lifespan manager"""
-
-    logger.info(
-        "auth.startup",
-        extra={
-            "service_name": SERVICE_NAME,
-        },
-    )
-    try:
-        Base.metadata.create_all(bind=engine)
-        # Create default user if no users exist
-        create_default_user_if_needed()
-
-    except Exception as e:
-        logger.error(
-            "auth.startup.database_error",
-            extra={"error": str(e), "service_name": SERVICE_NAME},
-        )
-        raise
-    yield
-
-    # Shutdown
-    logger.info(
-        "auth.shutdown",
-        extra={
-            "service_name": SERVICE_NAME,
-        },
-    )
-
-
-# Create FastAPI app with lifespan
+# Create FastAPI app
 app = FastAPI(
-    title="NVIDIA auth-service",
-    description="authentication service for cloud services",
-    version="1.0.0",
+    **APP_METADATA,
     lifespan=lifespan,
-    tags_metadata=tags_metadata,
+    tags_metadata=TAGS_METADATA,
 )
 
-app.add_middleware(LoggingMiddleware)
-# CORS middleware
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=[FRONTEND_URL],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
-app.include_router(auth.router, prefix="/auth", tags=["auth"])
-
-
-@app.get("/")
-async def root():
-    """Root endpoint"""
-    return {
-        "message": "NVIDIA auth-service",
-        "version": "1.0.0",
-        "endpoints": {
-            "POST /auth/login": "Authenticate user",
-            "POST /auth/signup": "Register new user",
-            "GET /auth/me": "Get current user info",
-            "POST /auth/logout": "Logout user",
-            "GET /health": "Health check",
-        },
-    }
-
-
-@app.get("/health")
-async def health():
-    """Health check endpoint"""
-    return {"status": "healthy", "service": SERVICE_NAME}
+# Configure middleware and routers
+setup_middleware(app)
+setup_routers(app)
+app.include_router(health_router, tags=["health"])
 
 
 if __name__ == "__main__":

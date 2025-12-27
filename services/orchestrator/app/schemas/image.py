@@ -34,7 +34,25 @@ class ImageResponse(ImageBase):
     user_id: int
     app_hostname: str
 
-    model_config = ConfigDict(from_attributes=True)
+    model_config = ConfigDict(
+        from_attributes=True,
+        json_schema_extra={
+            "example": {
+                "id": 1,
+                "name": "myapp",
+                "tag": "latest",
+                "app_hostname": "myapp.localhost",
+                "container_port": 8080,
+                "min_instances": 1,
+                "max_instances": 3,
+                "cpu_limit": "0.5",
+                "memory_limit": "512m",
+                "status": "ready",
+                "created_at": "2024-01-01T00:00:00Z",
+                "user_id": 1
+            }
+        }
+    )
 
 
 class ImageWithContainers(ImageResponse):

@@ -8,6 +8,9 @@ from fastapi import Request, Response
 
 from app.services import gateway_service
 from app.services.routing_cache import Cache, CacheEntry
+from app.services.user_id_cache import UserIdCache
+from app.services.container_user_cache import ContainerUserCache
+from app.services.metrics_collector import MetricsCollector
 from app.clients.lb_client import LoadBalancerClient
 from datetime import datetime, timedelta
 
@@ -83,6 +86,9 @@ class TestGatewayServiceExtended:
         ), patch(
             "app.services.gateway_service.prepare_proxy_headers", return_value={}
         ):
+            user_id_cache = UserIdCache()
+            container_user_cache = ContainerUserCache()
+            metrics_collector = MetricsCollector()
 
             # Act
             result = await gateway_service.handle_route_request(
@@ -92,6 +98,9 @@ class TestGatewayServiceExtended:
                 http_client=mock_http_client,
                 cached_memory=cache,
                 lb_client=mock_lb_client,
+                user_id_cache=user_id_cache,
+                container_user_cache=container_user_cache,
+                metrics_collector=metrics_collector,
             )
 
             # Assert
@@ -126,6 +135,9 @@ class TestGatewayServiceExtended:
         ), patch(
             "app.services.gateway_service.extract_client_ip", return_value="127.0.0.1"
         ):
+            user_id_cache = UserIdCache()
+            container_user_cache = ContainerUserCache()
+            metrics_collector = MetricsCollector()
 
             # Act
             result = await gateway_service.handle_route_request(
@@ -135,6 +147,9 @@ class TestGatewayServiceExtended:
                 http_client=mock_http_client,
                 cached_memory=cache,
                 lb_client=mock_lb_client,
+                user_id_cache=user_id_cache,
+                container_user_cache=container_user_cache,
+                metrics_collector=metrics_collector,
             )
 
             # Assert
@@ -187,6 +202,9 @@ class TestGatewayServiceExtended:
         ), patch(
             "app.services.gateway_service.prepare_proxy_headers", return_value={}
         ):
+            user_id_cache = UserIdCache()
+            container_user_cache = ContainerUserCache()
+            metrics_collector = MetricsCollector()
 
             # Act
             result = await gateway_service.handle_route_request(
@@ -196,6 +214,9 @@ class TestGatewayServiceExtended:
                 http_client=mock_http_client,
                 cached_memory=cache,
                 lb_client=mock_lb_client,
+                user_id_cache=user_id_cache,
+                container_user_cache=container_user_cache,
+                metrics_collector=metrics_collector,
             )
 
             # Assert

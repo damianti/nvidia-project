@@ -8,6 +8,7 @@ from fastapi import Request, Response, UploadFile
 
 from app.services import orchestrator_service
 from app.clients.orchestrator_client import OrchestratorClient
+from app.services.user_id_cache import UserIdCache
 
 
 class TestOrchestratorService:
@@ -46,6 +47,8 @@ class TestOrchestratorService:
             mock_client_class.return_value.__aenter__.return_value = mock_client
             mock_client_class.return_value.__aexit__.return_value = None
 
+            user_id_cache = UserIdCache()
+
             result = await orchestrator_service.handle_image_upload(
                 name="test-app",
                 tag="latest",
@@ -58,6 +61,7 @@ class TestOrchestratorService:
                 file=mock_upload_file,
                 user_id=1,
                 orchestrator_client=mock_orchestrator_client,
+                user_id_cache=user_id_cache,
             )
 
             assert isinstance(result, Response)

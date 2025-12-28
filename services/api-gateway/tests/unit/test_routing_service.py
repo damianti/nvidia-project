@@ -14,6 +14,7 @@ from datetime import datetime, timedelta
 
 from app.services import routing_service
 from app.services.routing_cache import Cache, CacheEntry
+from app.services.user_id_cache import UserIdCache
 from app.models.routing import RoutingInfo, RouteResult, LbError
 from app.clients.lb_client import LoadBalancerClient
 
@@ -225,10 +226,11 @@ class TestRoutingService:
         """
         # Arrange
         cache.set("testapp.localhost", "127.0.0.1", sample_cache_entry)
+        user_id_cache = UserIdCache()
 
         # Act
         result = await routing_service.resolve_route(
-            "testapp.localhost", "127.0.0.1", cache, mock_lb_client
+            "testapp.localhost", "127.0.0.1", cache, mock_lb_client, user_id_cache
         )
 
         # Assert
@@ -270,10 +272,11 @@ class TestRoutingService:
         # Arrange
         route_result = RouteResult(ok=True, data=sample_routing_info, status_code=200)
         mock_lb_client.route = AsyncMock(return_value=route_result)
+        user_id_cache = UserIdCache()
 
         # Act
         result = await routing_service.resolve_route(
-            "testapp.localhost", "127.0.0.1", cache, mock_lb_client
+            "testapp.localhost", "127.0.0.1", cache, mock_lb_client, user_id_cache
         )
 
         # Assert
@@ -316,10 +319,11 @@ class TestRoutingService:
             message="Website not found",
         )
         mock_lb_client.route = AsyncMock(return_value=route_result)
+        user_id_cache = UserIdCache()
 
         # Act
         result = await routing_service.resolve_route(
-            "nonexistent.localhost", "127.0.0.1", cache, mock_lb_client
+            "nonexistent.localhost", "127.0.0.1", cache, mock_lb_client, user_id_cache
         )
 
         # Assert
@@ -359,10 +363,11 @@ class TestRoutingService:
 
         route_result = RouteResult(ok=True, data=sample_routing_info, status_code=200)
         mock_lb_client.route = AsyncMock(return_value=route_result)
+        user_id_cache = UserIdCache()
 
         # Act
         result = await routing_service.resolve_route(
-            "testapp.localhost", "127.0.0.1", cache, mock_lb_client
+            "testapp.localhost", "127.0.0.1", cache, mock_lb_client, user_id_cache
         )
 
         # Assert
@@ -392,10 +397,11 @@ class TestRoutingService:
             - expires_at uses provided TTL
         """
         # Arrange - sample_routing_info fixture
+        user_id_cache = UserIdCache()
 
         # Act
         entry = routing_service.create_cache_entry_from_routing_info(
-            sample_routing_info
+            sample_routing_info, "testapp.localhost", user_id_cache
         )
 
         # Assert
@@ -439,7 +445,10 @@ class TestRoutingService:
         )
 
         # Act
-        entry = routing_service.create_cache_entry_from_routing_info(routing_info)
+        user_id_cache = UserIdCache()
+        entry = routing_service.create_cache_entry_from_routing_info(
+            routing_info, "testapp.localhost", user_id_cache
+        )
 
         # Assert
         assert isinstance(entry, CacheEntry), "Result should be CacheEntry instance"

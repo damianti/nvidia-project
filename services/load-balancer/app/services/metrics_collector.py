@@ -24,7 +24,26 @@ class MetricsCollector:
         self.latency_sum = 0.0
         self.latency_count = 0
 
-    def record_request(self, status_code: int, latency_ms: float = 0.0) -> None:
+        self.image_metrics: Dict[int, Dict[str, Any]] = defaultdict(
+            lambda: {
+                "requests": 0,
+                "errors": 0,
+                "status_codes": defaultdict(int),
+                "latency_sum": 0.0,
+                "latency_count": 0,
+            }
+        )
+
+        self.active_mappings: Dict[str, int] = {}
+
+
+    def record_request(self,
+        status_code: int,
+        latency_ms: float = 0.0,
+        image_id: int = None,
+        app_hostname: str = None,
+        traffic_bytes: int = 0
+        ) -> None:
         """
         Record a request with its status code and latency.
 
@@ -41,6 +60,46 @@ class MetricsCollector:
         if latency_ms > 0:
             self.latency_sum += latency_ms
             self.latency_count += 1
+
+        if image_id is not None:
+            img_metrics = self.image_metrics[image_id]
+            img_metrics["requests"] += 1
+            img_metrics["status_codes"][str(status_code)] += 1
+            
+            if status_code >= 400:
+                img_metrics["errors"] += 1
+                
+            if latency_ms > 0:
+                img_metrics["latency_sum"] += latency_ms
+                img_metrics["latency_count"] += 1
+
+        if app_hostname:
+            host_metrics = self.hostname_metrics[app_hostname]
+            host_metrics["requests"] += 1
+            host_metrics["traffic"] += traffic_bytes
+            host_metrics["status_codes"][str(status_code)] += 1
+            
+            if status_code >= 400:
+                host_metrics["errors"] += 1
+    
+    def update_mapping(self, app_hostname: str, external_port: int) -> None:
+        """
+        Update the active mapping for an app hostname.
+        
+        Args:
+            app_hostname: Application hostname
+            external_port: External port number
+        """
+        self.active_mappings[app_hostname] = external_port
+    
+    def remove_mapping(self, app_hostname: str) -> None:
+        """
+        Remove the mapping for an app hostname.
+        
+        Args:
+            app_hostname: Application hostname to remove
+        """
+        self.active_mappings.pop(app_hostname, None)
 
     def get_metrics(self) -> Dict[str, Any]:
         """

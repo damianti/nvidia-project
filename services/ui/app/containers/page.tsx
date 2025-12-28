@@ -1,11 +1,14 @@
 "use client";
 
 import { useState, useEffect, Suspense, useCallback } from "react";
-import { useSearchParams } from 'next/navigation'
+import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
-import { containerService, ImageWithContainers, } from "@/services/containerService";
+import {
+  containerService,
+  ImageWithContainers,
+} from "@/services/containerService";
 import { useAuth } from "@/contexts/AuthContext";
 import Navbar from "@/components/Navbar";
 import LoadingSpinner from "@/components/LoadingSpinner";
@@ -14,20 +17,22 @@ function ContainersPageContent() {
   const router = useRouter();
   const { user, loading: authLoading } = useAuth();
   const searchParams = useSearchParams();
-  const imageFilter = searchParams.get('image');
+  const imageFilter = searchParams.get("image");
 
   const [images, setImages] = useState<ImageWithContainers[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
-  const [actionLoading, setActionLoading] = useState<{ [key: number]: string }>({}); // Track loading per container
-  const [showCreateModal, setShowCreateModal] = useState(false)
-  const [selectedImageId, setSelectedImageId] = useState<number | null>(null)
-  const [containerCount, setContainerCount] = useState(1)
+  const [actionLoading, setActionLoading] = useState<{ [key: number]: string }>(
+    {}
+  ); // Track loading per container
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [selectedImageId, setSelectedImageId] = useState<number | null>(null);
+  const [containerCount, setContainerCount] = useState(1);
 
   useEffect(() => {
-    if (!authLoading && !user){
-      router.push('/login')
+    if (!authLoading && !user) {
+      router.push("/login");
     }
   }, [authLoading, user, router]);
 
@@ -36,10 +41,12 @@ function ContainersPageContent() {
       setLoading(true);
       setError("");
       const fetchedImages = await containerService.getImagesWithContainers();
-      
+
       // Filter images if imageFilter is present
       if (imageFilter) {
-        const filteredImages = fetchedImages.filter(img => img.id.toString() === imageFilter);
+        const filteredImages = fetchedImages.filter(
+          (img) => img.id.toString() === imageFilter
+        );
         setImages(filteredImages);
       } else {
         setImages(fetchedImages);
@@ -62,10 +69,13 @@ function ContainersPageContent() {
   useEffect(() => {
     const imageId = imageFilter ? Number(imageFilter) : selectedImageId;
     if (imageId) {
-      const selectedImage = images.find(img => img.id === imageId);
+      const selectedImage = images.find((img) => img.id === imageId);
       if (selectedImage) {
         const existingCount = selectedImage.containers?.length || 0;
-        const maxAllowed = Math.max(1, selectedImage.max_instances - existingCount);
+        const maxAllowed = Math.max(
+          1,
+          selectedImage.max_instances - existingCount
+        );
         if (containerCount > maxAllowed) {
           setContainerCount(maxAllowed);
         }
@@ -74,21 +84,19 @@ function ContainersPageContent() {
   }, [selectedImageId, imageFilter, images, containerCount]);
   const handleStart = async (containerId: number) => {
     try {
-      setActionLoading(prev => ({ ...prev, [containerId]: 'starting' }));
+      setActionLoading((prev) => ({ ...prev, [containerId]: "starting" }));
       setError("");
       setSuccess("");
       await containerService.startContainer(containerId);
       setSuccess("Container started successfully");
       await fetchImages();
       setTimeout(() => setSuccess(""), 3000);
-    }
-    catch (error){
-      console.error ("Error starting container: ", error);
+    } catch (error) {
+      console.error("Error starting container: ", error);
       setError("Failed to start container. Please try again");
       setTimeout(() => setError(""), 5000);
-    }
-    finally {
-      setActionLoading(prev => {
+    } finally {
+      setActionLoading((prev) => {
         const newState = { ...prev };
         delete newState[containerId];
         return newState;
@@ -98,21 +106,19 @@ function ContainersPageContent() {
 
   const handleStop = async (containerId: number) => {
     try {
-      setActionLoading(prev => ({ ...prev, [containerId]: 'stopping' }));
+      setActionLoading((prev) => ({ ...prev, [containerId]: "stopping" }));
       setError("");
       setSuccess("");
       await containerService.stopContainer(containerId);
       setSuccess("Container stopped successfully");
       await fetchImages();
       setTimeout(() => setSuccess(""), 3000);
-    }
-    catch (error){
-      console.error ("Error stopping container: ", error);
+    } catch (error) {
+      console.error("Error stopping container: ", error);
       setError("Failed to stop container. Please try again");
       setTimeout(() => setError(""), 5000);
-    }
-    finally {
-      setActionLoading(prev => {
+    } finally {
+      setActionLoading((prev) => {
         const newState = { ...prev };
         delete newState[containerId];
         return newState;
@@ -123,94 +129,102 @@ function ContainersPageContent() {
   const handleDelete = async (containerId: number) => {
     if (confirm("Are you sure you want to delete this container?")) {
       try {
-        setActionLoading(prev => ({ ...prev, [containerId]: 'deleting' }));
+        setActionLoading((prev) => ({ ...prev, [containerId]: "deleting" }));
         setError("");
         setSuccess("");
         await containerService.deleteContainer(containerId);
         setSuccess("Container deleted successfully");
         await fetchImages();
         setTimeout(() => setSuccess(""), 3000);
-      }
-      catch (error){
+      } catch (error) {
         console.error("Error deleting container: ", error);
         setError("Failed to delete container. Please try again");
         setTimeout(() => setError(""), 5000);
-      }
-      finally {
-        setActionLoading(prev => {
+      } finally {
+        setActionLoading((prev) => {
           const newState = { ...prev };
           delete newState[containerId];
           return newState;
         });
-      }  
+      }
     }
   };
   const handleCreateContainer = async () => {
     try {
       setLoading(true);
-      setError('');
-      setSuccess('');
-      const imageId = imageFilter ? Number(imageFilter) : selectedImageId
-      if (!imageId){
-        setError('Please select an image');
+      setError("");
+      setSuccess("");
+      const imageId = imageFilter ? Number(imageFilter) : selectedImageId;
+      if (!imageId) {
+        setError("Please select an image");
         setLoading(false);
         return;
       }
-      
+
       // Find selected image to check max_instances
-      const selectedImage = images.find(img => img.id === imageId);
+      const selectedImage = images.find((img) => img.id === imageId);
       if (!selectedImage) {
-        setError('Selected image not found');
+        setError("Selected image not found");
         setLoading(false);
         return;
       }
-      
+
       // Calculate max allowed based on existing containers
       const existingCount = selectedImage.containers?.length || 0;
       const maxAllowed = selectedImage.max_instances - existingCount;
-      
+
       if (maxAllowed <= 0) {
-        setError(`Cannot create containers: image already has ${existingCount} containers (max: ${selectedImage.max_instances})`);
+        setError(
+          `Cannot create containers: image already has ${existingCount} containers (max: ${selectedImage.max_instances})`
+        );
         setLoading(false);
         return;
       }
-      
+
       if (containerCount < 1) {
-        setError('Container count must be at least 1');
+        setError("Container count must be at least 1");
         setLoading(false);
         return;
       }
-      
+
       if (containerCount > maxAllowed) {
-        setError(`Cannot create more than ${maxAllowed} container(s). Image limit: ${selectedImage.max_instances}, existing: ${existingCount}`);
+        setError(
+          `Cannot create more than ${maxAllowed} container(s). Image limit: ${selectedImage.max_instances}, existing: ${existingCount}`
+        );
         setLoading(false);
         return;
       }
-      
-      await containerService.createContainer(imageId, undefined, containerCount);
+
+      await containerService.createContainer(
+        imageId,
+        undefined,
+        containerCount
+      );
       setSuccess(`Successfully created ${containerCount} container(s)`);
       setShowCreateModal(false);
       setContainerCount(1);
       await fetchImages();
       setTimeout(() => setSuccess(""), 3000);
-    }
-    catch (error){
-      console.error('Error creating container:', error);
-      setError(error instanceof Error ? error.message : 'Failed to create container. Please try again');
+    } catch (error) {
+      console.error("Error creating container:", error);
+      setError(
+        error instanceof Error
+          ? error.message
+          : "Failed to create container. Please try again"
+      );
       setTimeout(() => setError(""), 5000);
-    }
-    finally {
+    } finally {
       setLoading(false);
     }
-  }
+  };
 
   if (authLoading) {
-    return <LoadingSpinner />
+    return <LoadingSpinner />;
   }
-  if (!user){
-    return null
+  if (!user) {
+    return null;
   }
-  
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -224,15 +238,25 @@ function ContainersPageContent() {
 
   return (
     <div className="min-h-screen p-4">
-      <Navbar/>
-      
+      <Navbar />
+
       {/* Success Message */}
       {success && (
         <div className="max-w-7xl mx-auto mb-6">
           <div className="modern-card p-4 bg-green-50 border border-green-200 rounded-lg">
             <div className="flex items-center">
-              <svg className="w-5 h-5 text-green-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+              <svg
+                className="w-5 h-5 text-green-600 mr-2"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M5 13l4 4L19 7"
+                />
               </svg>
               <p className="text-green-700 font-medium">{success}</p>
             </div>
@@ -245,8 +269,18 @@ function ContainersPageContent() {
         <div className="max-w-7xl mx-auto mb-6">
           <div className="modern-card p-4 bg-red-50 border border-red-200 rounded-lg">
             <div className="flex items-center">
-              <svg className="w-5 h-5 text-red-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              <svg
+                className="w-5 h-5 text-red-600 mr-2"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M6 18L18 6M6 6l12 12"
+                />
               </svg>
               <p className="text-red-700 font-medium">{error}</p>
             </div>
@@ -420,8 +454,18 @@ function ContainersPageContent() {
                 }}
                 className="btn-modern"
               >
-                <svg className="w-5 h-5 mr-2 inline-block" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                <svg
+                  className="w-5 h-5 mr-2 inline-block"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M12 4v16m8-8H4"
+                  />
                 </svg>
                 Create Container
               </button>
@@ -470,8 +514,18 @@ function ContainersPageContent() {
                       }}
                       className="btn-modern text-sm"
                     >
-                      <svg className="w-4 h-4 mr-1 inline-block" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                      <svg
+                        className="w-4 h-4 mr-1 inline-block"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M12 4v16m8-8H4"
+                        />
                       </svg>
                       Add Container
                     </button>
@@ -519,7 +573,9 @@ function ContainersPageContent() {
                               <div className="flex items-center space-x-3 text-xs text-gray-600 mt-1">
                                 {image.app_hostname && (
                                   <>
-                                    <span className="text-blue-600 font-medium">{image.app_hostname}</span>
+                                    <span className="text-blue-600 font-medium">
+                                      {image.app_hostname}
+                                    </span>
                                     <span>•</span>
                                   </>
                                 )}
@@ -535,46 +591,52 @@ function ContainersPageContent() {
                             {container.status === "running" ? (
                               <button
                                 onClick={() => handleStop(container.id)}
-                                disabled={actionLoading[container.id] !== undefined}
+                                disabled={
+                                  actionLoading[container.id] !== undefined
+                                }
                                 className="px-3 py-1 text-sm btn-modern disabled:opacity-50 disabled:cursor-not-allowed"
                               >
-                                {actionLoading[container.id] === 'stopping' ? (
+                                {actionLoading[container.id] === "stopping" ? (
                                   <span className="flex items-center">
                                     <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-white mr-1"></div>
                                     Stopping...
                                   </span>
                                 ) : (
-                                  'Stop'
+                                  "Stop"
                                 )}
                               </button>
                             ) : (
                               <button
                                 onClick={() => handleStart(container.id)}
-                                disabled={actionLoading[container.id] !== undefined}
+                                disabled={
+                                  actionLoading[container.id] !== undefined
+                                }
                                 className="px-3 py-1 text-sm btn-modern disabled:opacity-50 disabled:cursor-not-allowed"
                               >
-                                {actionLoading[container.id] === 'starting' ? (
+                                {actionLoading[container.id] === "starting" ? (
                                   <span className="flex items-center">
                                     <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-white mr-1"></div>
                                     Starting...
                                   </span>
                                 ) : (
-                                  'Start'
+                                  "Start"
                                 )}
                               </button>
                             )}
                             <button
                               onClick={() => handleDelete(container.id)}
-                              disabled={actionLoading[container.id] !== undefined}
+                              disabled={
+                                actionLoading[container.id] !== undefined
+                              }
                               className="px-3 py-1 text-sm btn-modern disabled:opacity-50 disabled:cursor-not-allowed"
                             >
-                              {actionLoading[container.id] === 'deleting' ? (
+                              {actionLoading[container.id] === "deleting" ? (
                                 <span className="flex items-center">
                                   <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-white mr-1"></div>
                                   Deleting...
                                 </span>
                               ) : (
-                                'Delete'
+                                "Delete"
                               )}
                             </button>
                           </div>
@@ -619,111 +681,139 @@ function ContainersPageContent() {
           </div>
         )}
       </div>
-    {/* {Create Container Modal} */}
-    {showCreateModal && (
-      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-        <div className="modern-card p-8 max-w-md w-full mx-4">
-          <h3 className="text-2xl font-bold text-gray-900 mb-6"> Create Container</h3>
-          {imageFilter ? (
-            <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Image:
-              </label>
-              <div className="p-3 bg-gray-100 rounded-lg">
-                {images.find(img => img.id.toString() === imageFilter)?.name}:{images.find(img => img.id.toString() === imageFilter)?.tag} → {images.find(img => img.id.toString() === imageFilter)?.app_hostname}
+      {/* {Create Container Modal} */}
+      {showCreateModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="modern-card p-8 max-w-md w-full mx-4">
+            <h3 className="text-2xl font-bold text-gray-900 mb-6">
+              {" "}
+              Create Container
+            </h3>
+            {imageFilter ? (
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Image:
+                </label>
+                <div className="p-3 bg-gray-100 rounded-lg">
+                  {
+                    images.find((img) => img.id.toString() === imageFilter)
+                      ?.name
+                  }
+                  :
+                  {images.find((img) => img.id.toString() === imageFilter)?.tag}{" "}
+                  →{" "}
+                  {
+                    images.find((img) => img.id.toString() === imageFilter)
+                      ?.app_hostname
+                  }
+                </div>
               </div>
+            ) : (
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  SELECT IMAGE:
+                </label>
+                <select
+                  value={selectedImageId || ""}
+                  onChange={(e) => setSelectedImageId(Number(e.target.value))}
+                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                >
+                  <option value=""> Choose an image... </option>
+                  {images.map((image) => (
+                    <option key={image.id} value={image.id}>
+                      {image.name}:{image.tag} → {image.app_hostname}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
 
-            </div>
-          ) : (
-            <div className="mb-4">
+            <div className="mb-6">
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                SELECT IMAGE:
+                Number of Containers
+                {(() => {
+                  const imageId = imageFilter
+                    ? Number(imageFilter)
+                    : selectedImageId;
+                  const selectedImage = imageId
+                    ? images.find((img) => img.id === imageId)
+                    : null;
+                  if (selectedImage) {
+                    const existingCount = selectedImage.containers?.length || 0;
+                    const maxAllowed =
+                      selectedImage.max_instances - existingCount;
+                    return maxAllowed > 0 ? (
+                      <span className="text-sm text-gray-500 ml-2">
+                        (Max: {maxAllowed}, Existing: {existingCount}/
+                        {selectedImage.max_instances})
+                      </span>
+                    ) : (
+                      <span className="text-sm text-red-500 ml-2">
+                        (Limit reached: {existingCount}/
+                        {selectedImage.max_instances})
+                      </span>
+                    );
+                  }
+                  return null;
+                })()}
               </label>
-              <select
-                value={selectedImageId || ''}
-                onChange={(e)=> setSelectedImageId(Number(e.target.value))}
+              <input
+                type="number"
+                min="1"
+                max={(() => {
+                  const imageId = imageFilter
+                    ? Number(imageFilter)
+                    : selectedImageId;
+                  const selectedImage = imageId
+                    ? images.find((img) => img.id === imageId)
+                    : null;
+                  if (selectedImage) {
+                    const existingCount = selectedImage.containers?.length || 0;
+                    return Math.max(
+                      1,
+                      selectedImage.max_instances - existingCount
+                    );
+                  }
+                  return 10;
+                })()}
+                value={containerCount}
+                onChange={(e) => setContainerCount(Number(e.target.value))}
                 className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              >
-                <option value=""> Choose an image... </option>
-                {images.map((image)=> (
-                  <option key={image.id} value={image.id}>
-                    {image.name}:{image.tag} → {image.app_hostname}
-                  </option>
-                ))}
-              </select>
+              />
             </div>
-          )}
-
-          <div className="mb-6">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Number of Containers
-              {(() => {
-                const imageId = imageFilter ? Number(imageFilter) : selectedImageId;
-                const selectedImage = imageId ? images.find(img => img.id === imageId) : null;
-                if (selectedImage) {
-                  const existingCount = selectedImage.containers?.length || 0;
-                  const maxAllowed = selectedImage.max_instances - existingCount;
-                  return maxAllowed > 0 ? (
-                    <span className="text-sm text-gray-500 ml-2">
-                      (Max: {maxAllowed}, Existing: {existingCount}/{selectedImage.max_instances})
-                    </span>
-                  ) : (
-                    <span className="text-sm text-red-500 ml-2">
-                      (Limit reached: {existingCount}/{selectedImage.max_instances})
-                    </span>
-                  );
-                }
-                return null;
-              })()}
-            </label>
-            <input
-            type="number"
-            min="1"
-            max={(() => {
-              const imageId = imageFilter ? Number(imageFilter) : selectedImageId;
-              const selectedImage = imageId ? images.find(img => img.id === imageId) : null;
-              if (selectedImage) {
-                const existingCount = selectedImage.containers?.length || 0;
-                return Math.max(1, selectedImage.max_instances - existingCount);
-              }
-              return 10;
-            })()}
-            value={containerCount}
-            onChange={(e)=> setContainerCount(Number(e.target.value))}
-            className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            />
-          </div>
-          <div className="flex space-x-4">
-            <button
-              onClick={() => setShowCreateModal(false)}
-              className="flex-1 px-4 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50"
-            >
-              Cancel
-            </button>
-            <button
-              onClick={handleCreateContainer}
-              className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-            >
-              Create
-            </button>
+            <div className="flex space-x-4">
+              <button
+                onClick={() => setShowCreateModal(false)}
+                className="flex-1 px-4 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleCreateContainer}
+                className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+              >
+                Create
+              </button>
+            </div>
           </div>
         </div>
-      </div>
-    )}
+      )}
     </div>
   );
 }
 
 export default function ContainersPage() {
   return (
-    <Suspense fallback={
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="modern-card p-8 text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <div className="text-xl text-gray-700">Loading containers...</div>
+    <Suspense
+      fallback={
+        <div className="min-h-screen flex items-center justify-center">
+          <div className="modern-card p-8 text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+            <div className="text-xl text-gray-700">Loading containers...</div>
+          </div>
         </div>
-      </div>
-    }>
+      }
+    >
       <ContainersPageContent />
     </Suspense>
   );

@@ -103,17 +103,25 @@ def process_container_stopped(db: Session, event_data: ContainerEventData) -> No
         db: Database session
         event_data: Event data from Kafka
     """
+    logger.info(
+        "billing.processing_stopped_event",
+        extra={
+            "container_id": event_data.container_id,
+            "event": event_data.event,
+            "timestamp": event_data.timestamp.isoformat() if event_data.timestamp else None,
+            "user_id": event_data.user_id,
+            "image_id": event_data.image_id,
+        },
+    )
     if not event_data.timestamp:
         logger.warning(
             "billing.event_missing_timestamp",
             extra={"event": event_data.event, "container_id": event_data.container_id},
         )
-        # Use current time as fallback
         end_time = datetime.now(timezone.utc)
     else:
         end_time = event_data.timestamp
 
-    # Find the active record
     active_record = get_active_by_container_id(db, event_data.container_id)
 
     if not active_record:
@@ -124,13 +132,12 @@ def process_container_stopped(db: Session, event_data: ContainerEventData) -> No
         return
 
     try:
-        # Calculate duration and cost
         duration_minutes = calculate_duration_minutes(
             start_time=active_record.start_time, end_time=end_time
         )
         cost = calculate_cost(duration_minutes=duration_minutes)
 
-        # Update the record
+        
         update_usage_record(
             db=db,
             usage_record=active_record,

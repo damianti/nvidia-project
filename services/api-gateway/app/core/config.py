@@ -13,6 +13,10 @@ TAGS_METADATA = [
         "name": "proxy",
         "description": "Request routing and API proxying operations. Routes user application requests and proxies Orchestrator API calls.",
     },
+    {
+        "name": "metrics",
+        "description": "Metrics and monitoring endpoints. Provides request metrics aggregated by user, image, and container.",
+    },
 ]
 
 APP_DESCRIPTION = """

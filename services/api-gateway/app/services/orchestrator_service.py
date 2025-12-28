@@ -5,7 +5,7 @@ import httpx
 from app.clients.orchestrator_client import OrchestratorClient
 from app.utils.logger import setup_logger
 from app.utils.config import SERVICE_NAME
-
+from app.services.user_id_cache import UserIdCache
 logger = setup_logger(SERVICE_NAME)
 
 
@@ -21,6 +21,7 @@ async def handle_image_upload(
     file: UploadFile,
     user_id: int,
     orchestrator_client: OrchestratorClient,
+    user_id_cache: UserIdCache,
 ) -> Response:
     """Upload image to Orchestrator service with multipart/form-data."""
     file_content = await file.read()
@@ -54,6 +55,9 @@ async def handle_image_upload(
             data=data,
             timeout=orchestrator_client.timeout_s,
         )
+        # If image creation was successful, update user_id cache
+        if response.status_code == 201:
+            user_id_cache.set(app_hostname, user_id)
 
         return Response(
             content=response.content,

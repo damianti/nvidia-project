@@ -3,6 +3,9 @@ import httpx
 from fastapi import FastAPI
 
 from app.services.routing_cache import Cache
+from app.services.user_id_cache import UserIdCache
+from app.services.container_user_cache import ContainerUserCache
+from app.services.metrics_collector import MetricsCollector
 from app.clients.lb_client import LoadBalancerClient
 from app.clients.orchestrator_client import OrchestratorClient
 from app.clients.auth_client import AuthClient
@@ -40,6 +43,15 @@ def initialize_app_state(app: FastAPI) -> None:
 
     cache = Cache()
     app.state.cached_memory = cache
+
+    user_id_cache = UserIdCache()
+    app.state.user_id_cache = user_id_cache
+
+    container_user_cache = ContainerUserCache()
+    app.state.container_user_cache = container_user_cache
+
+    metrics_collector = MetricsCollector()
+    app.state.metrics_collector = metrics_collector
 
     # Start background tasks
     cleanup_task = start_cache_cleanup_task(cache)

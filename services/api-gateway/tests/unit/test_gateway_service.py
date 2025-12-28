@@ -14,6 +14,8 @@ from fastapi import Request, Response
 
 from app.services.gateway_service import handle_route_request
 from app.services.routing_cache import Cache, CacheEntry
+from app.services.user_id_cache import UserIdCache
+from app.services.metrics_collector import MetricsCollector
 
 
 @pytest.mark.unit
@@ -56,6 +58,9 @@ class TestGatewayService:
         mock_response.content = b"Response content"
         mock_response.headers = {}
 
+        user_id_cache = UserIdCache()
+        metrics_collector = MetricsCollector()
+
         with patch(
             "app.services.gateway_service.resolve_route",
             return_value=sample_cache_entry,
@@ -76,6 +81,8 @@ class TestGatewayService:
                 http_client=mock_http_client,
                 cached_memory=mock_cache,
                 lb_client=mock_lb_client,
+                user_id_cache=user_id_cache,
+                metrics_collector=metrics_collector,
             )
 
             # Assert
@@ -108,6 +115,9 @@ class TestGatewayService:
             "app.services.gateway_service.extract_client_ip", return_value="127.0.0.1"
         ):
 
+            user_id_cache = UserIdCache()
+            metrics_collector = MetricsCollector()
+
             # Act
             result = await handle_route_request(
                 request=mock_request,
@@ -116,6 +126,8 @@ class TestGatewayService:
                 http_client=mock_http_client,
                 cached_memory=mock_cache,
                 lb_client=mock_lb_client,
+                user_id_cache=user_id_cache,
+                metrics_collector=metrics_collector,
             )
 
             # Assert
@@ -167,6 +179,9 @@ class TestGatewayService:
             "app.services.gateway_service.prepare_proxy_headers", return_value={}
         ):
 
+            user_id_cache = UserIdCache()
+            metrics_collector = MetricsCollector()
+
             # Act
             await handle_route_request(
                 request=mock_request,
@@ -175,6 +190,8 @@ class TestGatewayService:
                 http_client=mock_http_client,
                 cached_memory=mock_cache,
                 lb_client=mock_lb_client,
+                user_id_cache=user_id_cache,
+                metrics_collector=metrics_collector,
             )
 
             # Assert

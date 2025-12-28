@@ -5,7 +5,14 @@ from app.utils.dependencies import (
     get_lb_client,
     get_orchestrator_client,
     get_http_client,
+    get_user_id_cache,
+    get_container_user_cache,
+    get_metrics_collector,
 )
+from app.services.user_id_cache import UserIdCache
+from app.services.container_user_cache import ContainerUserCache
+from app.services.routing_cache import Cache
+from app.services.metrics_collector import MetricsCollector
 from app.services.routing_cache import Cache
 from app.services.gateway_service import handle_route_request, RouteValidationError
 from app.services.orchestrator_service import (
@@ -64,6 +71,9 @@ async def apps_route(
     cached_memory: Cache = Depends(get_cached_memory),
     lb_client=Depends(get_lb_client),
     http_client=Depends(get_http_client),
+    user_id_cache: UserIdCache = Depends(get_user_id_cache),
+    container_user_cache: ContainerUserCache = Depends(get_container_user_cache),
+    metrics_collector: MetricsCollector = Depends(get_metrics_collector),
 ):
     """
     Route HTTP requests to user applications.
@@ -75,6 +85,8 @@ async def apps_route(
         cached_memory: Routing cache (injected)
         lb_client: Load Balancer client (injected)
         http_client: HTTP client (injected)
+        user_id_cache: User ID cache (injected)
+        metrics_collector: Metrics collector (injected)
 
     Returns:
         Response: Proxied response from the application container
@@ -91,6 +103,9 @@ async def apps_route(
             http_client=http_client,
             cached_memory=cached_memory,
             lb_client=lb_client,
+            user_id_cache=user_id_cache,
+            container_user_cache=container_user_cache,
+            metrics_collector=metrics_collector,
         )
     except RouteValidationError as e:
         return Response(content=e.message, status_code=e.status_code)
@@ -150,6 +165,7 @@ async def upload_image(
     ),
     user_id: int = Depends(verify_token_and_get_user_id),
     orchestrator_client=Depends(get_orchestrator_client),
+    user_id_cache: UserIdCache = Depends(get_user_id_cache),
 ):
     """
     Upload Docker image with build context.
@@ -166,6 +182,7 @@ async def upload_image(
         file: Compressed archive with Dockerfile and build context
         user_id: Authenticated user ID (from token)
         orchestrator_client: Orchestrator client (injected)
+        user_id_cache: User ID cache (injected)
 
     Returns:
         ImageUploadResponse: Image information including build status
@@ -182,6 +199,7 @@ async def upload_image(
         file=file,
         user_id=user_id,
         orchestrator_client=orchestrator_client,
+        user_id_cache=user_id_cache,
     )
 
 

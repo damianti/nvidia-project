@@ -4,6 +4,9 @@ from typing import Optional
 import httpx
 
 from app.services.routing_cache import Cache
+from app.services.user_id_cache import UserIdCache
+from app.services.container_user_cache import ContainerUserCache
+from app.services.metrics_collector import MetricsCollector
 from app.clients.lb_client import LoadBalancerClient
 from app.clients.orchestrator_client import OrchestratorClient
 from app.clients.auth_client import AuthClient
@@ -87,6 +90,36 @@ def get_auth_client(request: Request) -> AuthClient:
         attr_name="auth_client",
         error_message="Auth Client not initialized",
         expected_type=AuthClient,
+    )
+
+
+def get_user_id_cache(request: Request) -> UserIdCache:
+    """Dependency to get User ID cache from app state"""
+    return get_from_app_state(
+        request=request,
+        attr_name="user_id_cache",
+        error_message="User ID Cache not initialized",
+        expected_type=UserIdCache,
+    )
+
+
+def get_container_user_cache(request: Request) -> ContainerUserCache:
+    """Dependency to get Container User cache from app state"""
+    return get_from_app_state(
+        request=request,
+        attr_name="container_user_cache",
+        error_message="Container User Cache not initialized",
+        expected_type=ContainerUserCache,
+    )
+
+
+def get_metrics_collector(request: Request) -> MetricsCollector:
+    """Dependency to get Metrics Collector from app state"""
+    return get_from_app_state(
+        request=request,
+        attr_name="metrics_collector",
+        error_message="Metrics Collector not initialized",
+        expected_type=MetricsCollector,
     )
 
 

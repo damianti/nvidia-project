@@ -6,19 +6,25 @@ from app.services.routing_cache import Cache, CacheEntry
 from app.models.routing import RoutingInfo
 from app.clients.lb_client import LoadBalancerClient
 from app.utils.config import DEFAULT_CACHE_TTL
+from app.services.user_id_cache import UserIdCache
 
 
-def create_cache_entry_from_routing_info(routing_info: RoutingInfo) -> CacheEntry:
+def create_cache_entry_from_routing_info(
+    routing_info: RoutingInfo,
+    app_hostname: str,
+    user_id_cache: UserIdCache,
+) -> CacheEntry:
     """Creates CacheEntry from load balancer response"""
     ttl = routing_info.ttl if routing_info.ttl else DEFAULT_CACHE_TTL
     expires_at = datetime.now() + timedelta(seconds=ttl)
-
+    user_id = user_id_cache.get(app_hostname)
     return CacheEntry(
         target_host=routing_info.target_host,
         target_port=routing_info.target_port,
         container_id=routing_info.container_id,
         image_id=routing_info.image_id,
         expires_at=expires_at,
+        user_id=user_id,
     )
 
 
@@ -42,6 +48,7 @@ async def resolve_route(
     client_ip: str,
     cached_memory: Cache,
     lb_client: LoadBalancerClient,
+    user_id_cache: UserIdCache,
 ) -> Optional[CacheEntry]:
     """
     Resolve route for a user app.
@@ -58,7 +65,9 @@ async def resolve_route(
         return None
 
     # 3) Create cache entry and store it
-    entry = create_cache_entry_from_routing_info(routing_info)
+    entry = create_cache_entry_from_routing_info(
+        routing_info, app_hostname, user_id_cache
+    )
     cached_memory.set(app_hostname, client_ip, entry)
 
     return entry

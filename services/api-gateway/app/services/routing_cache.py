@@ -11,11 +11,13 @@ class CacheEntry:
         container_id: str,
         image_id: int,
         expires_at: datetime,
+        user_id: Optional[int] = None,
     ) -> None:
         self.target_host = target_host
         self.target_port = target_port
         self.container_id = container_id
         self.image_id = image_id
+        self.user_id = user_id
         self.expires_at = expires_at
 
 

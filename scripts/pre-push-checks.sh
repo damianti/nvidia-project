@@ -150,20 +150,30 @@ check_python_service() {
     
     # 1. Lint with ruff
     echo -e "  ${BLUE}Running ruff check...${NC}"
-    if python -m ruff check app/ 2>&1; then
+    ruff_output=$(python -m ruff check app/ 2>&1)
+    if [ $? -eq 0 ]; then
         echo -e "  ${GREEN}✓ Ruff check passed${NC}"
     else
         echo -e "  ${RED}✗ Ruff check failed${NC}"
+        echo -e "${RED}════════════════════════════════════════${NC}"
+        echo "$ruff_output" | head -20
+        echo -e "${RED}════════════════════════════════════════${NC}"
+        echo -e "${YELLOW}  Fix with: cd services/${service_name} && ruff check app/ --fix${NC}"
         FAILED_CHECKS+=("${service_name}: ruff check failed")
         has_errors=true
     fi
     
     # 2. Check formatting with black
     echo -e "  ${BLUE}Running black check...${NC}"
-    if python -m black --check app/ 2>&1; then
+    black_output=$(python -m black --check app/ 2>&1)
+    if [ $? -eq 0 ]; then
         echo -e "  ${GREEN}✓ Black check passed${NC}"
     else
-        echo -e "  ${RED}✗ Black check failed (run 'black app/' to fix)${NC}"
+        echo -e "  ${RED}✗ Black check failed${NC}"
+        echo -e "${RED}════════════════════════════════════════${NC}"
+        echo "$black_output" | grep "would reformat"
+        echo -e "${RED}════════════════════════════════════════${NC}"
+        echo -e "${YELLOW}  Fix with: cd services/${service_name} && black app/${NC}"
         FAILED_CHECKS+=("${service_name}: black check failed")
         has_errors=true
     fi
@@ -181,10 +191,15 @@ check_python_service() {
     else
         pytest_cmd="python -m pytest tests/ --cov=app --cov-report=xml --cov-report=term-missing -q"
     fi
-    if eval "$pytest_cmd" 2>&1; then
+    test_output=$(eval "$pytest_cmd" 2>&1)
+    if [ $? -eq 0 ]; then
         echo -e "  ${GREEN}✓ Tests passed${NC}"
     else
         echo -e "  ${RED}✗ Tests failed${NC}"
+        echo -e "${RED}════════════════════════════════════════${NC}"
+        echo "$test_output" | grep -E "FAILED|ERROR" | head -10
+        echo -e "${RED}════════════════════════════════════════${NC}"
+        echo -e "${YELLOW}  Run tests with: cd services/${service_name} && pytest tests/ -v${NC}"
         FAILED_CHECKS+=("${service_name}: tests failed")
         has_errors=true
     fi
@@ -193,6 +208,9 @@ check_python_service() {
     cd "$PROJECT_ROOT"
     
     if [ "$has_errors" = true ]; then
+        echo ""
+        echo -e "${RED}❌ ${service_name} FAILED - See errors above${NC}"
+        echo ""
         ((FAILED_SERVICES++))
         return 1
     else
@@ -242,20 +260,30 @@ check_frontend() {
     
     # Run tests
     echo -e "  ${BLUE}Running tests...${NC}"
-    if npm test -- --passWithNoTests > /dev/null 2>&1; then
+    test_output=$(npm test -- --passWithNoTests 2>&1)
+    if [ $? -eq 0 ]; then
         echo -e "  ${GREEN}✓ Tests passed${NC}"
     else
         echo -e "  ${RED}✗ Tests failed${NC}"
+        echo -e "${RED}════════════════════════════════════════${NC}"
+        echo "$test_output" | grep -E "FAIL|Error" | head -10
+        echo -e "${RED}════════════════════════════════════════${NC}"
+        echo -e "${YELLOW}  Run tests with: cd services/ui && npm test${NC}"
         FAILED_CHECKS+=("ui: tests failed")
         has_errors=true
     fi
     
     # Run build
     echo -e "  ${BLUE}Running build...${NC}"
-    if npm run build > /dev/null 2>&1; then
+    build_output=$(npm run build 2>&1)
+    if [ $? -eq 0 ]; then
         echo -e "  ${GREEN}✓ Build passed${NC}"
     else
         echo -e "  ${RED}✗ Build failed${NC}"
+        echo -e "${RED}════════════════════════════════════════${NC}"
+        echo "$build_output" | grep -E "Error|Failed" | head -10
+        echo -e "${RED}════════════════════════════════════════${NC}"
+        echo -e "${YELLOW}  Run build with: cd services/ui && npm run build${NC}"
         FAILED_CHECKS+=("ui: build failed")
         has_errors=true
     fi
@@ -263,6 +291,9 @@ check_frontend() {
     cd "$PROJECT_ROOT"
     
     if [ "$has_errors" = true ]; then
+        echo ""
+        echo -e "${RED}❌ UI FAILED - See errors above${NC}"
+        echo ""
         ((FAILED_SERVICES++))
         return 1
     else
@@ -285,26 +316,42 @@ check_frontend
 echo ""
 
 # Summary
-echo -e "${BLUE}========================================${NC}"
-echo -e "${BLUE}Summary${NC}"
-echo -e "${BLUE}========================================${NC}"
-echo -e "Total Services: ${TOTAL_SERVICES}"
-echo -e "${GREEN}Passed: ${PASSED_SERVICES}${NC}"
+echo ""
+echo -e "${BLUE}════════════════════════════════════════════════════════════════${NC}"
+echo -e "${BLUE}                         PRE-PUSH CHECK SUMMARY                  ${NC}"
+echo -e "${BLUE}════════════════════════════════════════════════════════════════${NC}"
+echo ""
+echo -e "  Total Services Checked: ${TOTAL_SERVICES}"
+echo -e "  ${GREEN}✓ Passed: ${PASSED_SERVICES}${NC}"
 
 if [ ${FAILED_SERVICES} -gt 0 ]; then
-    echo -e "${RED}Failed: ${FAILED_SERVICES}${NC}"
+    echo -e "  ${RED}✗ Failed: ${FAILED_SERVICES}${NC}"
     echo ""
-    echo -e "${RED}Failed Checks:${NC}"
+    echo -e "${RED}════════════════════════════════════════════════════════════════${NC}"
+    echo -e "${RED}                         ❌ PUSH BLOCKED ❌                      ${NC}"
+    echo -e "${RED}════════════════════════════════════════════════════════════════${NC}"
+    echo ""
+    echo -e "${RED}The following checks failed:${NC}"
+    echo ""
     for check in "${FAILED_CHECKS[@]}"; do
         echo -e "  ${RED}✗ ${check}${NC}"
     done
     echo ""
-    echo -e "${YELLOW}Fix the errors above before pushing.${NC}"
+    echo -e "${RED}════════════════════════════════════════════════════════════════${NC}"
+    echo -e "${YELLOW}Please fix the errors above before pushing to remote.${NC}"
+    echo -e "${YELLOW}See the detailed error output above for specific files and issues.${NC}"
+    echo -e "${RED}════════════════════════════════════════════════════════════════${NC}"
+    echo ""
     exit 1
 else
-    echo -e "${GREEN}Failed: ${FAILED_SERVICES}${NC}"
+    echo -e "  ${GREEN}✗ Failed: ${FAILED_SERVICES}${NC}"
     echo ""
-    echo -e "${GREEN}✓ All checks passed! Safe to push.${NC}"
+    echo -e "${GREEN}════════════════════════════════════════════════════════════════${NC}"
+    echo -e "${GREEN}                    ✅ ALL CHECKS PASSED ✅                     ${NC}"
+    echo -e "${GREEN}════════════════════════════════════════════════════════════════${NC}"
+    echo ""
+    echo -e "${GREEN}Safe to push to remote!${NC}"
+    echo ""
     exit 0
 fi
 

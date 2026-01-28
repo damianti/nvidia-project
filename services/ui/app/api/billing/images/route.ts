@@ -12,10 +12,12 @@ async function getUserId(cookieHeader: string): Promise<number | null> {
     })
 
     if (!response.ok) {
+      console.error('getUserId: /auth/me returned status:', response.status)
       return null
     }
 
     const userData = await response.json()
+    console.log('getUserId: Got user data:', userData)
     return userData.id || null
   } catch (error) {
     console.error('Error getting user_id:', error)

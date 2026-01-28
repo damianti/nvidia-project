@@ -64,7 +64,7 @@ async def login(
         value=token,
         httponly=True,
         secure=False,  # True in prod
-        samesite="strict",
+        samesite="lax",  # Changed from "strict" to "lax" for better compatibility
         max_age=3600,
         path="/",
     )

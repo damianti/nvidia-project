@@ -17,18 +17,11 @@ export default function BillingPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
-  useEffect(() => {
-    if (!authLoading && !user) {
-      router.push('/login')
-    }
-    if (user) {
-      fetchData()
-    }
-  }, [authLoading, user, router])
-
-  const fetchData = async () => {
+  const fetchData = async (showLoadingState = true) => {
     try {
-      setLoading(true)
+      if (showLoadingState) {
+        setLoading(true)
+      }
       setError('')
       const [fetchedSummaries, fetchedImages] = await Promise.all([
         billingService.getAllBillingSummaries(),
@@ -40,9 +33,24 @@ export default function BillingPage() {
       console.error('Error fetching billing summaries:', error)
       setError(error instanceof Error ? error.message : 'Failed to load billing information. Please try again.')
     } finally {
-      setLoading(false)
+      if (showLoadingState) {
+        setLoading(false)
+      }
     }
   }
+
+  useEffect(() => {
+    if (!authLoading && !user) {
+      router.push('/login')
+    }
+    if (user) {
+      // Initial load with loading state
+      fetchData(true)
+      // Refresh every 10 seconds without showing loading state (background refresh)
+      const interval = setInterval(() => fetchData(false), 10000)
+      return () => clearInterval(interval)
+    }
+  }, [authLoading, user, router])
 
   const formatCurrency = (amount: number): string => {
     return new Intl.NumberFormat('en-US', {

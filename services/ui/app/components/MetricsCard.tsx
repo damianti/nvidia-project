@@ -11,7 +11,11 @@ export default function MetricsCard({
   metrics,
   title = "API Metrics",
 }: MetricsCardProps) {
-  const formatNumber = (num: number): string => {
+  const formatNumber = (num: number | undefined | null): string => {
+    // Handle undefined, null, or NaN values
+    if (num === undefined || num === null || isNaN(num)) {
+      return "0";
+    }
     if (num >= 1000000) {
       return `${(num / 1000000).toFixed(1)}M`;
     }
@@ -21,7 +25,11 @@ export default function MetricsCard({
     return num.toString();
   };
 
-  const formatLatency = (ms: number): string => {
+  const formatLatency = (ms: number | undefined | null): string => {
+    // Handle undefined, null, or NaN values
+    if (ms === undefined || ms === null || isNaN(ms)) {
+      return "0ms";
+    }
     if (ms < 1) {
       return `${(ms * 1000).toFixed(0)}μs`;
     }
@@ -32,8 +40,8 @@ export default function MetricsCard({
   };
 
   const errorRate =
-    metrics.total_requests > 0
-      ? ((metrics.total_errors / metrics.total_requests) * 100).toFixed(2)
+    metrics?.total_requests && metrics.total_requests > 0
+      ? (((metrics.total_errors || 0) / metrics.total_requests) * 100).toFixed(2)
       : "0.00";
 
   return (
@@ -48,7 +56,7 @@ export default function MetricsCard({
             Total Requests
           </div>
           <div className="text-3xl font-bold text-blue-900">
-            {formatNumber(metrics.total_requests)}
+            {formatNumber(metrics?.total_requests)}
           </div>
         </div>
 
@@ -58,7 +66,7 @@ export default function MetricsCard({
             Total Errors
           </div>
           <div className="text-3xl font-bold text-red-900">
-            {formatNumber(metrics.total_errors)}
+            {formatNumber(metrics?.total_errors)}
           </div>
         </div>
 
@@ -76,13 +84,13 @@ export default function MetricsCard({
             Avg Latency
           </div>
           <div className="text-3xl font-bold text-green-900">
-            {formatLatency(metrics.avg_latency_ms)}
+            {formatLatency(metrics?.avg_latency_ms)}
           </div>
         </div>
       </div>
 
       {/* Status Codes Distribution */}
-      {Object.keys(metrics.status_codes).length > 0 && (
+      {metrics?.status_codes && Object.keys(metrics.status_codes).length > 0 && (
         <div className="mb-6">
           <h3 className="text-lg font-semibold text-gray-900 mb-3">
             Status Codes
@@ -141,21 +149,21 @@ export default function MetricsCard({
                             {hostname}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                            {formatNumber(data.requests)}
+                            {formatNumber(data?.requests)}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                             <span
                               className={
-                                data.errors > 0
+                                (data?.errors || 0) > 0
                                   ? "text-red-600 font-semibold"
                                   : "text-gray-500"
                               }
                             >
-                              {formatNumber(data.errors)}
+                              {formatNumber(data?.errors)}
                             </span>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                            {formatLatency(data.avg_latency_ms)}
+                            {formatLatency(data?.avg_latency_ms)}
                           </td>
                         </tr>
                       )
@@ -199,21 +207,21 @@ export default function MetricsCard({
                         User {userId}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {formatNumber(data.requests)}
+                        {formatNumber(data?.requests)}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                         <span
                           className={
-                            data.errors > 0
+                            (data?.errors || 0) > 0
                               ? "text-red-600 font-semibold"
                               : "text-gray-500"
                           }
                         >
-                          {formatNumber(data.errors)}
+                          {formatNumber(data?.errors)}
                         </span>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {formatLatency(data.avg_latency_ms)}
+                        {formatLatency(data?.avg_latency_ms)}
                       </td>
                     </tr>
                   ))}
@@ -257,21 +265,21 @@ export default function MetricsCard({
                           {containerId.substring(0, 12)}...
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          {formatNumber(data.requests)}
+                          {formatNumber(data?.requests)}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                           <span
                             className={
-                              data.errors > 0
+                              (data?.errors || 0) > 0
                                 ? "text-red-600 font-semibold"
                                 : "text-gray-500"
                             }
                           >
-                            {formatNumber(data.errors)}
+                            {formatNumber(data?.errors)}
                           </span>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          {formatLatency(data.avg_latency_ms)}
+                          {formatLatency(data?.avg_latency_ms)}
                         </td>
                       </tr>
                     )

@@ -28,7 +28,7 @@ export default function DashboardPage() {
       setBillingSummaries(summaries);
     } catch (error) {
       console.error("Error fetching billing data:", error);
-      // Silently fail - billing is optional for dashboard
+      // Silently fail - billing data is optional for dashboard
     } finally {
       setBillingLoading(false);
     }
@@ -44,6 +44,8 @@ export default function DashboardPage() {
       setMetrics(data);
     } catch (error) {
       console.error("Error fetching metrics:", error);
+      // Silently fail - metrics data is optional for dashboard
+      setMetrics(null);
     } finally {
       setMetricsLoading(false);
     }
@@ -59,6 +61,7 @@ export default function DashboardPage() {
     if (user) {
       fetchBillingData();
       fetchMetrics();
+      
     }
   }, [user, fetchBillingData, fetchMetrics]);
   const formatCurrency = (amount: number): string => {

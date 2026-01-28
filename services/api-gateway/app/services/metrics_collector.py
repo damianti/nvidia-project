@@ -162,7 +162,7 @@ class MetricsCollector:
                 if user_metrics["latency_count"] > 0
                 else 0.0
             )
-            
+
             # Filter by_app_hostname and by_container for this user
             # Use user_id stored directly in metrics (no cache lookup needed)
             by_app_hostname = {
@@ -170,31 +170,35 @@ class MetricsCollector:
                     "requests": metrics["requests"],
                     "errors": metrics["errors"],
                     "avg_latency_ms": round(
-                        metrics["latency_sum"] / metrics["latency_count"]
-                        if metrics["latency_count"] > 0
-                        else 0.0,
+                        (
+                            metrics["latency_sum"] / metrics["latency_count"]
+                            if metrics["latency_count"] > 0
+                            else 0.0
+                        ),
                         2,
                     ),
                 }
                 for hostname, metrics in self.app_hostname_metrics.items()
                 if metrics.get("user_id") == user_id
             }
-            
+
             by_container = {
                 cid: {
                     "requests": metrics["requests"],
                     "errors": metrics["errors"],
                     "avg_latency_ms": round(
-                        metrics["latency_sum"] / metrics["latency_count"]
-                        if metrics["latency_count"] > 0
-                        else 0.0,
+                        (
+                            metrics["latency_sum"] / metrics["latency_count"]
+                            if metrics["latency_count"] > 0
+                            else 0.0
+                        ),
                         2,
                     ),
                 }
                 for cid, metrics in self.container_metrics.items()
                 if metrics.get("user_id") == user_id
             }
-            
+
             result = {
                 "user_id": user_id,
                 "total_requests": user_metrics["requests"],
@@ -202,12 +206,12 @@ class MetricsCollector:
                 "avg_latency_ms": round(avg_latency, 2),
                 "status_codes": dict(user_metrics["status_codes"]),
             }
-            
+
             if by_app_hostname:
                 result["by_app_hostname"] = by_app_hostname
             if by_container:
                 result["by_container"] = by_container
-            
+
             return result
 
         if app_hostname is not None:
@@ -267,9 +271,11 @@ class MetricsCollector:
                     "requests": metrics["requests"],
                     "errors": metrics["errors"],
                     "avg_latency_ms": round(
-                        metrics["latency_sum"] / metrics["latency_count"]
-                        if metrics["latency_count"] > 0
-                        else 0.0,
+                        (
+                            metrics["latency_sum"] / metrics["latency_count"]
+                            if metrics["latency_count"] > 0
+                            else 0.0
+                        ),
                         2,
                     ),
                 }
@@ -280,9 +286,11 @@ class MetricsCollector:
                     "requests": metrics["requests"],
                     "errors": metrics["errors"],
                     "avg_latency_ms": round(
-                        metrics["latency_sum"] / metrics["latency_count"]
-                        if metrics["latency_count"] > 0
-                        else 0.0,
+                        (
+                            metrics["latency_sum"] / metrics["latency_count"]
+                            if metrics["latency_count"] > 0
+                            else 0.0
+                        ),
                         2,
                     ),
                 }
@@ -293,9 +301,11 @@ class MetricsCollector:
                     "requests": metrics["requests"],
                     "errors": metrics["errors"],
                     "avg_latency_ms": round(
-                        metrics["latency_sum"] / metrics["latency_count"]
-                        if metrics["latency_count"] > 0
-                        else 0.0,
+                        (
+                            metrics["latency_sum"] / metrics["latency_count"]
+                            if metrics["latency_count"] > 0
+                            else 0.0
+                        ),
                         2,
                     ),
                 }

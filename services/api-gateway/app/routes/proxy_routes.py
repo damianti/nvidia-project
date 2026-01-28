@@ -13,7 +13,6 @@ from app.services.user_id_cache import UserIdCache
 from app.services.container_user_cache import ContainerUserCache
 from app.services.routing_cache import Cache
 from app.services.metrics_collector import MetricsCollector
-from app.services.routing_cache import Cache
 from app.services.gateway_service import handle_route_request, RouteValidationError
 from app.services.orchestrator_service import (
     handle_orchestrator_proxy,

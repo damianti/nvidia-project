@@ -48,9 +48,23 @@ router = APIRouter(tags=["metrics"])
                         "total_errors": 10,
                         "avg_latency_ms": 50.5,
                         "status_codes": {"200": 950, "500": 10},
-                        "by_user": {"1": {"requests": 500, "errors": 5, "avg_latency_ms": 45.2}},
-                        "by_app_hostname": {"myapp.localhost": {"requests": 300, "errors": 3, "avg_latency_ms": 42.1}},
-                        "by_container": {"abc123": {"requests": 100, "errors": 1, "avg_latency_ms": 38.5}},
+                        "by_user": {
+                            "1": {"requests": 500, "errors": 5, "avg_latency_ms": 45.2}
+                        },
+                        "by_app_hostname": {
+                            "myapp.localhost": {
+                                "requests": 300,
+                                "errors": 3,
+                                "avg_latency_ms": 42.1,
+                            }
+                        },
+                        "by_container": {
+                            "abc123": {
+                                "requests": 100,
+                                "errors": 1,
+                                "avg_latency_ms": 38.5,
+                            }
+                        },
                     }
                 }
             },
@@ -60,8 +74,12 @@ router = APIRouter(tags=["metrics"])
 async def get_metrics(
     request: Request,
     user_id: int = Depends(verify_token_and_get_user_id),
-    app_hostname: str = Query(None, description="Filter by app hostname (must belong to authenticated user)"),
-    container_id: str = Query(None, description="Filter by container ID (must belong to authenticated user)"),
+    app_hostname: str = Query(
+        None, description="Filter by app hostname (must belong to authenticated user)"
+    ),
+    container_id: str = Query(
+        None, description="Filter by container ID (must belong to authenticated user)"
+    ),
     metrics_collector: MetricsCollector = Depends(get_metrics_collector),
     user_id_cache: UserIdCache = Depends(get_user_id_cache),
     container_user_cache: ContainerUserCache = Depends(get_container_user_cache),
@@ -86,29 +104,30 @@ async def get_metrics(
         app_owner_id = user_id_cache.get(app_hostname)
         if app_owner_id != user_id:
             from fastapi import HTTPException
+
             raise HTTPException(
                 status_code=403,
-                detail="You don't have access to metrics for this app_hostname"
+                detail="You don't have access to metrics for this app_hostname",
             )
-    
+
     # Validate that container_id belongs to the authenticated user
     if container_id:
         container_owner_id = container_user_cache.get(container_id)
         if container_owner_id != user_id:
             from fastapi import HTTPException
+
             raise HTTPException(
                 status_code=403,
-                detail="You don't have access to metrics for this container"
+                detail="You don't have access to metrics for this container",
             )
-    
+
     # If filtering by app_hostname or container_id, use those filters
     # Note: Validation already done above, so we can safely filter
     if app_hostname:
         return metrics_collector.get_metrics(app_hostname=app_hostname)
-    
+
     if container_id:
         return metrics_collector.get_metrics(container_id=container_id)
-    
+
     # Otherwise, return metrics filtered by user_id
     return metrics_collector.get_metrics(user_id=user_id)
-

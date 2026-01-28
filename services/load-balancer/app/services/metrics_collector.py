@@ -36,14 +36,14 @@ class MetricsCollector:
 
         self.active_mappings: Dict[str, int] = {}
 
-
-    def record_request(self,
+    def record_request(
+        self,
         status_code: int,
         latency_ms: float = 0.0,
         image_id: int = None,
         app_hostname: str = None,
-        traffic_bytes: int = 0
-        ) -> None:
+        traffic_bytes: int = 0,
+    ) -> None:
         """
         Record a request with its status code and latency.
 
@@ -65,10 +65,10 @@ class MetricsCollector:
             img_metrics = self.image_metrics[image_id]
             img_metrics["requests"] += 1
             img_metrics["status_codes"][str(status_code)] += 1
-            
+
             if status_code >= 400:
                 img_metrics["errors"] += 1
-                
+
             if latency_ms > 0:
                 img_metrics["latency_sum"] += latency_ms
                 img_metrics["latency_count"] += 1
@@ -78,24 +78,24 @@ class MetricsCollector:
             host_metrics["requests"] += 1
             host_metrics["traffic"] += traffic_bytes
             host_metrics["status_codes"][str(status_code)] += 1
-            
+
             if status_code >= 400:
                 host_metrics["errors"] += 1
-    
+
     def update_mapping(self, app_hostname: str, external_port: int) -> None:
         """
         Update the active mapping for an app hostname.
-        
+
         Args:
             app_hostname: Application hostname
             external_port: External port number
         """
         self.active_mappings[app_hostname] = external_port
-    
+
     def remove_mapping(self, app_hostname: str) -> None:
         """
         Remove the mapping for an app hostname.
-        
+
         Args:
             app_hostname: Application hostname to remove
         """

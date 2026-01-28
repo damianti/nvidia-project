@@ -108,7 +108,9 @@ def process_container_stopped(db: Session, event_data: ContainerEventData) -> No
         extra={
             "container_id": event_data.container_id,
             "event": event_data.event,
-            "timestamp": event_data.timestamp.isoformat() if event_data.timestamp else None,
+            "timestamp": (
+                event_data.timestamp.isoformat() if event_data.timestamp else None
+            ),
             "user_id": event_data.user_id,
             "image_id": event_data.image_id,
         },
@@ -137,7 +139,6 @@ def process_container_stopped(db: Session, event_data: ContainerEventData) -> No
         )
         cost = calculate_cost(duration_minutes=duration_minutes)
 
-        
         update_usage_record(
             db=db,
             usage_record=active_record,

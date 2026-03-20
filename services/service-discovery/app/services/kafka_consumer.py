@@ -13,7 +13,6 @@ from app.utils.config import KAFKA_BOOTSTRAP_SERVERS, KAFKA_CONSUMER_GROUP, SERV
 logger = logging.getLogger(SERVICE_NAME)
 
 
-# TODO implement event: image deleted, change url from image.
 class KafkaConsumerService:
     def __init__(self) -> None:
         self.running = False
@@ -28,6 +27,7 @@ class KafkaConsumerService:
             "container.started": self._on_container_started,
             "container.stopped": self._on_container_stopped,
             "container.deleted": self._on_container_deleted,
+            "image.deleted": self._on_image_deleted,
         }
 
     async def start(self):
@@ -193,3 +193,30 @@ class KafkaConsumerService:
                 "note": "Consul will detect via health check",
             },
         )
+
+    async def _on_image_deleted(self, data: ContainerEventData) -> None:
+        logger.info(
+            "kafka.image_deleted",
+            extra={"image_id": data.image_id},
+        )
+        services = await consul_client.query_healthy_services(
+            tags=[f"image-{data.image_id}"]
+        )
+        for service in services:
+            success = await consul_client.deregister_service(service["container_id"])
+            if success:
+                logger.info(
+                    "consul.deregistration_success",
+                    extra={
+                        "container_id": service["container_id"],
+                        "image_id": data.image_id,
+                    },
+                )
+            else:
+                logger.error(
+                    "consul.deregistration_failed",
+                    extra={
+                        "container_id": service["container_id"],
+                        "image_id": data.image_id,
+                    },
+                )

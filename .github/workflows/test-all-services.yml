@@ -11,6 +11,7 @@ jobs:
     runs-on: ubuntu-latest
 
     strategy:
+      fail-fast: false
       matrix:
         service:
           - orchestrator
@@ -18,7 +19,7 @@ jobs:
           - load-balancer
           - auth-service
           - billing
-          # - client-workload
+          - service-discovery
 
     steps:
       - name: Checkout code
@@ -36,7 +37,6 @@ jobs:
         run: |
           pip install --upgrade pip
           pip install -r requirements-test.txt
-          pip install pytest pytest-cov black ruff
 
       - name: Lint with ruff
         working-directory: ./services/${{ matrix.service }}

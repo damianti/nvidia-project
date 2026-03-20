@@ -191,5 +191,11 @@ Thumbs.db
 PLAN_TRABAJO.txt
 .cursor
 
+# Test coverage output
+coverage.xml
+
+# Personal Claude conversation logs
+conversaciones/
+
 # Local build contexts / artifacts
 data/

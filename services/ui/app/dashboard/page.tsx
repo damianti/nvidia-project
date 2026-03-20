@@ -7,8 +7,14 @@ import Navbar from "@/components/Navbar";
 import { useAuth } from "@/contexts/AuthContext";
 import LoadingSpinner from "@/components/LoadingSpinner";
 import { billingService, BillingSummary } from "@/services/billingService";
-import { metricsService, GlobalMetrics } from "@/services/metricsService";
+import {
+  metricsService,
+  GlobalMetrics,
+  LbMetrics,
+} from "@/services/metricsService";
 import MetricsCard from "@/components/MetricsCard";
+
+const METRICS_REFRESH_MS = 10_000;
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -20,6 +26,9 @@ export default function DashboardPage() {
 
   const [metrics, setMetrics] = useState<GlobalMetrics | null>(null);
   const [metricsLoading, setMetricsLoading] = useState(true);
+
+  const [lbMetrics, setLbMetrics] = useState<LbMetrics | null>(null);
+  const [lbMetricsLoading, setLbMetricsLoading] = useState(true);
 
   const fetchBillingData = useCallback(async () => {
     try {
@@ -51,6 +60,19 @@ export default function DashboardPage() {
     }
   }, [user]);
 
+  const fetchLbMetrics = useCallback(async () => {
+    try {
+      setLbMetricsLoading(true);
+      const data = await metricsService.getLbMetrics();
+      setLbMetrics(data);
+    } catch (error) {
+      console.error("Error fetching LB metrics:", error);
+      setLbMetrics(null);
+    } finally {
+      setLbMetricsLoading(false);
+    }
+  }, []);
+
   useEffect(() => {
     if (!authLoading && !user) {
       router.push("/login");
@@ -61,9 +83,20 @@ export default function DashboardPage() {
     if (user) {
       fetchBillingData();
       fetchMetrics();
-      
+      fetchLbMetrics();
     }
-  }, [user, fetchBillingData, fetchMetrics]);
+  }, [user, fetchBillingData, fetchMetrics, fetchLbMetrics]);
+
+  // Auto-refresh metrics every 10s
+  useEffect(() => {
+    if (!user) return;
+    const t = setInterval(() => {
+      fetchMetrics();
+      fetchLbMetrics();
+    }, METRICS_REFRESH_MS);
+    return () => clearInterval(t);
+  }, [user, fetchMetrics, fetchLbMetrics]);
+
   const formatCurrency = (amount: number): string => {
     return new Intl.NumberFormat("en-US", {
       style: "currency",
@@ -118,6 +151,13 @@ export default function DashboardPage() {
           {!metricsLoading && metrics && (
             <div className="mb-8">
               <MetricsCard metrics={metrics} title="API Gateway Metrics" />
+            </div>
+          )}
+
+          {/* Load Balancer Metrics */}
+          {!lbMetricsLoading && lbMetrics && (
+            <div className="mb-8">
+              <MetricsCard metrics={lbMetrics} title="Load Balancer Metrics" />
             </div>
           )}
 

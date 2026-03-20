@@ -1,32 +1,47 @@
-'use client'
+"use client";
 
-import { useState } from 'react'
-import Link from 'next/link'
-import { useAuth } from '../contexts/AuthContext'
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { useAuth } from "../contexts/AuthContext";
+import LoadingSpinner from "../components/LoadingSpinner";
 
 export default function LoginPage() {
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState('')
-  const { login } = useAuth()
+  const router = useRouter();
+  const { user, loading: authLoading, login } = useAuth();
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    if (!authLoading && user) {
+      router.push("/dashboard");
+    }
+  }, [authLoading, user, router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setLoading(true)
-    setError('')
-    
+    e.preventDefault();
+    setLoading(true);
+    setError("");
+
     try {
-      const success = await login(email, password)
+      const success = await login(email, password);
       if (!success) {
-        setError('Invalid email or password')
+        setError("Invalid email or password");
       }
     } catch (error) {
-      setError('An error occurred during login')
-      console.error('Login error:', error)
+      setError("An error occurred during login");
+      console.error("Login error:", error);
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
+  };
+  if (authLoading) {
+    return <LoadingSpinner />;
+  }
+  if (user) {
+    return <LoadingSpinner />;
   }
 
   return (
@@ -34,8 +49,18 @@ export default function LoginPage() {
       <div className="modern-card w-full max-w-md p-8 fade-in">
         <div className="text-center mb-8">
           <div className="w-16 h-16 bg-gradient-to-r from-blue-500 to-purple-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
-            <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+            <svg
+              className="w-8 h-8 text-white"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
+              />
             </svg>
           </div>
           <h2 className="text-3xl font-bold text-gray-900 mb-2">
@@ -45,16 +70,19 @@ export default function LoginPage() {
             Sign in to your cloud infrastructure dashboard
           </p>
         </div>
-        
+
         {error && (
           <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
             <p className="text-red-600 text-sm">{error}</p>
           </div>
         )}
-        
+
         <form onSubmit={handleSubmit} className="space-y-6">
           <div>
-            <label htmlFor="email" className="block text-sm font-semibold text-gray-700 mb-2">
+            <label
+              htmlFor="email"
+              className="block text-sm font-semibold text-gray-700 mb-2"
+            >
               Email Address
             </label>
             <input
@@ -69,9 +97,12 @@ export default function LoginPage() {
               onChange={(e) => setEmail(e.target.value)}
             />
           </div>
-          
+
           <div>
-            <label htmlFor="password" className="block text-sm font-semibold text-gray-700 mb-2">
+            <label
+              htmlFor="password"
+              className="block text-sm font-semibold text-gray-700 mb-2"
+            >
               Password
             </label>
             <input
@@ -98,20 +129,23 @@ export default function LoginPage() {
                 Signing in...
               </div>
             ) : (
-              'Sign In'
+              "Sign In"
             )}
           </button>
         </form>
 
         <div className="mt-8 text-center">
           <p className="text-gray-600">
-            Don't have an account?{' '}
-            <Link href="/signup" className="text-blue-600 hover:text-blue-700 font-semibold transition-colors">
+            Don't have an account?{" "}
+            <Link
+              href="/signup"
+              className="text-blue-600 hover:text-blue-700 font-semibold transition-colors"
+            >
               Create one now
             </Link>
           </p>
         </div>
       </div>
     </div>
-  )
-} 
+  );
+}

@@ -41,7 +41,9 @@ export default function MetricsCard({
 
   const errorRate =
     metrics?.total_requests && metrics.total_requests > 0
-      ? (((metrics.total_errors || 0) / metrics.total_requests) * 100).toFixed(2)
+      ? (((metrics.total_errors || 0) / metrics.total_requests) * 100).toFixed(
+          2
+        )
       : "0.00";
 
   return (
@@ -90,30 +92,31 @@ export default function MetricsCard({
       </div>
 
       {/* Status Codes Distribution */}
-      {metrics?.status_codes && Object.keys(metrics.status_codes).length > 0 && (
-        <div className="mb-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-3">
-            Status Codes
-          </h3>
-          <div className="flex flex-wrap gap-2">
-            {Object.entries(metrics.status_codes).map(([code, count]) => (
-              <div
-                key={code}
-                className={`px-4 py-2 rounded-lg ${
-                  code.startsWith("2")
-                    ? "bg-green-100 text-green-800"
-                    : code.startsWith("4")
-                    ? "bg-yellow-100 text-yellow-800"
-                    : "bg-red-100 text-red-800"
-                }`}
-              >
-                <span className="font-semibold">{code}:</span>{" "}
-                {formatNumber(count)}
-              </div>
-            ))}
+      {metrics?.status_codes &&
+        Object.keys(metrics.status_codes).length > 0 && (
+          <div className="mb-6">
+            <h3 className="text-lg font-semibold text-gray-900 mb-3">
+              Status Codes
+            </h3>
+            <div className="flex flex-wrap gap-2">
+              {Object.entries(metrics.status_codes).map(([code, count]) => (
+                <div
+                  key={code}
+                  className={`px-4 py-2 rounded-lg ${
+                    code.startsWith("2")
+                      ? "bg-green-100 text-green-800"
+                      : code.startsWith("4")
+                      ? "bg-yellow-100 text-yellow-800"
+                      : "bg-red-100 text-red-800"
+                  }`}
+                >
+                  <span className="font-semibold">{code}:</span>{" "}
+                  {formatNumber(count)}
+                </div>
+              ))}
+            </div>
           </div>
-        </div>
-      )}
+        )}
 
       {/* Métrics by App Hostname */}
       {metrics.by_app_hostname &&
@@ -290,6 +293,103 @@ export default function MetricsCard({
           </div>
         </div>
       )}
+
+      {/* Metrics by Image (Load Balancer) */}
+      {metrics.by_image && Object.keys(metrics.by_image).length > 0 && (
+        <div className="mb-6">
+          <h3 className="text-lg font-semibold text-gray-900 mb-3">
+            Metrics by Image
+          </h3>
+          <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Image ID
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Requests
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Errors
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Avg Latency
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {Object.entries(metrics.by_image).map(([imageId, data]) => (
+                    <tr key={imageId} className="hover:bg-gray-50">
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                        {imageId}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {formatNumber(data?.requests)}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        <span
+                          className={
+                            (data?.errors || 0) > 0
+                              ? "text-red-600 font-semibold"
+                              : "text-gray-500"
+                          }
+                        >
+                          {formatNumber(data?.errors)}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {formatLatency(data?.avg_latency_ms)}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Active Mappings (Load Balancer: hostname → port) */}
+      {metrics.active_mappings &&
+        Object.keys(metrics.active_mappings).length > 0 && (
+          <div className="mb-6">
+            <h3 className="text-lg font-semibold text-gray-900 mb-3">
+              Active Mappings (Hostname → Port)
+            </h3>
+            <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        App Hostname
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Port
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {Object.entries(metrics.active_mappings).map(
+                      ([hostname, port]) => (
+                        <tr key={hostname} className="hover:bg-gray-50">
+                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                            {hostname}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm font-mono text-gray-500">
+                            {port}
+                          </td>
+                        </tr>
+                      )
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        )}
     </div>
   );
 }

@@ -158,3 +158,39 @@ class LoadBalancerClient:
                 exc_info=True,
             )
             return RouteResult(ok=False, error=LbError.UNKNOWN, message=str(e))
+
+    async def get_metrics(self) -> dict:
+        """Fetch load balancer metrics (GET /metrics). For monitoring dashboards."""
+        try:
+            response = await self.http_client.get(
+                url=f"{self.base_url}/metrics",
+                headers=self._build_headers(),
+                timeout=self.timeout_s,
+            )
+            response.raise_for_status()
+            return response.json()
+        except Exception as e:
+            logger.error(
+                "lb.metrics.error",
+                extra={"error": str(e), "error_type": type(e).__name__},
+                exc_info=True,
+            )
+            raise
+
+    async def get_mappings(self) -> dict:
+        """Fetch load balancer hostname→port mappings (GET /metrics/mappings)."""
+        try:
+            response = await self.http_client.get(
+                url=f"{self.base_url}/metrics/mappings",
+                headers=self._build_headers(),
+                timeout=self.timeout_s,
+            )
+            response.raise_for_status()
+            return response.json()
+        except Exception as e:
+            logger.error(
+                "lb.mappings.error",
+                extra={"error": str(e), "error_type": type(e).__name__},
+                exc_info=True,
+            )
+            raise

@@ -1,6 +1,7 @@
 from fastapi import Request, HTTPException
 import json
 import logging
+import time
 from typing import Optional
 
 from app.schemas.service_info import ServiceInfo
@@ -11,6 +12,7 @@ from app.services.service_discovery_client import (
 from app.services.service_selector import RoundRobinSelector
 from app.services.circuit_breaker import CircuitBreaker, CircuitBreakerOpenError
 from app.services.fallback_cache import FallbackCache
+from app.services.metrics_collector import MetricsCollector
 from app.utils.config import TARGET_HOST, SERVICE_NAME
 
 logger = logging.getLogger(SERVICE_NAME)
@@ -123,7 +125,7 @@ async def _pick_service(
         return None
 
     image_id = services[0].image_id or 0
-    return selector.select(image_id, services)
+    return await selector.select(image_id, services)
 
 
 async def handle_request(
@@ -132,6 +134,7 @@ async def handle_request(
     selector: RoundRobinSelector,
     circuit_breaker: CircuitBreaker,
     fallback_cache: FallbackCache,
+    metrics_collector: MetricsCollector,
 ) -> dict:
     """
     Handle a routing request from the API Gateway.
@@ -190,6 +193,8 @@ async def handle_request(
         },
     )
 
+    start_time = time.perf_counter()
+
     try:
         service = await _pick_service(
             app_hostname=app_hostname,
@@ -205,7 +210,7 @@ async def handle_request(
                 "app_hostname": app_hostname,
                 "error": str(exc),
                 "error_type": type(exc).__name__,
-                "circuit_state": circuit_breaker.get_state().value,
+                "circuit_state": (await circuit_breaker.get_state()).value,
             },
         )
         raise HTTPException(
@@ -214,6 +219,14 @@ async def handle_request(
         ) from exc
 
     if service is None:
+        latency_ms = (time.perf_counter() - start_time) * 1000
+        await metrics_collector.record_request(
+            status_code=503,
+            latency_ms=latency_ms,
+            image_id=None,
+            app_hostname=app_hostname,
+            traffic_bytes=0,
+        )
         raise HTTPException(
             status_code=503,
             detail="No running containers available for this website",
@@ -222,6 +235,18 @@ async def handle_request(
     external_port = service.external_port
     container_id = service.container_id
     image_id = service.image_id
+
+    latency_ms = (time.perf_counter() - start_time) * 1000
+
+    # Update metrics and active mapping for this app_hostname
+    await metrics_collector.record_request(
+        status_code=200,
+        latency_ms=latency_ms,
+        image_id=image_id,
+        app_hostname=app_hostname,
+        traffic_bytes=0,
+    )
+    await metrics_collector.update_mapping(app_hostname, external_port)
 
     logger.info(
         "lb.route.resolved",

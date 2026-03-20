@@ -5,6 +5,7 @@ import os
 HOST = os.getenv("HOST", "0.0.0.0")
 PORT = int(os.getenv("PORT", "8080"))
 SERVICE_NAME = "load-balancer"
+REDIS_URL = os.getenv("REDIS_URL", "redis://redis:6379/0")
 # Service URLs
 LOAD_BALANCER_URL = os.getenv("LOAD_BALANCER_URL", "http://load-balancer:3004")
 ORCHESTRATOR_URL = os.getenv("ORCHESTRATOR_URL", "http://orchestrator:3003")

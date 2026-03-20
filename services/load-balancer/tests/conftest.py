@@ -1,7 +1,9 @@
 import pytest
-from datetime import datetime, timedelta
+import pytest_asyncio
 from typing import List
 from unittest.mock import AsyncMock, Mock
+
+import fakeredis.aioredis
 
 from app.services.circuit_breaker import CircuitBreaker
 from app.services.fallback_cache import FallbackCache
@@ -9,22 +11,32 @@ from app.services.service_selector import RoundRobinSelector
 from app.schemas.service_info import ServiceInfo
 
 
-@pytest.fixture
-def circuit_breaker() -> CircuitBreaker:
-    """Fresh CircuitBreaker per test."""
-    return CircuitBreaker()
+@pytest_asyncio.fixture
+async def fake_redis():
+    """In-memory async Redis for unit tests."""
+    r = fakeredis.aioredis.FakeRedis(decode_responses=True)
+    yield r
+    await r.aclose()
 
 
-@pytest.fixture
-def fallback_cache() -> FallbackCache:
-    """Fresh FallbackCache per test."""
-    return FallbackCache(ttl_seconds=1.0)
+@pytest_asyncio.fixture
+async def circuit_breaker(fake_redis) -> CircuitBreaker:
+    """Fresh CircuitBreaker per test, backed by fakeredis."""
+    cb = CircuitBreaker(redis=fake_redis)
+    await cb.initialize()
+    return cb
 
 
-@pytest.fixture
-def service_selector() -> RoundRobinSelector:
-    """RoundRobin selector fixture."""
-    return RoundRobinSelector()
+@pytest_asyncio.fixture
+async def fallback_cache(fake_redis) -> FallbackCache:
+    """Fresh FallbackCache per test, backed by fakeredis."""
+    return FallbackCache(redis=fake_redis, ttl_seconds=1.0)
+
+
+@pytest_asyncio.fixture
+async def service_selector(fake_redis) -> RoundRobinSelector:
+    """RoundRobin selector fixture backed by fakeredis."""
+    return RoundRobinSelector(redis=fake_redis)
 
 
 @pytest.fixture
@@ -53,12 +65,6 @@ def sample_service_info() -> List[ServiceInfo]:
 
 
 @pytest.fixture
-def expired_timestamp() -> datetime:
-    """Timestamp in the past to force cache expiration."""
-    return datetime.now() - timedelta(seconds=5)
-
-
-@pytest.fixture
 def mock_discovery_client(sample_service_info: List[ServiceInfo]) -> AsyncMock:
     """Mock ServiceDiscoveryClient with async get_healthy_services."""
     client = AsyncMock()
@@ -71,7 +77,7 @@ def mock_circuit_breaker(sample_service_info: List[ServiceInfo]) -> Mock:
     """Mock circuit breaker with call method."""
     breaker = Mock()
     breaker.call = AsyncMock(return_value=sample_service_info)
-    breaker.get_state = Mock(return_value=Mock(value="CLOSED"))
+    breaker.get_state = AsyncMock(return_value=Mock(value="CLOSED"))
     return breaker
 
 
@@ -82,6 +88,16 @@ def mock_fallback_cache(sample_service_info: List[ServiceInfo]) -> Mock:
     cache.update = AsyncMock()
     cache.get = AsyncMock(return_value=sample_service_info)
     return cache
+
+
+@pytest.fixture
+def mock_metrics_collector() -> Mock:
+    """Mock metrics collector with async methods."""
+    collector = Mock()
+    collector.record_request = AsyncMock()
+    collector.update_mapping = AsyncMock()
+    collector.remove_mapping = AsyncMock()
+    return collector
 
 
 @pytest.fixture

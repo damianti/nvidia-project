@@ -1,13 +1,15 @@
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 
+import redis.asyncio as aioredis
+
 from app.services.service_discovery_client import ServiceDiscoveryClient
 from app.services.service_selector import RoundRobinSelector
 from app.services.circuit_breaker import CircuitBreaker
 from app.services.fallback_cache import FallbackCache
 from app.services.metrics_collector import MetricsCollector
 from app.utils.logger import setup_logger
-from app.utils.config import SERVICE_NAME
+from app.utils.config import SERVICE_NAME, REDIS_URL
 
 logger = setup_logger(SERVICE_NAME)
 
@@ -15,18 +17,20 @@ logger = setup_logger(SERVICE_NAME)
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Application lifespan manager."""
-    logger.info(
-        "lb.startup",
-        extra={
-            "service_name": SERVICE_NAME,
-        },
-    )
+    logger.info("lb.startup", extra={"service_name": SERVICE_NAME})
+
+    redis_client = aioredis.from_url(REDIS_URL, decode_responses=True)
+    app.state.redis = redis_client
 
     discovery_client = ServiceDiscoveryClient()
-    service_selector = RoundRobinSelector()
-    circuit_breaker = CircuitBreaker(failure_threshold=3, reset_timeout=15.0)
-    fallback_cache = FallbackCache(ttl_seconds=10.0)
-    metrics_collector = MetricsCollector()
+    service_selector = RoundRobinSelector(redis=redis_client)
+    circuit_breaker = CircuitBreaker(
+        redis=redis_client, failure_threshold=3, reset_timeout=15.0
+    )
+    fallback_cache = FallbackCache(redis=redis_client, ttl_seconds=10.0)
+    metrics_collector = MetricsCollector(redis=redis_client)
+
+    await circuit_breaker.initialize()
 
     app.state.discovery_client = discovery_client
     app.state.service_selector = service_selector
@@ -36,11 +40,6 @@ async def lifespan(app: FastAPI):
 
     yield
 
-    # Shutdown
-    logger.info(
-        "lb.shutdown",
-        extra={
-            "service_name": SERVICE_NAME,
-        },
-    )
+    logger.info("lb.shutdown", extra={"service_name": SERVICE_NAME})
     await discovery_client.close()
+    await redis_client.aclose()

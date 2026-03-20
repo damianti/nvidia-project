@@ -3,8 +3,11 @@ httpx==0.25.2
 pydantic==2.5.0
 uvicorn==0.24.0
 python-dotenv==1.0.0
+redis[asyncio]==5.0.1
 pytest
 pytest-cov
 pytest-asyncio
 freezegun
 anyio
+fakeredis[aioredis]
+prometheus-client==0.19.0

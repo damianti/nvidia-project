@@ -1,114 +1,90 @@
-import asyncio
+"""
+Fallback Cache for Load Balancer.
+
+Stores the last known healthy services per app_hostname in Redis with automatic
+TTL expiration. Used when Service Discovery is unavailable.
+"""
+
+import json
 import logging
-from datetime import datetime
-from typing import Dict, List, Optional
+from typing import List, Optional
+
+import redis.asyncio as aioredis
 
 from app.schemas.service_info import ServiceInfo
 from app.utils.config import SERVICE_NAME
 
 logger = logging.getLogger(SERVICE_NAME)
 
+_KEY_PREFIX = "lb:fallback:"
+
 
 class FallbackCache:
     """
-    Cache for storing last known healthy services.
+    Cache for storing last known healthy services, backed by Redis.
 
-    Used as fallback when Service Discovery is unavailable.
-    Cache entries expire after TTL seconds.
+    TTL is enforced natively by Redis — no manual expiration logic needed.
     """
 
-    def __init__(self, ttl_seconds: float = 10.0) -> None:
-        """
-        Args:
-            ttl_seconds: Time to live for cache entries (default: 10s)
-        """
+    def __init__(self, redis: aioredis.Redis, ttl_seconds: float = 10.0) -> None:
         self.ttl_seconds = ttl_seconds
-        # Key: app_hostname (normalized), Value: (services, timestamp)
-        self._cache: Dict[str, tuple[List[ServiceInfo], datetime]] = {}
-        self._lock = asyncio.Lock()
+        self._redis = redis
 
     async def update(self, app_hostname: str, services: List[ServiceInfo]) -> None:
-        """
-        Update cache with new services for an app_hostname.
-        """
-        async with self._lock:
-            normalized_hostname = self._normalize_hostname(app_hostname)
-            self._cache[normalized_hostname] = (services, datetime.now())
-            logger.debug(
-                "fallback_cache.updated",
-                extra={
-                    "app_hostname": normalized_hostname,
-                    "services_count": len(services),
-                },
-            )
+        """Update cache with new services for an app_hostname."""
+        normalized = self._normalize_hostname(app_hostname)
+        key = f"{_KEY_PREFIX}{normalized}"
+        value = json.dumps([s.model_dump() for s in services])
+        await self._redis.set(key, value, ex=int(self.ttl_seconds))
+        logger.debug(
+            "fallback_cache.updated",
+            extra={"app_hostname": normalized, "services_count": len(services)},
+        )
 
     async def get(self, app_hostname: str) -> Optional[List[ServiceInfo]]:
         """
-        Get cached services for app_hostname if not expired.
+        Get cached services for app_hostname.
 
-        Returns:
-            List of ServiceInfo if found and not expired, None otherwise
+        Returns None if not found or TTL has expired (Redis handles expiry).
         """
-        async with self._lock:
-            normalized_hostname = self._normalize_hostname(app_hostname)
+        normalized = self._normalize_hostname(app_hostname)
+        key = f"{_KEY_PREFIX}{normalized}"
 
-            logger.info(
-                "fallback_cache.get_attempt",
-                extra={
-                    "app_hostname": app_hostname,
-                    "normalized_hostname": normalized_hostname,
-                    "cache_keys": list(self._cache.keys()),
-                },
+        logger.info(
+            "fallback_cache.get_attempt",
+            extra={"app_hostname": app_hostname, "normalized_hostname": normalized},
+        )
+
+        data = await self._redis.get(key)
+        if data is None:
+            logger.warning(
+                "fallback_cache.key_not_found",
+                extra={"normalized_hostname": normalized},
             )
+            return None
 
-            if normalized_hostname not in self._cache:
-                logger.warning(
-                    "fallback_cache.key_not_found",
-                    extra={
-                        "normalized_hostname": normalized_hostname,
-                        "available_keys": list(self._cache.keys()),
-                    },
-                )
-                return None
-
-            services, timestamp = self._cache[normalized_hostname]
-            elapsed = (datetime.now() - timestamp).total_seconds()
-
-            if elapsed > self.ttl_seconds:
-                # Expired, remove from cache
-                del self._cache[normalized_hostname]
-                logger.debug(
-                    "fallback_cache.expired",
-                    extra={
-                        "app_hostname": normalized_hostname,
-                        "elapsed_seconds": elapsed,
-                    },
-                )
-                return None
-
-            logger.debug(
-                "fallback_cache.hit",
-                extra={
-                    "app_hostname": normalized_hostname,
-                    "services_count": len(services),
-                    "age_seconds": elapsed,
-                },
-            )
-            return services
+        services = [ServiceInfo(**s) for s in json.loads(data)]
+        logger.debug(
+            "fallback_cache.hit",
+            extra={"app_hostname": normalized, "services_count": len(services)},
+        )
+        return services
 
     async def clear(self) -> None:
-        """Clear all cache entries"""
-        async with self._lock:
-            self._cache.clear()
-            logger.debug("fallback_cache.cleared")
+        """Clear all fallback cache entries."""
+        keys_to_delete: List[str] = [
+            k async for k in self._redis.scan_iter(f"{_KEY_PREFIX}*")
+        ]
+        if keys_to_delete:
+            await self._redis.delete(*keys_to_delete)
+        logger.debug("fallback_cache.cleared")
 
     def _normalize_hostname(self, app_hostname: str) -> str:
-        """Normalize app hostname for consistent cache keys"""
+        """Normalize app hostname for consistent cache keys."""
         if not app_hostname:
             return ""
         normalized = app_hostname.strip().lower()
 
-        # Tolerate legacy URL-like inputs (scheme/path/query/fragment/port).
         if normalized.startswith("https://"):
             normalized = normalized[8:]
         elif normalized.startswith("http://"):
@@ -124,16 +100,10 @@ class FallbackCache:
 
         return normalized.rstrip("/")
 
-    def get_status(self) -> dict:
-        """Get cache status for debugging"""
+    async def get_status(self) -> dict:
+        """Get cache status for debugging."""
+        keys: List[str] = [k async for k in self._redis.scan_iter(f"{_KEY_PREFIX}*")]
         return {
-            "entries_count": len(self._cache),
+            "entries_count": len(keys),
             "ttl_seconds": self.ttl_seconds,
-            "entries": {
-                url: {
-                    "services_count": len(services),
-                    "age_seconds": (datetime.now() - timestamp).total_seconds(),
-                }
-                for url, (services, timestamp) in self._cache.items()
-            },
         }

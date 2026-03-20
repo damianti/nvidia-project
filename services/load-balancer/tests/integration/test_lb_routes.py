@@ -27,20 +27,25 @@ def test_client(sample_service_info: List[ServiceInfo]) -> TestClient:
     discovery_client.get_healthy_services = AsyncMock(return_value=sample_service_info)
 
     selector = Mock()
-    selector.select = Mock(return_value=sample_service_info[0])
+    selector.select = AsyncMock(return_value=sample_service_info[0])
 
     circuit_breaker = Mock()
     circuit_breaker.call = AsyncMock(return_value=sample_service_info)
-    circuit_breaker.get_state = Mock(return_value=Mock(value="CLOSED"))
+    circuit_breaker.get_state = AsyncMock(return_value=Mock(value="CLOSED"))
 
     fallback_cache = Mock()
     fallback_cache.update = AsyncMock()
     fallback_cache.get = AsyncMock(return_value=sample_service_info)
 
+    metrics_collector = Mock()
+    metrics_collector.record_request = AsyncMock()
+    metrics_collector.update_mapping = AsyncMock()
+
     app.state.discovery_client = discovery_client
     app.state.service_selector = selector
     app.state.circuit_breaker = circuit_breaker
     app.state.fallback_cache = fallback_cache
+    app.state.metrics_collector = metrics_collector
 
     return TestClient(app)
 

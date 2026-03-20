@@ -3,17 +3,25 @@ Unit tests for RoundRobinSelector.
 """
 
 import pytest
+import pytest_asyncio
+import fakeredis.aioredis
 
 from app.services.service_selector import RoundRobinSelector
 from app.schemas.service_info import ServiceInfo
+
+
+@pytest_asyncio.fixture
+async def selector() -> RoundRobinSelector:
+    r = fakeredis.aioredis.FakeRedis(decode_responses=True)
+    return RoundRobinSelector(redis=r)
 
 
 @pytest.mark.unit
 class TestServiceSelector:
     """Round robin selection tests."""
 
-    def test_select_cycles_per_image(self):
-        selector = RoundRobinSelector()
+    @pytest.mark.asyncio
+    async def test_select_cycles_per_image(self, selector: RoundRobinSelector):
         services = [
             ServiceInfo(
                 container_id="a",
@@ -35,15 +43,14 @@ class TestServiceSelector:
             ),
         ]
 
-        first = selector.select(1, services)
-        second = selector.select(1, services)
-        third = selector.select(1, services)
+        first = await selector.select(1, services)
+        second = await selector.select(1, services)
+        third = await selector.select(1, services)
 
         assert first.container_id == "a"
         assert second.container_id == "b"
         assert third.container_id == "a"  # wraps around
 
-    def test_select_none_when_empty(self):
-        selector = RoundRobinSelector()
-
-        assert selector.select(1, []) is None
+    @pytest.mark.asyncio
+    async def test_select_none_when_empty(self, selector: RoundRobinSelector):
+        assert await selector.select(1, []) is None

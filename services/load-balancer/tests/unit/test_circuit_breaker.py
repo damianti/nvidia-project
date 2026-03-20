@@ -1,6 +1,9 @@
 import asyncio
 import pytest
+import pytest_asyncio
 from unittest.mock import AsyncMock
+
+import fakeredis.aioredis
 
 from app.services.circuit_breaker import (
     CircuitBreaker,
@@ -9,14 +12,17 @@ from app.services.circuit_breaker import (
 )
 
 
-@pytest.fixture
-def short_breaker() -> CircuitBreaker:
-    return CircuitBreaker(failure_threshold=2, reset_timeout=0.05)
+@pytest_asyncio.fixture
+async def short_breaker() -> CircuitBreaker:
+    r = fakeredis.aioredis.FakeRedis(decode_responses=True)
+    cb = CircuitBreaker(redis=r, failure_threshold=2, reset_timeout=0.05)
+    await cb.initialize()
+    return cb
 
 
 @pytest.mark.asyncio
 async def test_circuit_starts_closed(short_breaker: CircuitBreaker):
-    assert short_breaker.get_state() == CircuitState.CLOSED
+    assert await short_breaker.get_state() == CircuitState.CLOSED
 
 
 @pytest.mark.asyncio
@@ -25,11 +31,11 @@ async def test_opens_after_threshold(short_breaker: CircuitBreaker):
 
     with pytest.raises(Exception):
         await short_breaker.call(failing_call)
-    assert short_breaker.get_state() == CircuitState.CLOSED
+    assert await short_breaker.get_state() == CircuitState.CLOSED
 
     with pytest.raises(Exception):
         await short_breaker.call(failing_call)
-    assert short_breaker.get_state() == CircuitState.OPEN
+    assert await short_breaker.get_state() == CircuitState.OPEN
 
 
 @pytest.mark.asyncio
@@ -39,7 +45,7 @@ async def test_open_blocks_until_timeout(short_breaker: CircuitBreaker):
         with pytest.raises(Exception):
             await short_breaker.call(failing_call)
 
-    assert short_breaker.is_open()
+    assert await short_breaker.is_open()
 
     with pytest.raises(CircuitBreakerOpenError):
         await short_breaker.call(failing_call)
@@ -49,7 +55,7 @@ async def test_open_blocks_until_timeout(short_breaker: CircuitBreaker):
     result = await short_breaker.call(success_call)
 
     assert result == "ok"
-    assert short_breaker.get_state() == CircuitState.CLOSED
+    assert await short_breaker.get_state() == CircuitState.CLOSED
 
 
 @pytest.mark.asyncio
@@ -64,7 +70,7 @@ async def test_half_open_failure_reopens(short_breaker: CircuitBreaker):
     with pytest.raises(Exception):
         await short_breaker.call(failing_call)
 
-    assert short_breaker.get_state() == CircuitState.OPEN
+    assert await short_breaker.get_state() == CircuitState.OPEN
 
 
 @pytest.mark.asyncio
@@ -78,4 +84,5 @@ async def test_success_resets_failure_count(short_breaker: CircuitBreaker):
     result = await short_breaker.call(success_call)
 
     assert result == "ok"
-    assert short_breaker.get_status()["failure_count"] == 0
+    status = await short_breaker.get_status()
+    assert status["failure_count"] == 0

@@ -4,11 +4,13 @@ from app.services.service_discovery_client import ServiceDiscoveryClient
 from app.services.service_selector import RoundRobinSelector
 from app.services.circuit_breaker import CircuitBreaker
 from app.services.fallback_cache import FallbackCache
+from app.services.metrics_collector import MetricsCollector
 from app.utils.dependencies import (
     get_discovery_client,
     get_service_selector,
     get_circuit_breaker,
     get_fallback_cache,
+    get_metrics_collector,
 )
 from app.services import lb_service
 from app.utils.logger import setup_logger
@@ -59,6 +61,7 @@ async def route_image(
     selector: RoundRobinSelector = Depends(get_service_selector),
     circuit_breaker: CircuitBreaker = Depends(get_circuit_breaker),
     fallback_cache: FallbackCache = Depends(get_fallback_cache),
+    metrics_collector: MetricsCollector = Depends(get_metrics_collector),
 ):
     """
     Route HTTP request to a healthy container instance.
@@ -79,4 +82,5 @@ async def route_image(
         selector=selector,
         circuit_breaker=circuit_breaker,
         fallback_cache=fallback_cache,
+        metrics_collector=metrics_collector,
     )

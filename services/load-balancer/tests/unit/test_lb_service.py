@@ -54,7 +54,7 @@ class TestPickService:
         result = await _pick_service(
             app_hostname="demo",
             discovery_client=mock_discovery_client,
-            selector=Mock(select=Mock(return_value=service)),
+            selector=Mock(select=AsyncMock(return_value=service)),
             circuit_breaker=mock_circuit_breaker,
             fallback_cache=mock_fallback_cache,
         )
@@ -66,7 +66,7 @@ class TestPickService:
     async def test_circuit_open_uses_fallback(self, mock_fallback_cache):
         mock_cb = Mock()
         mock_cb.call = AsyncMock(side_effect=CircuitBreakerOpenError())
-        mock_cb.get_state = Mock(return_value=Mock(value="OPEN"))
+        mock_cb.get_state = AsyncMock(return_value=Mock(value="OPEN"))
 
         service = ServiceInfo(
             container_id="a",
@@ -82,7 +82,7 @@ class TestPickService:
         result = await _pick_service(
             app_hostname="demo",
             discovery_client=Mock(),
-            selector=Mock(select=Mock(return_value=service)),
+            selector=Mock(select=AsyncMock(return_value=service)),
             circuit_breaker=mock_cb,
             fallback_cache=mock_fallback_cache,
         )
@@ -93,14 +93,14 @@ class TestPickService:
     async def test_discovery_error_no_fallback_raises(self, mock_fallback_cache):
         mock_cb = Mock()
         mock_cb.call = AsyncMock(side_effect=ServiceDiscoveryError("down"))
-        mock_cb.get_state = Mock(return_value=Mock(value="CLOSED"))
+        mock_cb.get_state = AsyncMock(return_value=Mock(value="CLOSED"))
         mock_fallback_cache.get = AsyncMock(return_value=None)
 
         with pytest.raises(ServiceDiscoveryError):
             await _pick_service(
                 app_hostname="demo",
                 discovery_client=Mock(),
-                selector=Mock(select=Mock(return_value=None)),
+                selector=Mock(select=AsyncMock(return_value=None)),
                 circuit_breaker=mock_cb,
                 fallback_cache=mock_fallback_cache,
             )
@@ -115,7 +115,7 @@ class TestPickService:
         result = await _pick_service(
             app_hostname="demo",
             discovery_client=Mock(),
-            selector=Mock(select=Mock(return_value=None)),
+            selector=Mock(select=AsyncMock(return_value=None)),
             circuit_breaker=mock_circuit_breaker,
             fallback_cache=mock_fallback_cache,
         )
@@ -128,7 +128,9 @@ class TestHandleRequest:
     """Tests for handle_request validation and happy path."""
 
     @pytest.mark.asyncio
-    async def test_handle_request_success(self, dummy_request_factory):
+    async def test_handle_request_success(
+        self, dummy_request_factory, mock_metrics_collector
+    ):
         service = ServiceInfo(
             container_id="a",
             container_ip="1.1.1.1",
@@ -147,8 +149,9 @@ class TestHandleRequest:
             request=request,
             discovery_client=Mock(),
             selector=Mock(),
-            circuit_breaker=Mock(get_state=Mock(return_value=Mock(value="CLOSED"))),
+            circuit_breaker=Mock(get_state=AsyncMock(return_value=Mock(value="CLOSED"))),
             fallback_cache=Mock(),
+            metrics_collector=mock_metrics_collector,
         )
 
         assert result["target_host"]
@@ -158,7 +161,9 @@ class TestHandleRequest:
         lb_service._pick_service = original_pick
 
     @pytest.mark.asyncio
-    async def test_handle_request_missing_body(self, dummy_request_factory):
+    async def test_handle_request_missing_body(
+        self, dummy_request_factory, mock_metrics_collector
+    ):
         request = dummy_request_factory(None)
 
         with pytest.raises(HTTPException) as exc:
@@ -168,11 +173,14 @@ class TestHandleRequest:
                 selector=Mock(),
                 circuit_breaker=Mock(),
                 fallback_cache=Mock(),
+                metrics_collector=mock_metrics_collector,
             )
         assert exc.value.status_code == 400
 
     @pytest.mark.asyncio
-    async def test_handle_request_missing_app_hostname(self, dummy_request_factory):
+    async def test_handle_request_missing_app_hostname(
+        self, dummy_request_factory, mock_metrics_collector
+    ):
         request = dummy_request_factory({"foo": "bar"})
 
         with pytest.raises(HTTPException) as exc:
@@ -182,11 +190,14 @@ class TestHandleRequest:
                 selector=Mock(),
                 circuit_breaker=Mock(),
                 fallback_cache=Mock(),
+                metrics_collector=mock_metrics_collector,
             )
         assert exc.value.status_code == 400
 
     @pytest.mark.asyncio
-    async def test_handle_request_empty_hostname(self, dummy_request_factory):
+    async def test_handle_request_empty_hostname(
+        self, dummy_request_factory, mock_metrics_collector
+    ):
         request = dummy_request_factory({"app_hostname": "   "})
 
         with pytest.raises(HTTPException) as exc:
@@ -196,11 +207,12 @@ class TestHandleRequest:
                 selector=Mock(),
                 circuit_breaker=Mock(),
                 fallback_cache=Mock(),
+                metrics_collector=mock_metrics_collector,
             )
         assert exc.value.status_code == 400
 
     @pytest.mark.asyncio
-    async def test_handle_request_invalid_json(self):
+    async def test_handle_request_invalid_json(self, mock_metrics_collector):
         request = Mock()
         request.body = AsyncMock(side_effect=json.JSONDecodeError("bad", "x", 0))
 
@@ -211,14 +223,17 @@ class TestHandleRequest:
                 selector=Mock(),
                 circuit_breaker=Mock(),
                 fallback_cache=Mock(),
+                metrics_collector=mock_metrics_collector,
             )
         assert exc.value.status_code == 400
 
     @pytest.mark.asyncio
-    async def test_handle_request_service_discovery_error(self, dummy_request_factory):
+    async def test_handle_request_service_discovery_error(
+        self, dummy_request_factory, mock_metrics_collector
+    ):
         request = dummy_request_factory({"app_hostname": "demo"})
         mock_cb = Mock()
-        mock_cb.get_state = Mock(return_value=Mock(value="OPEN"))
+        mock_cb.get_state = AsyncMock(return_value=Mock(value="OPEN"))
         mock_cb.call = AsyncMock(side_effect=ServiceDiscoveryError("down"))
         fallback = Mock()
         fallback.get = AsyncMock(return_value=None)
@@ -230,16 +245,15 @@ class TestHandleRequest:
                 selector=Mock(),
                 circuit_breaker=mock_cb,
                 fallback_cache=fallback,
+                metrics_collector=mock_metrics_collector,
             )
         assert exc.value.status_code == 503
 
     @pytest.mark.asyncio
-    async def test_handle_request_no_service_available(self, dummy_request_factory):
+    async def test_handle_request_no_service_available(
+        self, dummy_request_factory, mock_metrics_collector
+    ):
         request = dummy_request_factory({"app_hostname": "demo"})
-
-        # Patch _pick_service to return None via monkeypatching attribute
-        async def pick_none(**_):
-            return None
 
         original_pick = lb_service._pick_service
         lb_service._pick_service = AsyncMock(return_value=None)
@@ -251,6 +265,7 @@ class TestHandleRequest:
                     selector=Mock(),
                     circuit_breaker=Mock(),
                     fallback_cache=Mock(),
+                    metrics_collector=mock_metrics_collector,
                 )
             assert exc.value.status_code == 503
         finally:

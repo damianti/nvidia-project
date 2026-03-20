@@ -1,9 +1,11 @@
+import redis.asyncio as aioredis
 from fastapi import Request, HTTPException
 
 from app.services.service_discovery_client import ServiceDiscoveryClient
 from app.services.service_selector import RoundRobinSelector
 from app.services.circuit_breaker import CircuitBreaker
 from app.services.fallback_cache import FallbackCache
+from app.services.metrics_collector import MetricsCollector
 
 
 def _get_from_state(request: Request, attribute: str, detail: str):
@@ -11,6 +13,10 @@ def _get_from_state(request: Request, attribute: str, detail: str):
     if value is None:
         raise HTTPException(status_code=500, detail=detail)
     return value
+
+
+def get_redis(request: Request) -> aioredis.Redis:
+    return _get_from_state(request, "redis", "Redis client not initialized")
 
 
 def get_discovery_client(request: Request) -> ServiceDiscoveryClient:
@@ -42,4 +48,12 @@ def get_fallback_cache(request: Request) -> FallbackCache:
         request,
         "fallback_cache",
         "Fallback cache not initialized",
+    )
+
+
+def get_metrics_collector(request: Request) -> MetricsCollector:
+    return _get_from_state(
+        request,
+        "metrics_collector",
+        "Metrics collector not initialized",
     )

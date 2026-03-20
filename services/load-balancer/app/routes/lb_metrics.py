@@ -7,42 +7,33 @@ logger = setup_logger(SERVICE_NAME)
 router = APIRouter(tags=["load_balancer"])
 
 
+def _get_collector(request: Request) -> MetricsCollector:
+    return request.app.state.metrics_collector
+
+
 @router.get(
     "/",
     summary="Get load balancer metrics",
-    description="Get load balancer metrics including request counts, errors, latency, and status codes.",
+    description=(
+        "Get aggregated load balancer metrics including request counts, errors, "
+        "latency and status codes. Also includes breakdowns by image and app hostname "
+        "when available."
+    ),
     response_description="Load balancer metrics",
-    responses={
-        200: {
-            "description": "Metrics retrieved successfully",
-            "content": {
-                "application/json": {
-                    "example": {
-                        "total_requests": 1000,
-                        "total_errors": 10,
-                        "avg_latency_ms": 50.5,
-                        "status_codes": {"200": 950, "500": 10},
-                    }
-                }
-            },
-        }
-    },
 )
 async def get_metrics(request: Request):
-    """
-    Get load balancer metrics.
+    """Get load balancer metrics (JSON friendly for dashboards)."""
+    metrics_collector = _get_collector(request)
+    return await metrics_collector.get_metrics()
 
-    Returns metrics about the load balancer including:
-    - Total requests processed
-    - Total errors
-    - Average latency
-    - Status code distribution
 
-    Args:
-        request: FastAPI request object (used to access app state)
-
-    Returns:
-        dict: Load balancer metrics
-    """
-    metrics_collector: MetricsCollector = request.app.state.metrics_collector
-    return metrics_collector.get_metrics()
+@router.get(
+    "/mappings",
+    summary="Get current hostname → port mappings",
+    description="Returns the active mapping between app_hostname and external_port in the load balancer.",
+    response_description="Active hostname to port mappings",
+)
+async def get_mappings(request: Request):
+    """Get the current app_hostname → external_port mapping."""
+    metrics_collector = _get_collector(request)
+    return {"active_mappings": await metrics_collector.get_active_mappings()}

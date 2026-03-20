@@ -66,6 +66,21 @@ services:
   # Infrastructure Services
   # ============================================================================
 
+  # Redis - Shared state store for load balancer distributed coordination
+  redis:
+    image: redis:7-alpine
+    container_name: nvidia-redis
+    ports:
+      - "6379:6379"
+    networks:
+      - nvidia-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+
   # Docker-in-Docker for container runtime
   docker-dind:
     image: docker:24-dind
@@ -289,10 +304,13 @@ services:
       - LOG_LEVEL=${LOG_LEVEL:-INFO}
       - TARGET_HOST=docker-dind
       - PORT=3004
+      - REDIS_URL=${REDIS_URL:-redis://redis:6379/0}
     volumes:
       - ./logs/load-balancer:/app/logs
     depends_on:
       kafka:
+        condition: service_healthy
+      redis:
         condition: service_healthy
     networks:
       - nvidia-network
@@ -388,8 +406,51 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: nvidia-prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus-data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+    networks:
+      - nvidia-network
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:9090/-/healthy"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: nvidia-grafana
+    ports:
+      - "3001:3000"  # Nota: usando 3001 porque 3000 está ocupado por tu UI
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_USERS_ALLOW_SIGN_UP=false
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning
+    networks:
+      - nvidia-network
+    depends_on:
+      - prometheus
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:3000/api/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
 
 volumes:
+  prometheus-data:
+  grafana-data:
   orch_postgres_data:
   auth_postgres_data:
   billing_postgres_data:

@@ -89,7 +89,7 @@ check_python_service() {
 
     # Install/upgrade lint dependencies from pinned requirements
     pip install --upgrade pip --quiet > /dev/null 2>&1 || true
-    pip install -r requirements-test.txt --quiet > /dev/null 2>&1
+    pip install -r requirements-test.txt --quiet > /dev/null 2>&1 || true
 
     # 1. Lint with ruff
     echo -e "  ${BLUE}Running ruff check...${NC}"

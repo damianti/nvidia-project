@@ -181,7 +181,7 @@ describe("ImagesPage", () => {
       // Assert - Check that the modal form is now visible
       expect(screen.getByLabelText(/image name/i)).toBeInTheDocument();
       expect(screen.getByLabelText(/tag/i)).toBeInTheDocument();
-      expect(screen.getByLabelText(/app hostname/i)).toBeInTheDocument();
+      expect(screen.getByLabelText(/url slug/i)).toBeInTheDocument();
       expect(
         screen.getByRole("button", { name: /^upload$/i })
       ).toBeInTheDocument();
@@ -232,7 +232,7 @@ describe("ImagesPage", () => {
 
       const nameInput = screen.getByLabelText(/image name/i);
       const tagInput = screen.getByLabelText(/tag/i);
-      const hostnameInput = screen.getByLabelText(/app hostname/i);
+      const hostnameInput = screen.getByLabelText(/url slug/i);
       const fileInput = screen.getByLabelText(/build context file/i);
 
       // Fill form with INVALID hostname (test JavaScript validation)
@@ -280,7 +280,7 @@ describe("ImagesPage", () => {
 
       const nameInput = screen.getByLabelText(/image name/i);
       const tagInput = screen.getByLabelText(/tag/i);
-      const hostnameInput = screen.getByLabelText(/app hostname/i);
+      const hostnameInput = screen.getByLabelText(/url slug/i);
       const fileInput = screen.getByLabelText(/build context file/i);
 
       // Fill form
@@ -353,7 +353,7 @@ describe("ImagesPage", () => {
 
       const nameInput = screen.getByLabelText(/image name/i);
       const tagInput = screen.getByLabelText(/tag/i);
-      const hostnameInput = screen.getByLabelText(/app hostname/i);
+      const hostnameInput = screen.getByLabelText(/url slug/i);
       const fileInput = screen.getByLabelText(/build context file/i);
 
       // Fill form
@@ -412,7 +412,7 @@ describe("ImagesPage", () => {
 
       const nameInput = screen.getByLabelText(/image name/i);
       const tagInput = screen.getByLabelText(/tag/i);
-      const hostnameInput = screen.getByLabelText(/app hostname/i);
+      const hostnameInput = screen.getByLabelText(/url slug/i);
       const fileInput = screen.getByLabelText(/build context file/i);
 
       // Fill form

@@ -323,7 +323,7 @@ export default function ImagesPage() {
         {/* Upload Form Modal */}
         {showUploadForm && (
           <div className="fixed inset-0 bg-black bg-opacity-50 overflow-y-auto h-full w-full z-50 flex items-center justify-center p-4">
-            <div className="modern-card w-full max-w-md p-8 fade-in">
+            <div className="modern-card w-full max-w-md p-8 fade-in overflow-y-auto max-h-[90vh]">
               <div className="flex justify-between items-center mb-6">
                 <h3 className="text-2xl font-bold text-gray-900">
                   Upload New Image
@@ -374,12 +374,15 @@ export default function ImagesPage() {
                     type="text"
                     required
                     className="modern-input w-full"
-                    placeholder="e.g., nginx, python, redis"
+                    placeholder="e.g., my-api, task-manager"
                     value={uploadForm.name}
                     onChange={(e) =>
                       setUploadForm({ ...uploadForm, name: e.target.value })
                     }
                   />
+                  <p className="text-xs text-gray-500 mt-1">
+                    Internal name for the Docker image.
+                  </p>
                 </div>
                 <div>
                   <label
@@ -405,14 +408,14 @@ export default function ImagesPage() {
                     htmlFor="app-hostname"
                     className="block text-sm font-semibold text-gray-700 mb-2"
                   >
-                    App hostname
+                    URL Slug
                   </label>
                   <input
                     id="app-hostname"
                     type="text"
                     required
                     className="modern-input w-full"
-                    placeholder="myapp.example.com"
+                    placeholder="my-task-manager"
                     value={uploadForm.app_hostname}
                     onChange={(e) =>
                       setUploadForm({
@@ -421,6 +424,9 @@ export default function ImagesPage() {
                       })
                     }
                   />
+                  <p className="text-xs text-gray-500 mt-1">
+                    Identifies your app in the URL: /apps/&#123;slug&#125;/. Use only lowercase letters, numbers, and hyphens.
+                  </p>
                 </div>
                 <div>
                   <label
@@ -683,11 +689,11 @@ export default function ImagesPage() {
                                 App URL:
                               </span>
                               <code className="text-sm bg-gray-100 px-2 py-1 rounded text-gray-800">
-                                /apps/{image.app_hostname}/
+                                {`http://localhost:8080/apps/${image.app_hostname}/`}
                               </code>
                               <button
                                 onClick={async () => {
-                                  const url = `/apps/${image.app_hostname}/`;
+                                  const url = `http://localhost:8080/apps/${image.app_hostname}/`;
                                   try {
                                     await navigator.clipboard.writeText(url);
                                     setSuccess(

@@ -5,8 +5,10 @@ Unit tests for KafkaConsumerService.
 import asyncio
 import json
 import pytest
+from datetime import datetime
 from unittest.mock import AsyncMock, Mock
 
+from app.schemas.container_data import ContainerEventData
 from app.services.kafka_consumer import KafkaConsumerService
 
 
@@ -135,3 +137,113 @@ class TestKafkaConsumerService:
 
         assert service.running is False
         assert fake_consumer.topics == ["container-lifecycle"]
+
+
+@pytest.fixture
+def image_event_data() -> ContainerEventData:
+    """
+    ContainerEventData used as a stand-in for image lifecycle events.
+
+    NOTE: The current schema only validates container.* events.  We use a
+    container.deleted payload here so Pydantic accepts it; image_id is the only
+    field _on_image_deleted() actually reads.  This is intentional — fixing the
+    schema to accept 'image.deleted' natively is tracked as a separate task.
+    """
+    return ContainerEventData(
+        event="container.deleted",
+        container_id="abc123",
+        container_name="webapp-1",
+        container_ip="172.18.0.10",
+        image_id=42,
+        internal_port=80,
+        external_port=32000,
+        app_hostname="myapp",
+        user_id=1,
+        timestamp=datetime.utcnow(),
+    )
+
+
+@pytest.mark.unit
+class TestOnImageDeleted:
+    """Unit tests for _on_image_deleted() handler."""
+
+    @pytest.mark.asyncio
+    async def test_deregisters_all_services_for_image(
+        self,
+        image_event_data: ContainerEventData,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        """Deregisters every Consul service tagged with image-{image_id}."""
+        import app.services.consul_client as consul_client
+
+        mock_services = [
+            {"container_id": "ctr-1"},
+            {"container_id": "ctr-2"},
+        ]
+        monkeypatch.setattr(
+            consul_client,
+            "query_healthy_services",
+            AsyncMock(return_value=mock_services),
+        )
+        mock_deregister = AsyncMock(return_value=True)
+        monkeypatch.setattr(consul_client, "deregister_service", mock_deregister)
+
+        service = KafkaConsumerService()
+        await service._on_image_deleted(image_event_data)
+
+        consul_client.query_healthy_services.assert_awaited_once_with(
+            tags=["image-42"]
+        )
+        assert mock_deregister.await_count == 2
+        mock_deregister.assert_any_await("ctr-1")
+        mock_deregister.assert_any_await("ctr-2")
+
+    @pytest.mark.asyncio
+    async def test_no_services_registered_is_a_noop(
+        self,
+        image_event_data: ContainerEventData,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        """When Consul returns no services for the image, deregister is never called."""
+        import app.services.consul_client as consul_client
+
+        monkeypatch.setattr(
+            consul_client,
+            "query_healthy_services",
+            AsyncMock(return_value=[]),
+        )
+        mock_deregister = AsyncMock()
+        monkeypatch.setattr(consul_client, "deregister_service", mock_deregister)
+
+        service = KafkaConsumerService()
+        await service._on_image_deleted(image_event_data)
+
+        mock_deregister.assert_not_awaited()
+
+    @pytest.mark.asyncio
+    async def test_deregistration_failure_is_logged_and_continues(
+        self,
+        image_event_data: ContainerEventData,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        """A failed deregistration does not abort processing of remaining services."""
+        import app.services.consul_client as consul_client
+
+        mock_services = [
+            {"container_id": "ctr-fail"},
+            {"container_id": "ctr-ok"},
+        ]
+        monkeypatch.setattr(
+            consul_client,
+            "query_healthy_services",
+            AsyncMock(return_value=mock_services),
+        )
+        # First call fails, second succeeds
+        mock_deregister = AsyncMock(side_effect=[False, True])
+        monkeypatch.setattr(consul_client, "deregister_service", mock_deregister)
+
+        service = KafkaConsumerService()
+        await service._on_image_deleted(image_event_data)
+
+        # Both containers were attempted regardless of the first failure
+        assert mock_deregister.await_count == 2

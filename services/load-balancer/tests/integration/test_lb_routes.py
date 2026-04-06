@@ -6,11 +6,13 @@ from contextlib import asynccontextmanager
 from typing import List
 from unittest.mock import AsyncMock, Mock
 
+import fakeredis.aioredis
 import pytest
 from fastapi.testclient import TestClient
 
 from app.main import app
 from app.schemas.service_info import ServiceInfo
+from app.services.metrics_collector import MetricsCollector
 
 
 @pytest.fixture
@@ -81,3 +83,89 @@ class TestLbRoutesIntegration:
 
         assert response.status_code == 400
         assert "app_hostname" in response.json()["detail"]
+
+
+@pytest.fixture
+def metrics_test_client():
+    """
+    TestClient with a real MetricsCollector backed by fakeredis.
+
+    Uses a FakeServer shared between a sync client (for pre-populating state
+    in synchronous test methods) and an async client (used by MetricsCollector).
+    This avoids event-loop conflicts when TestClient runs the ASGI app.
+    """
+
+    @asynccontextmanager
+    async def dummy_lifespan(_):
+        yield
+
+    app.router.lifespan_context = lambda _: dummy_lifespan(app)
+
+    server = fakeredis.aioredis.FakeServer()
+    async_redis = fakeredis.aioredis.FakeRedis(server=server, decode_responses=True)
+    sync_redis = fakeredis.FakeRedis(server=server, decode_responses=True)
+
+    real_collector = MetricsCollector(redis=async_redis)
+    app.state.metrics_collector = real_collector
+
+    return TestClient(app), sync_redis
+
+
+@pytest.mark.integration
+class TestLbMetricsEndpoints:
+    """Integration tests for GET /metrics and GET /metrics/mappings."""
+
+    def test_get_metrics_returns_200_with_empty_state(
+        self, metrics_test_client
+    ) -> None:
+        client, _ = metrics_test_client
+        response = client.get("/metrics/")
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["total_requests"] == 0
+        assert data["total_errors"] == 0
+        assert data["avg_latency_ms"] == 0.0
+        assert data["status_codes"] == {}
+
+    def test_get_metrics_reflects_recorded_requests(
+        self, metrics_test_client
+    ) -> None:
+        client, sync_redis = metrics_test_client
+
+        # Pre-populate via sync client — same FakeServer, no event-loop conflict.
+        sync_redis.hincrby("lb:metrics:global", "total_requests", 2)
+        sync_redis.hincrby("lb:metrics:global", "total_errors", 1)
+        sync_redis.hincrby("lb:metrics:image:1", "requests", 2)
+        sync_redis.hincrby("lb:metrics:image:1", "errors", 1)
+
+        response = client.get("/metrics/")
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["total_requests"] == 2
+        assert data["total_errors"] == 1
+        assert "by_image" in data
+        assert data["by_image"]["1"]["requests"] == 2
+
+    def test_get_mappings_returns_empty_dict_when_no_mappings(
+        self, metrics_test_client
+    ) -> None:
+        client, _ = metrics_test_client
+        response = client.get("/metrics/mappings")
+
+        assert response.status_code == 200
+        assert response.json() == {"active_mappings": {}}
+
+    def test_get_mappings_reflects_active_mappings(
+        self, metrics_test_client
+    ) -> None:
+        client, sync_redis = metrics_test_client
+
+        sync_redis.hset("lb:metrics:mappings", "myapp", 32100)
+
+        response = client.get("/metrics/mappings")
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["active_mappings"]["myapp"] == 32100

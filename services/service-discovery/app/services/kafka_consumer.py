@@ -7,6 +7,7 @@ from pydantic import ValidationError
 
 
 from app.schemas.container_data import ContainerEventData
+from app.schemas.image_data import ImageEventData
 from app.services import consul_client
 from app.utils.config import KAFKA_BOOTSTRAP_SERVERS, KAFKA_CONSUMER_GROUP, SERVICE_NAME
 
@@ -89,20 +90,22 @@ class KafkaConsumerService:
         """Processes a Kafka message and dispatch to event handler"""
         try:
             raw_data = json.loads(message.value())
-            container_data = ContainerEventData(**raw_data)
+            event_type = raw_data.get("event", "")
+
+            if event_type.startswith("image."):
+                event_data = ImageEventData(**raw_data)
+            else:
+                event_data = ContainerEventData(**raw_data)
 
             logger.info(
                 "kafka.processing_event",
-                extra={
-                    "event": container_data.event,
-                    "container_id": container_data.container_id,
-                },
+                extra={"event": event_data.event},
             )
 
-            handler = self._event_handlers.get(container_data.event)
+            handler = self._event_handlers.get(event_data.event)
 
             # All handlers are async now
-            await handler(container_data)
+            await handler(event_data)
 
         except json.JSONDecodeError as e:
             logger.error(
@@ -194,7 +197,7 @@ class KafkaConsumerService:
             },
         )
 
-    async def _on_image_deleted(self, data: ContainerEventData) -> None:
+    async def _on_image_deleted(self, data: ImageEventData) -> None:
         logger.info(
             "kafka.image_deleted",
             extra={"image_id": data.image_id},

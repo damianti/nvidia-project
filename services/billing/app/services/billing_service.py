@@ -7,6 +7,7 @@ from app.database.models import BillingStatus
 from app.repositories.usage_repository import (
     create_usage_record,
     get_active_by_container_id,
+    get_active_by_image_id,
     update_usage_record,
     get_by_user_and_image,
     get_all_by_user,
@@ -166,6 +167,63 @@ def process_container_stopped(db: Session, event_data: ContainerEventData) -> No
             exc_info=True,
         )
         raise
+
+
+def process_image_deleted(db: Session, image_id: int) -> None:
+    """
+    Close all ACTIVE billing records for an image that has been deleted.
+
+    Called when an image.deleted Kafka event is received. All containers for
+    this image should already be stopped, but any records still ACTIVE are
+    closed with the current time to avoid orphaned billing entries.
+
+    Args:
+        db: Database session
+        image_id: ID of the deleted image
+    """
+    active_records = get_active_by_image_id(db, image_id)
+
+    if not active_records:
+        logger.info(
+            "billing.image_deleted_no_active_records",
+            extra={"image_id": image_id},
+        )
+        return
+
+    end_time = datetime.now(timezone.utc)
+
+    for record in active_records:
+        try:
+            duration_minutes = calculate_duration_minutes(
+                start_time=record.start_time, end_time=end_time
+            )
+            cost = calculate_cost(duration_minutes=duration_minutes)
+            update_usage_record(
+                db=db,
+                usage_record=record,
+                end_time=end_time,
+                duration_minutes=duration_minutes,
+                cost=cost,
+            )
+            logger.info(
+                "billing.record_closed_on_image_delete",
+                extra={
+                    "container_id": record.container_id,
+                    "image_id": image_id,
+                    "duration_minutes": duration_minutes,
+                    "cost": cost,
+                },
+            )
+        except Exception as e:
+            logger.error(
+                "billing.record_close_failed_on_image_delete",
+                extra={
+                    "container_id": record.container_id,
+                    "image_id": image_id,
+                    "error": str(e),
+                },
+                exc_info=True,
+            )
 
 
 def get_billing_summary(

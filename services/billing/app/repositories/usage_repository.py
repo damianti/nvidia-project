@@ -109,6 +109,21 @@ def get_by_user_and_image(db: Session, user_id: int, image_id: int) -> List[Bill
     )
 
 
+def get_active_by_image_id(db: Session, image_id: int) -> List[Billing]:
+    """
+    Get all ACTIVE usage records for a given image, across all users.
+
+    Used when an image is deleted to close any orphaned billing records.
+    """
+    return (
+        db.query(Billing)
+        .filter(
+            and_(Billing.image_id == image_id, Billing.status == BillingStatus.ACTIVE)
+        )
+        .all()
+    )
+
+
 def get_all_by_user(db: Session, user_id: int) -> List[Billing]:
     """
     Get all usage records for a user (across all images).

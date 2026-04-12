@@ -5,10 +5,11 @@ from confluent_kafka import Consumer
 import logging
 from pydantic import ValidationError
 
-from app.schemas.billing import ContainerEventData
+from app.schemas.billing import ContainerEventData, ImageEventData
 from app.services.billing_service import (
     process_container_started,
     process_container_stopped,
+    process_image_deleted,
 )
 from app.utils.config import KAFKA_BOOTSTRAP_SERVERS, KAFKA_CONSUMER_GROUP, SERVICE_NAME
 from app.database.config import SessionLocal
@@ -30,6 +31,7 @@ class KafkaConsumerService:
             "container.started": self._on_container_started,
             "container.stopped": self._on_container_stopped,
             "container.deleted": self._on_container_stopped,  # Treat deleted as stopped
+            "image.deleted": self._on_image_deleted,
         }
 
     async def start(self):
@@ -91,29 +93,28 @@ class KafkaConsumerService:
         """Processes a Kafka message and dispatch to event handler"""
         try:
             raw_data = json.loads(message.value())
-            container_data = ContainerEventData(**raw_data)
+            event_type = raw_data.get("event", "")
+
+            if event_type.startswith("image."):
+                event_data = ImageEventData(**raw_data)
+            else:
+                event_data = ContainerEventData(**raw_data)
 
             logger.info(
                 "kafka.processing_event",
-                extra={
-                    "event": container_data.event,
-                    "container_id": container_data.container_id,
-                },
+                extra={"event": event_data.event},
             )
 
-            handler = self._event_handlers.get(container_data.event)
+            handler = self._event_handlers.get(event_data.event)
 
             if handler:
-                await handler(container_data)
+                await handler(event_data)
                 self.message_count += 1
                 self.processed_success += 1
             else:
                 logger.warning(
                     "kafka.unknown_event",
-                    extra={
-                        "event": container_data.event,
-                        "container_id": container_data.container_id,
-                    },
+                    extra={"event": event_data.event},
                 )
 
         except json.JSONDecodeError as e:
@@ -198,5 +199,27 @@ class KafkaConsumerService:
                 exc_info=True,
             )
             # Don't re-raise - we want to continue processing other messages
+        finally:
+            db.close()
+
+    async def _on_image_deleted(self, data: ImageEventData) -> None:
+        """Handle image.deleted events — close any orphaned ACTIVE billing records."""
+        db = SessionLocal()
+        try:
+            process_image_deleted(db, data.image_id)
+            logger.info(
+                "billing.image_deleted_processed",
+                extra={"image_id": data.image_id, "user_id": data.user_id},
+            )
+        except Exception as e:
+            logger.error(
+                "billing.image_deleted_failed",
+                extra={
+                    "image_id": data.image_id,
+                    "error": str(e),
+                    "error_type": type(e).__name__,
+                },
+                exc_info=True,
+            )
         finally:
             db.close()

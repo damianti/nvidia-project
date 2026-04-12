@@ -1,4 +1,5 @@
 import logging
+from datetime import datetime, timezone
 from sqlalchemy.orm import Session
 from fastapi import HTTPException, UploadFile
 
@@ -7,6 +8,7 @@ from app.database.models import Image, ContainerStatus
 from app.repositories import images_repository, containers_repository
 from app.services.build_context import prepare_context
 from app.services import docker_service
+from app.services.kafka_producer import KafkaProducerSingleton
 
 logger = logging.getLogger("orchestrator")
 MAX_STORED_BUILD_LOG_CHARS = 8000
@@ -306,3 +308,20 @@ def delete_image(db: Session, image_id: int, user_id: int):
             "user_id": user_id,
         },
     )
+
+    try:
+        KafkaProducerSingleton.instance().produce_json(
+            topic="container-lifecycle",
+            key=str(image_id),
+            value={
+                "event": "image.deleted",
+                "image_id": image_id,
+                "user_id": user_id,
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+            },
+        )
+    except Exception as e:
+        logger.error(
+            "kafka.publish_failed",
+            extra={"event": "image.deleted", "image_id": image_id, "error": str(e)},
+        )

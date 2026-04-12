@@ -9,6 +9,7 @@ from datetime import datetime
 from unittest.mock import AsyncMock, Mock
 
 from app.schemas.container_data import ContainerEventData
+from app.schemas.image_data import ImageEventData
 from app.services.kafka_consumer import KafkaConsumerService
 
 
@@ -140,24 +141,11 @@ class TestKafkaConsumerService:
 
 
 @pytest.fixture
-def image_event_data() -> ContainerEventData:
-    """
-    ContainerEventData used as a stand-in for image lifecycle events.
-
-    NOTE: The current schema only validates container.* events.  We use a
-    container.deleted payload here so Pydantic accepts it; image_id is the only
-    field _on_image_deleted() actually reads.  This is intentional — fixing the
-    schema to accept 'image.deleted' natively is tracked as a separate task.
-    """
-    return ContainerEventData(
-        event="container.deleted",
-        container_id="abc123",
-        container_name="webapp-1",
-        container_ip="172.18.0.10",
+def image_event_data() -> ImageEventData:
+    """Minimal image.deleted event payload."""
+    return ImageEventData(
+        event="image.deleted",
         image_id=42,
-        internal_port=80,
-        external_port=32000,
-        app_hostname="myapp",
         user_id=1,
         timestamp=datetime.utcnow(),
     )
@@ -170,7 +158,7 @@ class TestOnImageDeleted:
     @pytest.mark.asyncio
     async def test_deregisters_all_services_for_image(
         self,
-        image_event_data: ContainerEventData,
+        image_event_data: ImageEventData,
         monkeypatch: pytest.MonkeyPatch,
     ) -> None:
         """Deregisters every Consul service tagged with image-{image_id}."""
@@ -201,7 +189,7 @@ class TestOnImageDeleted:
     @pytest.mark.asyncio
     async def test_no_services_registered_is_a_noop(
         self,
-        image_event_data: ContainerEventData,
+        image_event_data: ImageEventData,
         monkeypatch: pytest.MonkeyPatch,
     ) -> None:
         """When Consul returns no services for the image, deregister is never called."""
@@ -223,7 +211,7 @@ class TestOnImageDeleted:
     @pytest.mark.asyncio
     async def test_deregistration_failure_is_logged_and_continues(
         self,
-        image_event_data: ContainerEventData,
+        image_event_data: ImageEventData,
         monkeypatch: pytest.MonkeyPatch,
     ) -> None:
         """A failed deregistration does not abort processing of remaining services."""

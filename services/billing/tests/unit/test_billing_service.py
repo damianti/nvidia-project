@@ -15,6 +15,7 @@ from datetime import datetime, timezone, timedelta
 from app.services.billing_service import (
     process_container_started,
     process_container_stopped,
+    process_image_deleted,
     get_billing_summary,
     get_all_billing_summaries,
 )
@@ -710,3 +711,70 @@ class TestGetAllBillingSummaries:
         assert len(result) == 1
         assert result[0].last_activity is not None
         assert result[0].last_activity == record.start_time
+
+
+@pytest.mark.unit
+class TestProcessImageDeleted:
+    """Test suite for process_image_deleted function."""
+
+    @patch("app.services.billing_service.update_usage_record")
+    @patch("app.services.billing_service.calculate_duration_minutes")
+    @patch("app.services.billing_service.calculate_cost")
+    @patch("app.services.billing_service.get_active_by_image_id")
+    def test_closes_all_active_records_for_image(
+        self,
+        mock_get_active: Mock,
+        mock_cost: Mock,
+        mock_duration: Mock,
+        mock_update: Mock,
+        db_session_mock: Mock,
+        sample_billing_record: Mock,
+    ) -> None:
+        """All ACTIVE records for the image are closed with cost and duration."""
+        record_a = Mock(container_id="ctr-a", start_time=datetime(2024, 1, 1, tzinfo=timezone.utc))
+        record_b = Mock(container_id="ctr-b", start_time=datetime(2024, 1, 1, tzinfo=timezone.utc))
+        mock_get_active.return_value = [record_a, record_b]
+        mock_duration.return_value = 60
+        mock_cost.return_value = 0.60
+
+        process_image_deleted(db_session_mock, image_id=42)
+
+        mock_get_active.assert_called_once_with(db_session_mock, 42)
+        assert mock_update.call_count == 2
+
+    @patch("app.services.billing_service.get_active_by_image_id")
+    def test_no_active_records_is_noop(
+        self,
+        mock_get_active: Mock,
+        db_session_mock: Mock,
+    ) -> None:
+        """When there are no ACTIVE records, nothing is updated."""
+        mock_get_active.return_value = []
+
+        process_image_deleted(db_session_mock, image_id=42)
+
+        mock_get_active.assert_called_once_with(db_session_mock, 42)
+
+    @patch("app.services.billing_service.update_usage_record")
+    @patch("app.services.billing_service.calculate_duration_minutes")
+    @patch("app.services.billing_service.calculate_cost")
+    @patch("app.services.billing_service.get_active_by_image_id")
+    def test_failure_on_one_record_does_not_abort_others(
+        self,
+        mock_get_active: Mock,
+        mock_cost: Mock,
+        mock_duration: Mock,
+        mock_update: Mock,
+        db_session_mock: Mock,
+    ) -> None:
+        """An exception on one record logs the error but continues processing remaining records."""
+        record_a = Mock(container_id="ctr-fail", start_time=datetime(2024, 1, 1, tzinfo=timezone.utc))
+        record_b = Mock(container_id="ctr-ok", start_time=datetime(2024, 1, 1, tzinfo=timezone.utc))
+        mock_get_active.return_value = [record_a, record_b]
+        mock_duration.return_value = 30
+        mock_cost.return_value = 0.30
+        mock_update.side_effect = [Exception("DB write failed"), None]
+
+        process_image_deleted(db_session_mock, image_id=42)
+
+        assert mock_update.call_count == 2

@@ -194,10 +194,14 @@ services:
       - ACCESS_TOKEN_EXPIRE_MINUTES=${ACCESS_TOKEN_EXPIRE_MINUTES}
       - SERVICE_NAME=${AUTH_SERVICE_NAME}
       - FRONTEND_URL=${FRONTEND_URL}
+      - SECURE_COOKIES=${SECURE_COOKIES:-false}
+      - REDIS_URL=${REDIS_URL:-redis://redis:6379/1}
     volumes:
       - ./logs/auth-service:/app/logs
     depends_on:
       auth-postgres:
+        condition: service_healthy
+      redis:
         condition: service_healthy
     networks:
       - nvidia-network

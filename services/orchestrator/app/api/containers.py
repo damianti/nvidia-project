@@ -1,4 +1,5 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query
+from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 from typing import List
 
@@ -180,7 +181,10 @@ async def delete_container_endpoint(
     },
 )
 async def list_containers(
-    db: Session = Depends(get_db), user_id: int = Depends(get_user_id)
+    db: Session = Depends(get_db),
+    user_id: int = Depends(get_user_id),
+    page: int = Query(1, ge=1, description="Page number (1-based)"),
+    page_size: int = Query(50, ge=1, le=100, description="Items per page"),
 ):
     """
     List all containers for the current user.
@@ -188,8 +192,20 @@ async def list_containers(
     Args:
         db: Database session (injected)
         user_id: Authenticated user ID (from token, injected)
+        page: Page number, starting from 1
+        page_size: Number of items per page (max 100)
 
     Returns:
-        List[ContainerResponse]: List of all containers for the user
+        List[ContainerResponse]: Paginated list of containers. Total count in X-Total-Count header.
     """
-    return container_service.get_all_containers(db, user_id)
+    offset = (page - 1) * page_size
+    items, total = container_service.get_all_containers(
+        db, user_id, offset=offset, limit=page_size
+    )
+    response = JSONResponse(
+        content=[ContainerResponse.model_validate(c).model_dump(mode="json") for c in items]
+    )
+    response.headers["X-Total-Count"] = str(total)
+    response.headers["X-Page"] = str(page)
+    response.headers["X-Page-Size"] = str(page_size)
+    return response

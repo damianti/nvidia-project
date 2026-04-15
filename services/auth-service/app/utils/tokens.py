@@ -1,5 +1,5 @@
 import jwt
-from typing import Dict, Any
+from typing import Dict, Any, Optional
 from datetime import datetime, timedelta, timezone
 
 from app.utils.config import SECRET_KEY, ALGORITHM, ACCESS_TOKEN_EXPIRE_MINUTES
@@ -29,3 +29,17 @@ def decode_access_token(token: str) -> TokenData:
 
     except jwt.PyJWTError as e:
         raise InvalidTokenError(f"Invalid token: {str(e)}")
+
+
+def _get_exp_from_token(token: str) -> Optional[float]:
+    """Decode the exp claim without verifying the signature.
+
+    Used only during logout to compute the remaining TTL for the blocklist entry.
+    The token was already fully validated when it was issued — we just need the
+    expiry timestamp here.
+    """
+    try:
+        payload = jwt.decode(token, options={"verify_signature": False})
+        return payload.get("exp")
+    except Exception:
+        return None

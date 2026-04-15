@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 
 from app.utils import tokens
 from app.schemas.user import TokenData
-from app.services import user_service
+from app.services import user_service, token_blocklist
 from app.database.models import User
 from app.database.config import get_db
 from app.exceptions.domain import (
@@ -32,6 +32,13 @@ def verify_token(
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Could not validate credentials",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+    if token_blocklist.is_blocked(token):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Token has been revoked",
             headers={"WWW-Authenticate": "Bearer"},
         )
 

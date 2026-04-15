@@ -464,8 +464,10 @@ def delete_container(db: Session, user_id: int, container_id: int) -> Dict[str, 
     return {"message": f"Container {container_id} deleted successfully"}
 
 
-def get_all_containers(db: Session, user_id: int) -> List[Container]:
-    return containers_repository.list_by_user(db, user_id)
+def get_all_containers(
+    db: Session, user_id: int, offset: int = 0, limit: int = 50
+) -> tuple[List[Container], int]:
+    return containers_repository.list_by_user(db, user_id, offset=offset, limit=limit)
 
 
 def get_containers_of_image(

@@ -1,4 +1,5 @@
 import os
+import re
 import shutil
 import uuid
 import logging
@@ -10,6 +11,18 @@ from app.services.source_storage import safe_extract_tar, safe_extract_zip
 from app.utils.config import DEFAULT_BUILD_CONTEXT_BASE_DIR
 
 logger = logging.getLogger("orchestrator")
+
+MAX_UPLOAD_BYTES = 100 * 1024 * 1024  # 100 MB
+
+# Dockerfile instructions that can expose dangerous capabilities inside the
+# build environment.  We reject them at upload time rather than at build time
+# so the user gets an immediate, human-readable error.
+_DANGEROUS_PATTERNS: list[tuple[str, str]] = [
+    (r"--network\s*=\s*host", "host network access (--network=host)"),
+    (r"--privileged", "privileged mode (--privileged)"),
+    (r"^ADD\s+https?://", "remote URL in ADD instruction — use COPY + curl instead"),
+    (r"--security-opt", "custom security options (--security-opt)"),
+]
 
 
 def build_context_root(user_id: int, image_id: int) -> str:
@@ -40,6 +53,15 @@ async def save_upload_to_disk(file: UploadFile, dest_path: str) -> None:
         # Read the file content as bytes
         content = await file.read()
         file_size = len(content)
+
+        if file_size > MAX_UPLOAD_BYTES:
+            raise HTTPException(
+                status_code=413,
+                detail=(
+                    f"Upload too large: {file_size / (1024 * 1024):.1f} MB "
+                    f"(max {MAX_UPLOAD_BYTES // (1024 * 1024)} MB)"
+                ),
+            )
 
         logger.info(
             "build_context.save_upload.read_complete",
@@ -131,14 +153,47 @@ def extract_archive(filename: str, archive_path: str, context_dir: str) -> None:
         ) from e
 
 
+def validate_dockerfile_content(dockerfile_path: Path) -> None:
+    """Reject Dockerfiles that contain instructions known to be dangerous.
+
+    Checks for patterns that could escape the container sandbox or expose
+    host resources during the build (e.g. --network=host, --privileged).
+
+    Args:
+        dockerfile_path: Path to the Dockerfile to inspect
+
+    Raises:
+        HTTPException: If a forbidden instruction is found
+    """
+    try:
+        content = dockerfile_path.read_text(encoding="utf-8", errors="replace")
+    except Exception as e:
+        raise HTTPException(
+            status_code=400, detail=f"Could not read Dockerfile: {e}"
+        ) from e
+
+    for pattern, description in _DANGEROUS_PATTERNS:
+        if re.search(pattern, content, re.IGNORECASE | re.MULTILINE):
+            logger.warning(
+                "build_context.validate.dangerous_dockerfile",
+                extra={"pattern": pattern, "description": description},
+            )
+            raise HTTPException(
+                status_code=400,
+                detail=f"Dockerfile contains a forbidden instruction: {description}",
+            )
+
+    logger.debug("build_context.dockerfile_content_valid")
+
+
 def validate_context(context_dir: str) -> None:
-    """Validate that build context contains a Dockerfile.
+    """Validate that build context contains a safe Dockerfile.
 
     Args:
         context_dir: Path to build context directory
 
     Raises:
-        HTTPException: If Dockerfile is not found
+        HTTPException: If Dockerfile is not found or contains forbidden instructions
     """
     dockerfile_path = Path(context_dir) / "Dockerfile"
 
@@ -149,6 +204,8 @@ def validate_context(context_dir: str) -> None:
         raise HTTPException(
             status_code=400, detail="Dockerfile not found at context root"
         )
+
+    validate_dockerfile_content(dockerfile_path)
 
     logger.debug("build_context.validate.success", extra={"context_dir": context_dir})
 

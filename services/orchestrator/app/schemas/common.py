@@ -1,4 +1,7 @@
+from typing import Generic, List, TypeVar
 from pydantic import BaseModel, ConfigDict
+
+T = TypeVar("T")
 
 
 class ErrorResponse(BaseModel):
@@ -32,3 +35,14 @@ class BuildLogsResponse(BaseModel):
             "example": {"build_logs": "Step 1/5 : FROM python:3.11\n..."}
         }
     )
+
+
+class PaginationParams(BaseModel):
+    """Query params for paginated list endpoints."""
+
+    page: int = 1
+    page_size: int = 50
+
+    @property
+    def offset(self) -> int:
+        return (self.page - 1) * self.page_size

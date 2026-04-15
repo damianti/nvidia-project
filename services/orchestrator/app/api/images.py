@@ -1,6 +1,7 @@
 from typing import List
 
-from fastapi import APIRouter, Depends, UploadFile, File, Form
+from fastapi import APIRouter, Depends, Query, UploadFile, File, Form
+from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 
 from app.database.config import get_db
@@ -132,7 +133,10 @@ async def create_image(
     },
 )
 async def list_images(
-    db: Session = Depends(get_db), user_id: int = Depends(get_user_id)
+    db: Session = Depends(get_db),
+    user_id: int = Depends(get_user_id),
+    page: int = Query(1, ge=1, description="Page number (1-based)"),
+    page_size: int = Query(50, ge=1, le=100, description="Items per page"),
 ):
     """
     List all registered images for the current user.
@@ -140,11 +144,21 @@ async def list_images(
     Args:
         db: Database session (injected)
         user_id: Authenticated user ID (from token, injected)
+        page: Page number, starting from 1
+        page_size: Number of items per page (max 100)
 
     Returns:
-        List[ImageResponse]: List of all images for the user
+        List[ImageResponse]: Paginated list of images. Total count in X-Total-Count header.
     """
-    return image_service.get_all_images(db, user_id)
+    offset = (page - 1) * page_size
+    items, total = image_service.get_all_images(db, user_id, offset=offset, limit=page_size)
+    response = JSONResponse(
+        content=[ImageResponse.model_validate(i).model_dump(mode="json") for i in items]
+    )
+    response.headers["X-Total-Count"] = str(total)
+    response.headers["X-Page"] = str(page)
+    response.headers["X-Page-Size"] = str(page_size)
+    return response
 
 
 @router.get(
@@ -161,7 +175,10 @@ async def list_images(
     },
 )
 async def list_images_with_containers(
-    db: Session = Depends(get_db), user_id: int = Depends(get_user_id)
+    db: Session = Depends(get_db),
+    user_id: int = Depends(get_user_id),
+    page: int = Query(1, ge=1, description="Page number (1-based)"),
+    page_size: int = Query(50, ge=1, le=100, description="Items per page"),
 ):
     """
     List all images with their containers for the current user.
@@ -169,11 +186,23 @@ async def list_images_with_containers(
     Args:
         db: Database session (injected)
         user_id: Authenticated user ID (from token, injected)
+        page: Page number, starting from 1
+        page_size: Number of items per page (max 100)
 
     Returns:
-        List[ImageWithContainers]: List of images with nested containers
+        List[ImageWithContainers]: Paginated list of images with nested containers.
     """
-    return image_service.get_all_images_with_containers(db, user_id)
+    offset = (page - 1) * page_size
+    items, total = image_service.get_all_images_with_containers(
+        db, user_id, offset=offset, limit=page_size
+    )
+    response = JSONResponse(
+        content=[ImageWithContainers.model_validate(i).model_dump(mode="json") for i in items]
+    )
+    response.headers["X-Total-Count"] = str(total)
+    response.headers["X-Page"] = str(page)
+    response.headers["X-Page-Size"] = str(page_size)
+    return response
 
 
 @router.get(

@@ -226,12 +226,18 @@ async def create_image_from_upload(
         ) from e
 
 
-def get_all_images(db: Session, user_id: int):
-    return images_repository.get_all_images(db, user_id)
+def get_all_images(
+    db: Session, user_id: int, offset: int = 0, limit: int = 50
+) -> tuple:
+    return images_repository.get_all_images(db, user_id, offset=offset, limit=limit)
 
 
-def get_all_images_with_containers(db: Session, user_id: int):
-    return images_repository.get_all_images_with_containers(db, user_id)
+def get_all_images_with_containers(
+    db: Session, user_id: int, offset: int = 0, limit: int = 50
+) -> tuple:
+    return images_repository.get_all_images_with_containers(
+        db, user_id, offset=offset, limit=limit
+    )
 
 
 def get_image_by_id(db: Session, image_id: int, user_id: int) -> Image:

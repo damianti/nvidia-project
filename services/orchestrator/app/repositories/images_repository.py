@@ -1,5 +1,5 @@
 from sqlalchemy.orm import Session, joinedload
-from typing import Optional
+from typing import Optional, List, Tuple
 
 from app.database.models import Image
 
@@ -19,17 +19,30 @@ def get_by_id(db: Session, image_id: int, user_id: int) -> Optional[Image]:
     )
 
 
-def get_all_images(db: Session, user_id: int):
-    return db.query(Image).filter(Image.user_id == user_id).all()
+def get_all_images(
+    db: Session, user_id: int, offset: int = 0, limit: int = 50
+) -> Tuple[List[Image], int]:
+    """Return a page of images and the total count for the user."""
+    base = db.query(Image).filter(Image.user_id == user_id)
+    total = base.count()
+    items = base.order_by(Image.id.desc()).offset(offset).limit(limit).all()
+    return items, total
 
 
-def get_all_images_with_containers(db: Session, user_id: int):
-    return (
-        db.query(Image)
-        .options(joinedload(Image.containers))
-        .filter(Image.user_id == user_id)
+def get_all_images_with_containers(
+    db: Session, user_id: int, offset: int = 0, limit: int = 50
+) -> Tuple[List[Image], int]:
+    """Return a page of images (with containers eager-loaded) and the total count."""
+    base = db.query(Image).filter(Image.user_id == user_id)
+    total = base.count()
+    items = (
+        base.options(joinedload(Image.containers))
+        .order_by(Image.id.desc())
+        .offset(offset)
+        .limit(limit)
         .all()
     )
+    return items, total
 
 
 def get_by_app_hostname(

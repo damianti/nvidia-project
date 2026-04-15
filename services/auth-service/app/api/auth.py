@@ -74,7 +74,9 @@ async def login(
     },
 )
 @limiter.limit("3/minute")
-async def signup(request: Request, user_data: UserCreate, db: Session = Depends(get_db)):
+async def signup(
+    request: Request, user_data: UserCreate, db: Session = Depends(get_db)
+):
     return auth_service.signup(user_data, db)
 
 
@@ -94,7 +96,6 @@ async def logout(request: Request, response: Response):
     token = request.cookies.get("access_token")
     if token:
         try:
-            payload = token_utils.decode_access_token(token)
             exp_claim = token_utils._get_exp_from_token(token)
             if exp_claim:
                 remaining = int(exp_claim - datetime.now(timezone.utc).timestamp())
@@ -115,8 +116,14 @@ async def logout(request: Request, response: Response):
     description="Retrieve information about the currently authenticated user. Requires authentication.",
     response_description="Current user information",
     responses={
-        200: {"description": "User information retrieved successfully", "model": UserResponse},
-        401: {"description": "Authentication required or invalid token", "model": ErrorResponse},
+        200: {
+            "description": "User information retrieved successfully",
+            "model": UserResponse,
+        },
+        401: {
+            "description": "Authentication required or invalid token",
+            "model": ErrorResponse,
+        },
     },
 )
 async def get_current_user_info(

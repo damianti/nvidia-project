@@ -128,3 +128,46 @@ Copy `.env.example` to `.env`. Key variables: PostgreSQL connection strings (3 i
 ## CI/CD
 
 GitHub Actions (`.github/workflows/test-all-services.yml`) runs on push/PR to main: ruff lint, black format check, pytest with coverage for all Python services, plus Next.js build and Jest tests for the UI.
+
+---
+
+## Progress Log
+
+> This section is maintained by Claude across conversations. Update it at the end of every session.
+> Branch: `v2/scale-with-claude`
+
+### Completed
+
+- **Load Balancer → Redis migration**: Migrated in-memory LB state (round-robin counters, circuit breakers, fallback cache) to Redis so the LB can scale horizontally. (`services/load-balancer/`)
+- **LB metrics pipeline**: Load Balancer exposes Prometheus-format metrics; API Gateway proxies them at `GET /api/lb/metrics`; Prometheus scrapes that endpoint; Grafana visualizes them.
+- **LB metrics in UI dashboard**: Dashboard polls `GET /api/lb/metrics` and displays per-image request counts, latency, and circuit-breaker status in real time.
+- **UI API proxy routes for LB** ✅ committed `0e5eebf`: Next.js server-side proxy routes:
+  - `services/ui/app/api/lb/metrics/route.ts` → proxies to `/api/lb/metrics`
+  - `services/ui/app/api/lb/metrics/mappings/route.ts` → proxies to `/api/lb/metrics/mappings`
+- **Service Discovery — `image.deleted` handler**: Handler `_on_image_deleted()` in `kafka_consumer.py` deregisters all Consul services tagged `image-{id}`.
+- **Tests: MetricsCollector** ✅ committed `6039914`: 18 unit tests in `services/load-balancer/tests/unit/test_metrics_collector.py` covering `record_request`, `update_mapping`, `get_metrics`, `get_active_mappings`, `reset`.
+- **Tests: LB metrics endpoints** ✅ committed `6039914`: 4 integration tests added to `services/load-balancer/tests/integration/test_lb_routes.py` for `GET /metrics` and `GET /metrics/mappings`. Used `fakeredis.FakeServer` shared between sync/async clients to avoid event-loop conflicts.
+- **Tests: service-discovery `image.deleted`** ✅ committed `bcff8c8`: 3 unit tests in `services/service-discovery/tests/unit/test_kafka_consumer.py` covering the `_on_image_deleted()` handler directly.
+- **UI — upload form UX**: Improved upload form; renamed "hostname" field to "URL Slug" for clarity.
+- **CI — pre-push hook**: Hook now tolerates pip build failures gracefully and shows better error output.
+- **Billing polling**: UI dashboard polls billing data in real time.
+- **Auth fixes**: Resolved authentication and metrics rendering issues in the UI.
+
+- **Step 5 — Billing `image.deleted` handler** ✅ committed `f2b50cf`:
+  - Created `ImageEventData` schema in service-discovery and billing (separate from `ContainerEventData`)
+  - Fixed `process_message` in both services to route `image.*` events through the new schema
+  - Orchestrator `delete_image()` now publishes `image.deleted` to Kafka after DB delete
+  - Added `get_active_by_image_id()` to `usage_repository`
+  - Added `process_image_deleted()` to `billing_service` — closes ACTIVE records with cost/duration
+  - Added `_on_image_deleted` handler to billing kafka consumer
+  - 3 unit tests for `process_image_deleted`; billing suite at 95% coverage (90 tests passing)
+
+- **Step 6 — Active Routes panel in UI dashboard** ✅: Added "Active Routes" table to `services/ui/app/dashboard/page.tsx`. Polls `/api/lb/metrics/mappings` every 10s and renders `app_hostname → external_port` pairs. State, fetch callback, and refresh interval all wired up.
+
+### In Progress / Pending
+
+- **Step 7 — Feature: Horizontal scaling demo**: Configure docker-compose to run multiple LB replicas; API Gateway discovers LB via Consul instead of hardcoded URL.
+
+### Next Suggested Step
+
+Step 7: horizontal scaling demo — multiple LB replicas + Consul-based LB discovery in the API Gateway.

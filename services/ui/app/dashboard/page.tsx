@@ -11,6 +11,7 @@ import {
   metricsService,
   GlobalMetrics,
   LbMetrics,
+  LbMappingsResponse,
 } from "@/services/metricsService";
 import MetricsCard from "@/components/MetricsCard";
 
@@ -29,6 +30,8 @@ export default function DashboardPage() {
 
   const [lbMetrics, setLbMetrics] = useState<LbMetrics | null>(null);
   const [lbMetricsLoading, setLbMetricsLoading] = useState(true);
+
+  const [lbMappings, setLbMappings] = useState<LbMappingsResponse | null>(null);
 
   const fetchBillingData = useCallback(async () => {
     try {
@@ -73,6 +76,16 @@ export default function DashboardPage() {
     }
   }, []);
 
+  const fetchLbMappings = useCallback(async () => {
+    try {
+      const data = await metricsService.getLbMappings();
+      setLbMappings(data);
+    } catch (error) {
+      console.error("Error fetching LB mappings:", error);
+      setLbMappings(null);
+    }
+  }, []);
+
   useEffect(() => {
     if (!authLoading && !user) {
       router.push("/login");
@@ -84,8 +97,9 @@ export default function DashboardPage() {
       fetchBillingData();
       fetchMetrics();
       fetchLbMetrics();
+      fetchLbMappings();
     }
-  }, [user, fetchBillingData, fetchMetrics, fetchLbMetrics]);
+  }, [user, fetchBillingData, fetchMetrics, fetchLbMetrics, fetchLbMappings]);
 
   // Auto-refresh metrics every 10s
   useEffect(() => {
@@ -93,9 +107,10 @@ export default function DashboardPage() {
     const t = setInterval(() => {
       fetchMetrics();
       fetchLbMetrics();
+      fetchLbMappings();
     }, METRICS_REFRESH_MS);
     return () => clearInterval(t);
-  }, [user, fetchMetrics, fetchLbMetrics]);
+  }, [user, fetchMetrics, fetchLbMetrics, fetchLbMappings]);
 
   const formatCurrency = (amount: number): string => {
     return new Intl.NumberFormat("en-US", {
@@ -158,6 +173,44 @@ export default function DashboardPage() {
           {!lbMetricsLoading && lbMetrics && (
             <div className="mb-8">
               <MetricsCard metrics={lbMetrics} title="Load Balancer Metrics" />
+            </div>
+          )}
+
+          {/* Active Routes */}
+          {lbMappings && Object.keys(lbMappings.active_mappings).length > 0 && (
+            <div className="mb-8">
+              <h2 className="text-2xl font-bold text-gray-900 mb-4">
+                Active Routes
+              </h2>
+              <div className="modern-card overflow-hidden">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="bg-gray-50 border-b border-gray-200">
+                      <th className="text-left px-6 py-3 font-semibold text-gray-600">
+                        App Hostname
+                      </th>
+                      <th className="text-left px-6 py-3 font-semibold text-gray-600">
+                        External Port
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {Object.entries(lbMappings.active_mappings).map(
+                      ([hostname, port]) => (
+                        <tr
+                          key={hostname}
+                          className="border-b border-gray-100 last:border-0 hover:bg-gray-50"
+                        >
+                          <td className="px-6 py-3 font-mono text-gray-800">
+                            {hostname}
+                          </td>
+                          <td className="px-6 py-3 text-gray-700">{port}</td>
+                        </tr>
+                      )
+                    )}
+                  </tbody>
+                </table>
+              </div>
             </div>
           )}
 

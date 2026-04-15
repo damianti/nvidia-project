@@ -203,7 +203,9 @@ async def list_containers(
         db, user_id, offset=offset, limit=page_size
     )
     response = JSONResponse(
-        content=[ContainerResponse.model_validate(c).model_dump(mode="json") for c in items]
+        content=[
+            ContainerResponse.model_validate(c).model_dump(mode="json") for c in items
+        ]
     )
     response.headers["X-Total-Count"] = str(total)
     response.headers["X-Page"] = str(page)

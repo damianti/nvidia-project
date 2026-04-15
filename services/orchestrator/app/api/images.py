@@ -151,7 +151,9 @@ async def list_images(
         List[ImageResponse]: Paginated list of images. Total count in X-Total-Count header.
     """
     offset = (page - 1) * page_size
-    items, total = image_service.get_all_images(db, user_id, offset=offset, limit=page_size)
+    items, total = image_service.get_all_images(
+        db, user_id, offset=offset, limit=page_size
+    )
     response = JSONResponse(
         content=[ImageResponse.model_validate(i).model_dump(mode="json") for i in items]
     )
@@ -197,7 +199,9 @@ async def list_images_with_containers(
         db, user_id, offset=offset, limit=page_size
     )
     response = JSONResponse(
-        content=[ImageWithContainers.model_validate(i).model_dump(mode="json") for i in items]
+        content=[
+            ImageWithContainers.model_validate(i).model_dump(mode="json") for i in items
+        ]
     )
     response.headers["X-Total-Count"] = str(total)
     response.headers["X-Page"] = str(page)

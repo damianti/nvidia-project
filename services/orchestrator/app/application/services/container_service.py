@@ -13,7 +13,6 @@ from app.services import docker_service
 from app.services.kafka_producer import KafkaProducerSingleton
 from app.repositories import containers_repository, images_repository
 
-
 logger = logging.getLogger("orchestrator")
 
 

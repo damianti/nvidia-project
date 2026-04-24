@@ -2,9 +2,9 @@ name: Test All Services
 
 on:
   push:
-    branches: [main]
+    branches: [main, v2/scale-with-claude]
   pull_request:
-    branches: [main]
+    branches: [main, v2/scale-with-claude]
 
 jobs:
   test-python-services:
@@ -36,6 +36,7 @@ jobs:
         working-directory: ./services/${{ matrix.service }}
         run: |
           pip install --upgrade pip
+          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
           pip install -r requirements-test.txt
 
       - name: Lint with ruff
